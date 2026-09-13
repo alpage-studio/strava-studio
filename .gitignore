@@ -1,0 +1,23 @@
+# Sorties de débogage et d'export
+tools/preview.png
+tools/frame*.png
+tools/sequence-test.zip
+*.zip
+
+# Exploration visuelle : réflexion de travail, gardée en local.
+# Les fichiers restent sur le disque — seul le dépôt les ignore.
+design/
+
+# Traces réelles : le premier point d'un GPX, c'est presque toujours ton
+# domicile. Seul l'exemple synthétique est versionné.
+*.gpx
+!exemple.gpx
+
+# Systèmes
+.DS_Store
+Thumbs.db
+node_modules/
+
+# Rappel : les identifiants Strava ne sont PAS ici.
+# Ils vivent dans ~/.strava-studio/config.json, hors du dépôt, et n'y
+# entreront jamais — le code ne connaît que le nom des variables.

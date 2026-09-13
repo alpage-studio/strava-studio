@@ -1,0 +1,74 @@
+/* SQUELETTE DE TEMPLATE
+ *
+ * Pour en créer un :
+ *   1. copie ce fichier en  src/templates/mon-truc.js   (extension .js, pas .txt)
+ *   2. ajoute  <script src="src/templates/mon-truc.js"></script>  dans index.html
+ *   3. recharge la page — il apparaît dans la liste
+ *
+ * Tout ce que tu reçois est documenté ci-dessous. Aucune contrainte de style :
+ * tu as un contexte canvas 2D nu, fais-en ce que tu veux.
+ */
+Studio.template({
+  id: 'mon-truc',          // identifiant unique, sans espace
+  name: 'Mon truc',        // nom affiché dans la liste
+
+  /* Chaque option devient un contrôle dans le panneau de gauche.
+   * Types : color | select | range | toggle | text */
+  options: [
+    { key: 'accent', type: 'color',  label: 'Accent', default: '#FF3B30' },
+    { key: 'taille', type: 'range',  label: 'Taille', default: 50, min: 0, max: 100 },
+    { key: 'mode',   type: 'select', label: 'Mode',   default: 'a',
+      choices: [['a', 'Variante A'], ['b', 'Variante B']] },
+    { key: 'note',   type: 'text',   label: 'Mention', default: '' },
+    { key: 'cadre',  type: 'toggle', label: 'Cadre',  default: false }
+  ],
+
+  draw: function (s) {
+    var ctx = s.ctx;  // contexte canvas 2D, déjà à la bonne taille
+    var w = s.w, h = s.h;
+    var a = s.a;      // l'activité (voir plus bas)
+    var o = s.o;      // les valeurs de tes options
+    var H = s.H;      // les helpers
+    var u = H.u;      // u(10) = 10% de la plus petite dimension
+
+    /* ------------------------------------------------------------------
+     * a — l'activité
+     *   a.name            titre de la sortie
+     *   a.date            objet Date
+     *   a.distance_km     nombre (ex. 12.47)
+     *   a.duration_s      secondes en mouvement
+     *   a.elapsed_s       secondes écoulées (pauses comprises)
+     *   a.pace_s_per_km   secondes par km
+     *   a.speed_kmh       km/h
+     *   a.elev_gain_m     D+ / a.elev_loss_m / a.elev_min_m / a.elev_max_m
+     *   a.hr_avg, a.hr_max, a.cadence_avg   (si le GPX les contient)
+     *   a.splits          [{km, pace_s, elev}, ...]
+     *   a.route           {pts:[{x,y} en 0..1], aspect}
+     *   a.profile         [{x, y} en 0..1]
+     *   a.track           points bruts {lat, lon, ele, t, d, hr, cad}
+     *
+     * H — les helpers
+     *   H.u(n)                     unité relative
+     *   H.fill(couleur)
+     *   H.gradient(stops, x0,y0,x1,y1)
+     *   H.photo(box)               photo de l'utilisateur en cover ; false si aucune
+     *   H.route(a.route, box, {color, width, glow, dots, pad})
+     *   H.profile(a.profile, box, {fill, stroke, width})
+     *   H.text(str, x, y, {size, weight, color, align, base, tracking, font})
+     *   H.stat(valeur, légende, x, y, {valueSize, gap, color, labelColor, align})
+     *   H.roundRect(x, y, w, h, r)  -> trace le chemin, à toi de fill()/stroke()
+     *   H.fmt.duration(s) .pace(s) .km(n, dec) .int(n) .speed(n) .date(d) .time(d)
+     *   H.FONT                     pile de polices par défaut
+     * ------------------------------------------------------------------ */
+
+    H.fill('#101014');
+
+    H.text(a.name, u(8), u(14), { size: u(5), weight: 800, color: '#fff' });
+
+    H.route(a.route, { x: u(8), y: h * 0.25, w: w - u(16), h: h * 0.4 }, {
+      color: o.accent, width: u(1), dots: u(1.2)
+    });
+
+    H.stat(H.fmt.km(a.distance_km) + ' km', 'distance', u(8), h - u(12));
+  }
+});
