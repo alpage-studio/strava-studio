@@ -18,6 +18,7 @@
   var photoURL = null;              // pour le fond de contrôle, hors canvas
   var photoImg = null;              // la même, pour composer la vidéo
   var bgVideo = null;               // vidéo de fond, pour graver la surcouche dessus
+  var chargee = false;              // une vraie sortie a-t-elle été fournie ?
 
   /* ---------- persistance légère ---------- */
   function save() {
@@ -55,6 +56,11 @@
   }
 
   function draw() {
+    document.body.classList.toggle('vide', !chargee);
+    ['#export', '#export-video', '#export-seq'].forEach(function (sel) {
+      $(sel).disabled = !chargee;
+    });
+    if (!chargee) { save(); return; }
     var size = SIZES[$('#size').value];
     var tplId = $('#tpl').value;
     current = Studio.render(canvas, tplId, effective(), resolvedOptions(tplId), size);
@@ -173,6 +179,10 @@
   }
 
   function summary() {
+    if (!chargee) {
+      $('#summary').innerHTML = '<span class="muted">Aucune sortie chargée.</span>';
+      return;
+    }
     var a = effective();
     $('#summary').innerHTML =
       '<strong>' + escapeHtml(a.name) + '</strong><br>' +
@@ -199,6 +209,10 @@
   }
 
   function syncManualFields() {
+    if (!chargee) {
+      ['#f-name', '#f-dist', '#f-time', '#f-elev'].forEach(function (sel) { $(sel).value = ''; });
+      return;
+    }
     var a = effective();
     $('#f-name').value = a.name || '';
     $('#f-dist').value = a.distance_km != null ? a.distance_km.toFixed(2) : '';
@@ -217,6 +231,7 @@
       try {
         base = Activity.parseGPX(reader.result);
         overrides = {};
+        chargee = true;
         $('#gpx-err').textContent = '';
         syncManualFields();
         summary();
@@ -280,6 +295,8 @@
    ['#f-elev', 'elev_gain_m', function (v) { return v === '' ? null : parseInt(v, 10); }]
   ].forEach(function (f) {
     $(f[0]).addEventListener('input', function () {
+      // saisir une valeur à la main compte comme fournir une sortie
+      chargee = true;
       overrides[f[1]] = f[2]($(f[0]).value);
       summary();
       draw();
@@ -514,6 +531,7 @@
       if (!r.ok) throw new Error(j.error || 'erreur');
       base = Activity.fromStrava(j.detail, j.streams);
       overrides = {};
+      chargee = true;
       $('#gpx-err').textContent = '';
       stravaState('Strava — connecté');
       syncManualFields();
