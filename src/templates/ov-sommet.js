@@ -12,6 +12,7 @@
   'use strict';
 
   var OPTIONS = [
+    Overlay.OPT_INK,
     Overlay.OPT_THIRD,
     { key: 'reperes', type: 'toggle', label: 'Repères de distance', default: true },
     { key: 'halo', type: 'toggle', label: 'Halo sur le parcours', default: true },
@@ -40,18 +41,19 @@
       var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H;
       var px = H.px, py = H.py;
       var f = Overlay.fields(a, o, H);
+      var P = Overlay.palette(o);
 
       if (o.voile) {
-        H.scrim('top', [
-          [0, 'rgba(0,0,0,.58)'], [0.32, 'rgba(0,0,0,.2)'], [0.56, 'rgba(0,0,0,0)']
-        ]);
+        H.scrim('top', P.scrim([
+          [0, .58], [0.32, .2], [0.56, 0]
+        ]));
       }
 
       var left = px(80), right = w - px(80);
       var label = { size: px(20), font: H.MONO, weight: 400, tracking: px(20) * 0.2,
-                    color: 'rgba(255,255,255,.62)', upper: true };
+                    color: P.a(.62), upper: true };
       var value = { size: px(44), font: H.SANS, weight: 400, tracking: -px(44) * 0.01,
-                    color: '#fff' };
+                    color: P.ink };
 
       /* ---------- le bas se pose en premier, du bas vers le haut ---------- */
 
@@ -59,11 +61,11 @@
       var capSize = px(20);
       var capBase = (h - py(132)) - capSize * 0.26;
       H.text(f.ascentUpper + ' D+', left, capBase,
-        Object.assign({}, label, { color: 'rgba(255,255,255,.85)' }));
+        Object.assign({}, label, { color: P.a(.85) }));
 
       /* filet, puis bande de profil */
       var hairY = capBase - capSize * 0.92 - px(22);
-      H.hair(left, hairY, right, 'rgba(255,255,255,.3)');
+      H.hair(left, hairY, right, P.a(.3));
 
       var profH = py(260);
       var profBottom = hairY - px(26);
@@ -79,14 +81,14 @@
           var vals = resample(prof.map(function (p) { return p.y; }), 64);
           var pk = vals.indexOf(Math.max.apply(null, vals));
           H.bars(vals, box, {
-            color: 'rgba(255,255,255,.62)', peak: pk, peakColor: '#fff', floor: 0.05
+            color: P.a(.62), peak: pk, peakColor: P.ink, floor: 0.05
           });
           peakX = box.x + (pk + 0.5) * (box.w / vals.length);
         } else {
           if (o.reperes && a.distance_km) {
             var step = niceStep(a.distance_km);
             ctx.save();
-            ctx.strokeStyle = 'rgba(255,255,255,.32)';
+            ctx.strokeStyle = P.a(.32);
             ctx.lineWidth = px(1.5);
             ctx.setLineDash([px(9), px(9)]);
             for (var km = step; km < a.distance_km; km += step) {
@@ -107,7 +109,7 @@
             var x = box.x + p.x * box.w, y = box.y + box.h - p.y * box.h;
             if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
           });
-          ctx.strokeStyle = '#fff';
+          ctx.strokeStyle = P.ink;
           ctx.lineWidth = px(3);
           ctx.lineJoin = ctx.lineCap = 'round';
           ctx.stroke();
@@ -115,7 +117,7 @@
           peakX = box.x + prof[peak].x * box.w;
           if (peak < vus) {
             var peakY = box.y + box.h - prof[peak].y * box.h;
-            ctx.fillStyle = '#fff';
+            ctx.fillStyle = P.ink;
             ctx.beginPath();
             ctx.arc(peakX, peakY, px(8), 0, Math.PI * 2);
             ctx.fill();
@@ -128,7 +130,7 @@
       if (peakDrawn && a.elev_max_m != null) {
         var pxClamped = Math.max(box.x + px(60), Math.min(box.x + box.w - px(60), peakX));
         H.text(a.elev_max_m + ' m', pxClamped, box.y - px(26),
-          Object.assign({}, label, { align: 'center', color: 'rgba(255,255,255,.85)' }));
+          Object.assign({}, label, { align: 'center', color: P.a(.85) }));
       }
 
       /* statistiques — l'écart au profil réserve une voie à l'étiquette du
@@ -154,25 +156,25 @@
 
       /* filet haut + nom de la sortie */
       var hair2 = lTop - px(30) - px(1.5);
-      H.hair(left, hair2, right, 'rgba(255,255,255,.3)');
+      H.hair(left, hair2, right, P.a(.3));
 
       var nSize = px(52);
       var nameBottom = hair2 - px(34);
       H.text(f.name, left, H.bl(nameBottom - H.lh(nSize), nSize), {
         size: nSize, font: H.SANS, weight: 400, tracking: -nSize * 0.02,
-        color: '#fff', maxWidth: right - left
+        color: P.ink, maxWidth: right - left
       });
 
       /* ---------- parcours : tout l'espace restant en haut ---------- */
       var routeTop = py(200);
       var routeBottom = nameBottom - H.lh(nSize) - px(60);
       H.route(a.route, { x: left, y: routeTop, w: right - left, h: routeBottom - routeTop }, {
-        color: '#fff',
+        color: P.ink,
         width: px(2.5),
-        glow: o.halo ? 'rgba(0,0,0,.62)' : null,
+        glow: o.halo ? P.halo : null,
         dots: px(9),
-        startColor: '#fff',
-        endColor: 'rgba(255,255,255,.45)'
+        startColor: P.ink,
+        endColor: P.a(.45)
       });
     };
   }

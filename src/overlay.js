@@ -162,6 +162,39 @@
     };
   }
 
+  /* ---------- encre claire ou sombre ----------
+   * Le handoff ne prévoyait que l'encre blanche. Elle meurt sur une photo
+   * de neige ou de ciel surexposé. L'encre sombre n'est pas une simple
+   * inversion des textes : le VOILE doit s'inverser aussi. Un texte noir a
+   * besoin qu'on éclaircisse sous lui, pas qu'on assombrisse — sinon on
+   * empile du noir sur du noir et plus rien ne se lit. */
+  function palette(o) {
+    var sombre = o.encre === 'sombre';
+    var rvb = sombre ? '12,12,12' : '255,255,255';
+    var voile = sombre ? '255,255,255' : '0,0,0';
+    return {
+      sombre: sombre,
+      ink: sombre ? '#0C0C0C' : '#FFFFFF',
+      // halo : il doit contraster AVEC l'encre, donc s'inverser avec elle
+      halo: sombre ? 'rgba(255,255,255,.7)' : 'rgba(0,0,0,.62)',
+      // a(k) : l'encre à l'opacité k — pour les étiquettes, jamais les valeurs
+      a: function (k) { return 'rgba(' + rvb + ',' + k + ')'; },
+      /* scrim([[position, opacité], …]) rend les arrêts dans la bonne
+       * couleur de voile. Les positions et les opacités du handoff sont
+       * conservées telles quelles. */
+      scrim: function (stops) {
+        return stops.map(function (s) {
+          return [s[0], 'rgba(' + voile + ',' + s[1] + ')'];
+        });
+      }
+    };
+  }
+
+  var OPT_INK = {
+    key: 'encre', type: 'select', label: 'Encre', default: 'claire',
+    choices: [['claire', 'Claire (photo sombre)'], ['sombre', 'Sombre (photo claire)']]
+  };
+
   /* Option « troisième statistique », partagée par les six templates. */
   var OPT_THIRD = {
     key: 'troisieme', type: 'select', label: '3ᵉ donnée', default: 'vitesse',
@@ -173,8 +206,8 @@
   };
 
   global.Overlay = {
-    extend: extend, fields: fields,
-    OPT_THIRD: OPT_THIRD, OPT_SCRIM: OPT_SCRIM,
+    extend: extend, fields: fields, palette: palette,
+    OPT_THIRD: OPT_THIRD, OPT_SCRIM: OPT_SCRIM, OPT_INK: OPT_INK,
     SANS: SANS, MONO: MONO
   };
 }(window));

@@ -6,17 +6,18 @@ Studio.template({
   name: '1d · Ardoise',
   transparent: true,
 
-  options: [Overlay.OPT_THIRD, Overlay.OPT_SCRIM],
+  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM],
 
   draw: function (s) {
     var a = s.a, o = s.o, H = s.H;
     var px = H.px, py = H.py;
     var f = Overlay.fields(a, o, H);
+      var P = Overlay.palette(o);
 
     if (o.voile) {
-      H.scrim('bottom', [
-        [0, 'rgba(0,0,0,.5)'], [0.24, 'rgba(0,0,0,.14)'], [0.40, 'rgba(0,0,0,0)']
-      ]);
+      H.scrim('bottom', P.scrim([
+        [0, .5], [0.24, .14], [0.40, 0]
+      ]));
     }
 
     var left = px(96), right = left + px(520);
@@ -26,12 +27,12 @@ Studio.template({
     var nSize = px(40), dSize = px(20);
     H.text(f.name, left, H.bl(y, nSize), {
       size: nSize, font: H.SANS, weight: 400, tracking: -nSize * 0.01,
-      color: '#fff', maxWidth: right - left
+      color: P.ink, maxWidth: right - left
     });
     y += H.lh(nSize) + px(36);
 
     /* premier filet, puis trois lignes séparées de filets plus discrets */
-    H.hair(left, y, right, 'rgba(255,255,255,.26)');
+    H.hair(left, y, right, P.a(.26));
     y += px(1.5);
 
     var lSize = px(20), vSize = px(34);
@@ -46,14 +47,14 @@ Studio.template({
       var base = H.bl(rowTop, vSize);
       H.text(r[0], left, base, {
         size: lSize, font: H.MONO, weight: 400, tracking: lSize * 0.2,
-        color: 'rgba(255,255,255,.6)', upper: true
+        color: P.a(.6), upper: true
       });
       H.text(r[1], right, base, {
-        size: vSize, font: H.SANS, weight: 400, color: '#fff', align: 'right'
+        size: vSize, font: H.SANS, weight: 400, color: P.ink, align: 'right'
       });
       y = rowTop + H.lh(vSize) + px(26);
       if (i < rows.length - 1) {
-        H.hair(left, y, right, 'rgba(255,255,255,.16)');
+        H.hair(left, y, right, P.a(.16));
         y += px(1.5);
       }
     });
