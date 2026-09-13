@@ -446,9 +446,12 @@
   async function stravaInit() {
     var st;
     try {
-      st = await (await fetch('/api/status')).json();
+      st = await (await fetch('api/status')).json();
     } catch (e) {
-      stravaState('Strava — indisponible (ouvre la page via le serveur local).');
+      /* Pas de serveur local : le studio est ouvert depuis un hébergement
+       * statique. Inutile d'afficher un encadré en panne à quelqu'un qui
+       * n'a rien à connecter — on le retire, le chargement GPX suffit. */
+      $('#strava').style.display = 'none';
       return;
     }
     if (!st.configured) {

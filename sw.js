@@ -7,7 +7,9 @@
  * tu as toujours le dernier code ; sans réseau, tu as la dernière version
  * vue. C'est le bon compromis pour un outil qu'on modifie encore.
  */
-const VERSION = 'studio-v1';
+/* Changer ce numéro à chaque ajout dans SHELL : c'est lui qui purge
+ * l'ancien cache chez les gens qui ont déjà ouvert le studio. */
+const VERSION = 'studio-v2';
 
 /* Le strict nécessaire pour démarrer hors ligne. Les templates sont listés
  * un par un : en ajouter un demande une ligne ici, et un changement de
@@ -22,6 +24,10 @@ const SHELL = [
   './assets/plexmono-latin-ext.woff2',
   './assets/icon-192.png',
   './assets/icon-512.png',
+  './assets/icon-180.png',
+  './assets/icon-maskable-512.png',
+  // sans l'exemple, un visiteur hors ligne n'a rien à charger
+  './exemple.gpx',
   './src/activity.js',
   './src/studio.js',
   './src/design.js',
