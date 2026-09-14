@@ -65,52 +65,30 @@ Studio.template({
         : 'aucune donnée d’effort sur cette sortie';
     H.text(legende, g.left, heroBase + u(4.4), H.t('label', { color: faint }));
 
-    /* ---------- la zone des allumettes ---------- */
-    var box = { x: g.left, y: g.top + CH * 0.38, w: g.width, h: CH * 0.42 };
+    /* ---------- la zone des allumettes ----------
+     * Elles reposent toutes sur UNE MÊME LIGNE, et non sur le relief.
+     * Plantées sur le terrain, chacune démarrait à une hauteur différente :
+     * on voyait où elles avaient brûlé, mais on ne pouvait plus comparer
+     * leur coût d'un coup d'œil — ce qui est pourtant le sujet. Le relief
+     * passe derrière, en masse discrète : il situe sans fausser la lecture.
+     * La position horizontale dit toujours « où ». */
+    var box = { x: g.left, y: g.top + CH * 0.30, w: g.width, h: CH * 0.50 };
     var sol = box.y + box.h;
-    var relH = box.h * 0.46;   // amplitude laissée au relief
 
-    /* Le profil en LIGNE, pas en masse : il situe sans peser. */
     var prof = a.profile;
     if (o.profil && prof && prof.length > 1) {
+      var relH = box.h * 0.52;
       ctx.save();
       ctx.beginPath();
-      prof.forEach(function (p, i) {
-        var px = box.x + p.x * box.w, py = sol - p.y * relH;
-        if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      ctx.moveTo(box.x, sol);
+      prof.forEach(function (p) {
+        ctx.lineTo(box.x + p.x * box.w, sol - p.y * relH);
       });
-      ctx.strokeStyle = melange(ink, 0.20);
-      ctx.lineWidth = u(0.1);
-      ctx.lineJoin = ctx.lineCap = 'round';
-      ctx.stroke();
+      ctx.lineTo(box.x + box.w, sol);
+      ctx.closePath();
+      ctx.fillStyle = melange(ink, 0.10);
+      ctx.fill();
       ctx.restore();
-    }
-
-    /* Altitude sous une abscisse donnée.
-     *
-     * La silhouette est tracée avec la distance normalisée de chaque point
-     * (p.x), mais on cherchait la hauteur par INDICE — x × nombre de points.
-     * Les deux axes ne coïncident que si l'échantillonnage est parfaitement
-     * régulier ; dès qu'on ralentit en montée, ils divergent, et les
-     * allumettes flottent au-dessus du relief.
-     *
-     * On encadre donc la distance par ses deux points voisins et on
-     * interpole, comme le trait lui-même. */
-    function relief(x) {
-      if (!o.profil || !prof || prof.length < 2) return 0;
-      if (x <= prof[0].x) return prof[0].y * relH;
-      var fin = prof[prof.length - 1];
-      if (x >= fin.x) return fin.y * relH;
-
-      var lo = 0, hi = prof.length - 1;
-      while (hi - lo > 1) {                     // recherche dichotomique
-        var mid = (lo + hi) >> 1;
-        if (prof[mid].x <= x) lo = mid; else hi = mid;
-      }
-      var a0 = prof[lo], b0 = prof[hi];
-      var ecart = b0.x - a0.x;
-      var k = ecart > 0 ? (x - a0.x) / ecart : 0;
-      return (a0.y + (b0.y - a0.y) * k) * relH;
     }
 
     if (n) {
@@ -118,29 +96,46 @@ Studio.template({
       var coutMax = Math.max.apply(null, couts) || 1;
       var plusCher = couts.indexOf(coutMax);
 
-      var larg = u(0.34);                 // fin, mais plus présent que le décor
-      var haut = box.h * 0.40;
+      var larg = u(0.66);           // assez large pour lire une tête
+      var haut = box.h * 0.60;     // courte : une allumette n'est pas une aiguille
 
-      feu.list.forEach(function (m, i) {
-        allumette(
-          box.x + m.x * box.w,
-          sol - relief(m.x),
-          larg, haut,
-          0.15 + 0.70 * (m.cout / coutMax),
-          i === plusCher
-        );
+      /* Deux efforts rapprochés donnaient deux traits superposés, illisibles.
+       * On impose un écart minimal en décalant vers la droite de proche en
+       * proche : l'ordre et la zone restent justes, la grappe se lit. */
+      var ecartMin = larg * 2.6;
+      var xs = [], dernier = -Infinity;
+      feu.list.forEach(function (m) {
+        var x = Math.max(box.x + larg, box.x + m.x * box.w);
+        if (x - dernier < ecartMin) x = dernier + ecartMin;
+        x = Math.min(x, box.x + box.w - larg);
+        xs.push(x);
+        dernier = x;
       });
 
-      /* L'unique annotation : le plus gros effort, nommé. */
-      var mx = feu.list[plusCher];
-      var ax = box.x + mx.x * box.w;
+      feu.list.forEach(function (m, i) {
+        allumette(xs[i], sol, larg, haut, m.cout / coutMax, i === plusCher);
+      });
+
+      /* Une seule annotation, reliée à son allumette par un trait : sans le
+       * trait, elle flotte et on ne sait pas de laquelle elle parle. */
+      var mx = feu.list[plusCher], ax = xs[plusCher];
+      var sommet = sol - haut;
+      var yTexte = sommet - u(5.2);
+      ctx.save();
+      ctx.strokeStyle = melange(o.accent, 0.55);
+      ctx.lineWidth = u(0.1);
+      ctx.beginPath();
+      ctx.moveTo(ax, sommet - u(1.4));
+      ctx.lineTo(ax, yTexte + u(1.1));
+      ctx.stroke();
+      ctx.restore();
+
       var valeur = feu.source === 'puissance'
         ? mx.moyenne + ' W pendant ' + H.fmt.duration(mx.duree)
         : 'effort de ' + H.fmt.duration(mx.duree);
-      H.text(valeur,
-        Math.max(box.x + u(9), Math.min(box.x + box.w - u(9), ax)),
-        sol - relief(mx.x) - haut - u(3.4),
-        H.t('label', { color: o.accent, align: 'center' }));
+      var alignement = ax > box.x + box.w * 0.82 ? 'right'
+                     : ax < box.x + box.w * 0.18 ? 'left' : 'center';
+      H.text(valeur, ax, yTexte, H.t('label', { color: o.accent, align: alignement }));
     }
 
     H.rule(g.left, sol, g.right, { color: hair });
@@ -162,38 +157,34 @@ Studio.template({
       });
     });
 
-    /* ================= une allumette ================= */
-    /* Un trait fin. La part consumée part de la TÊTE et descend : c'est le
-     * sens dans lequel une allumette brûle, et c'est ce qui rend la lecture
-     * immédiate sans légende. */
+    /* ================= une allumette =================
+     * Longueur totale constante, part consumée proportionnelle au coût :
+     * une relance noircit la tête, un col brûle jusqu'aux doigts. La
+     * comparaison se fait donc sur une seule variable, sur une seule
+     * ligne de base. */
     function allumette(x, pied, larg, haut, part, vedette) {
       var sommet = pied - haut;
-      var brule = haut * Math.min(0.88, part);
-      var teteR = larg * 1.45;
+      var brule = haut * (0.12 + 0.76 * part);
+      var teteH = larg * 2.1;
 
       ctx.save();
-      ctx.lineCap = 'butt';
-      ctx.lineWidth = larg;
 
-      // la partie intacte
-      ctx.strokeStyle = melange(ink, 0.32);
-      ctx.beginPath();
-      ctx.moveTo(x, pied);
-      ctx.lineTo(x, sommet + brule);
-      ctx.stroke();
-
-      // la partie consumée
-      ctx.strokeStyle = vedette ? o.accent : ink;
-      ctx.beginPath();
-      ctx.moveTo(x, sommet + brule);
-      ctx.lineTo(x, sommet + teteR);
-      ctx.stroke();
-
-      // la tête
-      ctx.fillStyle = vedette ? o.accent : ink;
-      ctx.beginPath();
-      ctx.arc(x, sommet + teteR * 0.9, teteR, 0, Math.PI * 2);
+      // le bois restant
+      ctx.fillStyle = melange(ink, 0.16);
+      H.roundRect(x - larg / 2, sommet, larg, haut, larg * 0.5);
       ctx.fill();
+
+      // la part consumée, depuis la tête vers le bas
+      ctx.fillStyle = vedette ? o.accent : ink;
+      H.roundRect(x - larg / 2, sommet, larg, brule, larg * 0.5);
+      ctx.fill();
+
+      // la tête : un peu plus large que le bâtonnet, c'est elle qui dit
+      // « allumette » plutôt que « barre »
+      ctx.fillStyle = vedette ? o.accent : ink;
+      H.roundRect(x - larg * 0.95, sommet - teteH * 0.22, larg * 1.9, teteH, larg * 0.95);
+      ctx.fill();
+
       ctx.restore();
     }
 
