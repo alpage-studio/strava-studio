@@ -364,25 +364,30 @@
      * surcouche. L'enregistrement dure ce que dure la vidéo — plus besoin
      * de passer par un montage. */
     var duree = 4200;
+    var pret = Promise.resolve();
     if (transparent && bgVideo) {
       duree = Math.min(bgVideo.duration, 20) * 1000;
-      bgVideo.currentTime = 0;
       bgVideo.muted = false;   // sinon la piste audio capturée est silencieuse
-      bgVideo.play();
+      // on n'enregistre qu'une fois la lecture réellement commencée
+      note.textContent = 'Préparation de la vidéo…';
+      pret = Video.attendreLecture(bgVideo);
     }
 
-    Video.record(target, function (p, fade) {
-      Studio.setProgress(p, fade);
-      Studio.render(canvas, tplId, act, opts, size);
-      if (ground) {
-        ground.clearRect(0, 0, size[0], size[1]);
-        if (bgVideo) cover(ground, bgVideo, size); else paintGround(ground, size);
-        ground.drawImage(canvas, 0, 0);
-      }
-    }, {
-      duration: duree,
-      audioFrom: (transparent && bgVideo) ? bgVideo : null,
-      onProgress: function (k) { note.textContent = 'Enregistrement… ' + Math.round(k * 100) + ' %'; }
+    pret.then(function () {
+      note.textContent = 'Enregistrement…';
+      return Video.record(target, function (p, fade) {
+        Studio.setProgress(p, fade);
+        Studio.render(canvas, tplId, act, opts, size);
+        if (ground) {
+          ground.clearRect(0, 0, size[0], size[1]);
+          if (bgVideo) cover(ground, bgVideo, size); else paintGround(ground, size);
+          ground.drawImage(canvas, 0, 0);
+        }
+      }, {
+        duration: duree,
+        audioFrom: (transparent && bgVideo) ? bgVideo : null,
+        onProgress: function (k) { note.textContent = 'Enregistrement… ' + Math.round(k * 100) + ' %'; }
+      });
     }).then(function (res) {
       if (bgVideo) { bgVideo.pause(); bgVideo.muted = true; }
       Studio.setProgress(1, 1);

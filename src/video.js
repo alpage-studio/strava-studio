@@ -59,15 +59,60 @@
     rec.ondataavailable = function (e) { if (e.data.size) chunks.push(e.data); };
 
     return new Promise(function (resolve, reject) {
+      var fini = false;
       rec.onerror = reject;
       rec.onstop = function () {
+        fini = true;
+        clearInterval(chien);
+        document.removeEventListener('visibilitychange', surMasquage);
         resolve({ blob: new Blob(chunks, { type: mime }), mime: mime });
       };
 
-      var t0 = performance.now();
-      rec.start();
+      function abandon(msg) {
+        if (fini) return;
+        fini = true;
+        clearInterval(chien);
+        document.removeEventListener('visibilitychange', surMasquage);
+        try { rec.stop(); } catch (e) { /* déjà arrêté */ }
+        reject(new Error(msg));
+      }
+
+      /* Le navigateur suspend requestAnimationFrame dès que la page passe en
+       * arrière-plan : l'enregistrement se figerait sans rien dire. On le
+       * détecte et on l'annonce, plutôt que de laisser tourner dans le vide. */
+      function surMasquage() {
+        if (document.visibilityState === 'hidden') {
+          abandon('L’onglet doit rester au premier plan pendant l’enregistrement.');
+        }
+      }
+      document.addEventListener('visibilitychange', surMasquage);
+
+      // filet de sécurité : si aucune image n'est peinte pendant 3 s, on sort
+      var derniere = performance.now();
+      var chien = setInterval(function () {
+        if (!fini && performance.now() - derniere > 3000) {
+          abandon('L’enregistrement s’est interrompu — garde la page au premier plan.');
+        }
+      }, 500);
+
+      var t0;
+
+      /* Peindre l'image de départ AVANT de lancer l'enregistrement.
+       * captureStream() diffuse le canvas tel qu'il est : sans ça, la
+       * première image capturée est l'aperçu resté à l'écran — l'image
+       * finale — et la vidéo commence par un éclair de la fin avant de
+       * repartir de zéro. Le second requestAnimationFrame laisse au canvas
+       * le temps d'être réellement composé. */
+      drawFrame(0, 0);
+      requestAnimationFrame(function () {
+        t0 = performance.now();
+        rec.start();
+        requestAnimationFrame(frame);
+      });
 
       function frame(now) {
+        if (fini) return;
+        derniere = now;
         var elapsed = now - t0;
         if (elapsed >= duration) {
           drawFrame(1, 1);
@@ -81,7 +126,24 @@
         if (opt.onProgress) opt.onProgress(elapsed / duration);
         requestAnimationFrame(frame);
       }
-      requestAnimationFrame(frame);
+    });
+  }
+
+  /* Attendre qu'une vidéo joue VRAIMENT avant d'enregistrer.
+   * play() rend la main immédiatement, bien avant que la première image
+   * soit décodée et présentée. Enregistrer tout de suite capture des
+   * images figées, puis un saut quand la lecture démarre pour de bon. */
+  function attendreLecture(v) {
+    return new Promise(function (ok) {
+      var fait = false;
+      function fini() { if (!fait) { fait = true; ok(); } }
+      try { v.currentTime = 0; } catch (e) { /* flux non cherchable */ }
+      // requestVideoFrameCallback se déclenche à la PRÉSENTATION d'une image
+      if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(fini);
+      else v.addEventListener('timeupdate', fini, { once: true });
+      setTimeout(fini, 1500);   // filet : on n'attend jamais indéfiniment
+      var p = v.play();
+      if (p && p.catch) p.catch(fini);
     });
   }
 
@@ -94,5 +156,5 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
   }
 
-  global.Video = { record: record, save: save, pickMime: pickMime };
+  global.Video = { record: record, save: save, pickMime: pickMime, attendreLecture: attendreLecture };
 }(window));
