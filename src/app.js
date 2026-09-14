@@ -269,6 +269,29 @@
 
   $('#ground').addEventListener('change', ground);
 
+  /* Démarrer à vide est honnête — on n'affiche pas une sortie que personne
+   * n'a parcourue. Mais sans rien à voir, les quinze templates sont
+   * invisibles. Ce bouton donne de quoi les parcourir en un clic, et il dit
+   * clairement que c'est un exemple. */
+  $('#load-example').addEventListener('click', function () {
+    var b = $('#load-example');
+    b.disabled = true; b.textContent = 'Chargement…';
+    fetch('exemple.gpx')
+      .then(function (r) { return r.text(); })
+      .then(function (txt) {
+        base = Activity.parseGPX(txt);
+        overrides = {};
+        chargee = true;
+        syncManualFields();
+        summary();
+        draw();
+      })
+      .catch(function () {
+        b.textContent = 'Exemple indisponible';
+      })
+      .then(function () { b.disabled = false; });
+  });
+
   /* ---------- vidéo de fond ---------- */
   $('#bgvideo').addEventListener('change', function (e) {
     var file = e.target.files[0];
