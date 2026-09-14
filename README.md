@@ -71,6 +71,35 @@ version. Ici, avec du réseau tu as toujours le dernier code ; sans réseau, la
 dernière version vue. En ajoutant un template, pense à l'ajouter à la liste
 `SHELL` de `sw.js` et à changer `VERSION`.
 
+## Tests de régression
+
+```bash
+node tools/test.js
+```
+
+Aucune dépendance. Sortie 0 si tout passe, 1 sinon — utilisable tel quel
+dans un hook de commit.
+
+Le harnais ne teste pas « si le code marche » : il **fige les défauts déjà
+payés**, pour qu'ils ne reviennent pas. Chaque cas porte le nom du bug qu'il
+garde fermé. Trois familles :
+
+- **Calculs** — `activity.js` chargé hors navigateur, fonctions pures.
+  Coût d'un effort à 1, 5 et 10 secondes d'échantillonnage, dénivelé lissé,
+  temps en mouvement, lissage de puissance, repli cardiaque, abscisse des
+  allumettes, position dans les flux intervals.
+- **Cohérence** — ce qui dérive en silence entre fichiers : un script
+  d'`index.html` oublié dans le `SHELL` de `sw.js` ne casse rien… jusqu'au
+  premier vol sans réseau. Un balayage cherche aussi tout identifiant écrit
+  en dur.
+- **Serveur** — les routes réellement attaquées : URL mal formée, écriture
+  de fichier, remontée d'arborescence, injection dans le retour OAuth.
+
+En ajoutant un template ou un calcul, ajoute son cas ici. Le harnais a
+lui-même trouvé deux erreurs le jour de sa mise en place : le dénivelé que
+`build()` ne dérivait pas, et une intégration qui comptait les bords en
+double.
+
 ## Le serveur local
 
 ```bash

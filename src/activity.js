@@ -258,6 +258,15 @@
       total: list.reduce(function (s, m) { return s + m.cout; }, 0)
     };
 
+    /* Écart en secondes entre deux points, null si l'un manque ou si le
+     * trou dépasse 30 s (arrêt, perte de signal). */
+    function ecartSec(pts, i, j) {
+      if (!pts[i] || !pts[j]) return null;
+      if (!pts[i].t || !pts[j].t) return 1;
+      var d = (pts[j].t - pts[i].t) / 1000;
+      return (d > 0 && d <= 30) ? d : null;
+    }
+
     function secondes(pts, a, b) {
       if (pts[a] && pts[b] && pts[a].t && pts[b].t) return (pts[b].t - pts[a].t) / 1000;
       return b - a;   // à défaut d'horodatage, un point vaut une seconde
@@ -267,16 +276,26 @@
        * watts divisée par 1000 supposait un point par seconde : sur un
        * enregistrement à 5 s, le même effort coûtait cinq fois moins. On
        * intègre sur l'intervalle réel, en ignorant les trous de mesure. */
+      /* Règle du trapèze, écrite par INTERVALLES et non par points : sur
+       * chaque segment [k, k+1] on prend la moyenne des deux puissances
+       * excédentaires, multipliée par sa durée réelle. C'est la seule forme
+       * exacte quel que soit l'échantillonnage.
+       *
+       * L'effort est en outre prolongé d'un demi-intervalle de part et
+       * d'autre : il n'a pas commencé pile sur un point de mesure, il a
+       * commencé quelque part entre le dernier point sous le seuil et le
+       * premier au-dessus. Sans ça, un enregistrement à 10 s perd un sixième
+       * du coût d'un effort d'une minute. */
       var cout = 0;
       for (var k = a; k < b; k++) {
-        if (s[k] == null) continue;
-        var dt = 1;
-        if (pts[k] && pts[k + 1] && pts[k].t && pts[k + 1].t) {
-          dt = (pts[k + 1].t - pts[k].t) / 1000;
-          if (!(dt > 0) || dt > 30) continue;   // trou d'enregistrement
-        }
-        cout += (s[k] - lim) * dt;
+        var dt = ecartSec(pts, k, k + 1);
+        if (dt == null) continue;                 // trou d'enregistrement
+        if (s[k] == null || s[k + 1] == null) continue;
+        cout += ((s[k] - lim) + (s[k + 1] - lim)) / 2 * dt;
       }
+      var bordA = ecartSec(pts, a - 1, a), bordB = ecartSec(pts, b, b + 1);
+      if (bordA != null && s[a] != null) cout += (s[a] - lim) / 2 * (bordA / 2);
+      if (bordB != null && s[b] != null) cout += (s[b] - lim) / 2 * (bordB / 2);
       var moy = 0, n = 0;
       for (k = a; k <= b; k++) if (s[k] != null) { moy += s[k]; n++; }
       var axe = axeDeProgression(pts);
@@ -373,6 +392,18 @@
     a.track = a.track || [];
     a.route = a.route || { pts: [], aspect: 1 };
     a.profile = a.profile || [];
+    /* Le dénivelé se dérive de la trace quand la source ne l'a pas donné.
+     * build() calculait déjà la puissance et le profil : laisser l'altitude
+     * de côté rendait l'objet incohérent selon le chemin d'entrée. */
+    if (a.elev_gain_m == null && a.track.length) {
+      var el = elevation(a.track);
+      a.elev_gain_m = el.gain;
+      if (a.elev_loss_m == null) a.elev_loss_m = el.loss;
+      if (a.elev_min_m == null) a.elev_min_m = el.min;
+      if (a.elev_max_m == null) a.elev_max_m = el.max;
+    }
+    if (!a.profile.length && a.track.length) a.profile = profile(a.track);
+
     // la puissance se recalcule depuis la trace, quelle que soit la source
     if (!a.power) a.power = powerSeries(a.track);
     a.has_power = !!(a.power && a.power.data.length);
