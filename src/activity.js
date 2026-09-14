@@ -184,6 +184,89 @@
     };
   }
 
+  /* ---------- allumettes brûlées ----------
+   * Une « allumette » est un effort dur qu'on ne peut pas répéter
+   * indéfiniment : au-dessus du seuil, tenu assez longtemps pour coûter.
+   *
+   * Aucune définition ne fait autorité — Strava, TrainingPeaks et les
+   * entraîneurs comptent différemment. Celle-ci est explicite et réglable :
+   * au-dessus de X % du FTP, pendant au moins N secondes. Le coût est
+   * l'énergie dépensée AU-DESSUS du seuil, en kilojoules : c'est ce qui
+   * distingue une relance de trente secondes d'un col de dix minutes.
+   *
+   * Sans capteur, on retombe sur la fréquence cardiaque — c'est une autre
+   * grandeur, et le template doit le dire plutôt que de faire semblant. */
+  function burnedMatches(points, power, opts) {
+    opts = opts || {};
+    var pct = opts.pct == null ? 1.05 : opts.pct;
+    var minSec = opts.minSec == null ? 20 : opts.minSec;
+
+    var serie, seuil, source, unite;
+
+    if (power && power.data.length) {
+      serie = power.data.map(function (p) { return p.w; });
+      if (opts.ftp) seuil = opts.ftp * pct;
+      else seuil = percentile(serie, 0.92);   // sans FTP déclaré, une estimation
+      source = 'puissance';
+      unite = 'W';
+    } else {
+      var hr = points.map(function (p) { return p.hr; });
+      if (!hr.some(function (v) { return v != null; })) {
+        return { list: [], source: null, seuil: null, unite: null, estime: false };
+      }
+      serie = hr;
+      seuil = Math.max.apply(null, hr.filter(function (v) { return v != null; })) * 0.88;
+      source = 'cardiaque';
+      unite = 'bpm';
+      minSec = Math.max(minSec, 30);          // le cœur est lent, il faut plus long
+    }
+
+    var list = [], debut = null, i;
+    for (i = 0; i < serie.length; i++) {
+      var v = serie[i];
+      if (v != null && v > seuil) {
+        if (debut === null) debut = i;
+      } else if (debut !== null) {
+        var fin = i - 1;
+        var duree = secondes(points, debut, fin);
+        if (duree >= minSec) list.push(mesure(points, serie, seuil, debut, fin, duree));
+        debut = null;
+      }
+    }
+    if (debut !== null) {
+      var d2 = secondes(points, debut, serie.length - 1);
+      if (d2 >= minSec) list.push(mesure(points, serie, seuil, debut, serie.length - 1, d2));
+    }
+
+    return {
+      list: list, source: source, seuil: Math.round(seuil), unite: unite,
+      estime: source === 'puissance' && !opts.ftp,
+      total: list.reduce(function (s, m) { return s + m.cout; }, 0)
+    };
+
+    function secondes(pts, a, b) {
+      if (pts[a] && pts[b] && pts[a].t && pts[b].t) return (pts[b].t - pts[a].t) / 1000;
+      return b - a;   // à défaut d'horodatage, un point vaut une seconde
+    }
+    function mesure(pts, s, lim, a, b, duree) {
+      var cout = 0;
+      for (var k = a; k <= b; k++) if (s[k] != null) cout += (s[k] - lim);
+      var moy = 0, n = 0;
+      for (k = a; k <= b; k++) if (s[k] != null) { moy += s[k]; n++; }
+      var total = pts.length ? pts[pts.length - 1].d : 0;
+      return {
+        duree: Math.round(duree),
+        moyenne: n ? Math.round(moy / n) : 0,
+        cout: Math.round(cout / 1000 * 10) / 10,      // kJ au-dessus du seuil
+        x: total && pts[a] ? pts[a].d / total : 0     // position dans la sortie
+      };
+    }
+    function percentile(arr, p) {
+      var v = arr.filter(function (x) { return x != null && isFinite(x); }).slice().sort(function (a, b) { return a - b; });
+      return v.length ? v[Math.floor(v.length * p)] : 0;
+    }
+  }
+
   function avg(arr) {
     var v = arr.filter(function (x) { return x != null; });
     return v.length ? Math.round(v.reduce(function (a, b) { return a + b; }, 0) / v.length) : null;
@@ -267,6 +350,12 @@
     // la puissance se recalcule depuis la trace, quelle que soit la source
     if (!a.power) a.power = powerSeries(a.track);
     a.has_power = !!(a.power && a.power.data.length);
+    // les allumettes dépendent de réglages : le template peut les recalculer
+    a.burned = function (opts) {
+      opts = opts || {};
+      if (opts.ftp === undefined) opts.ftp = a.ftp;
+      return burnedMatches(a.track, a.power, opts);
+    };
     return a;
   }
 
@@ -387,6 +476,7 @@
       cadence_avg: detail.average_cadence ? Math.round(detail.average_cadence) : avg(points.map(function (p) { return p.cad; })),
       // la puissance n'existe que si la sortie a un capteur : les templates
       // qui l'affichent doivent donc savoir se taire
+      ftp: detail.icu_pm_ftp_watts || null,
       power_avg: detail.icu_average_watts || null,
       power_weighted: detail.icu_weighted_avg_watts || null,
       has_power: watts.length > 0,

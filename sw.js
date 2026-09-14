@@ -39,6 +39,7 @@ const SHELL = [
   './src/zip.js',
   './src/share.js',
   './src/app.js',
+  './src/templates/allumettes.js',
   './src/templates/pente.js',
   './src/templates/radiale.js',
   './src/templates/sommet.js',
