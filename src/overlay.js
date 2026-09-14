@@ -137,6 +137,12 @@
     allure: function (a, H) { return { label: 'allure', value: a.pace_s_per_km ? H.fmt.pace(a.pace_s_per_km) + '/km' : '—' }; },
     vitesse: function (a, H) { return { label: 'vitesse', value: H.fmt.speed(a.speed_kmh) + ' km/h' }; },
     fc: function (a, H) { return { label: 'fc moy', value: a.hr_avg ? a.hr_avg + ' bpm' : '—' }; },
+    puissance: function (a, H) {
+      // pas de capteur sur cette sortie : on bascule sur la vitesse plutôt
+      // que d'afficher un tiret qui ressemble à une panne
+      if (!a.has_power) return { label: 'vitesse', value: H.fmt.speed(a.speed_kmh) + ' km/h' };
+      return { label: 'puissance', value: (a.power_avg || a.power.avg) + ' W' };
+    },
     distance: function (a, H) { return { label: 'distance', value: H.fmt.km(a.distance_km, 1) + ' km' }; }
   };
 
@@ -198,7 +204,8 @@
   /* Option « troisième statistique », partagée par les six templates. */
   var OPT_THIRD = {
     key: 'troisieme', type: 'select', label: '3ᵉ donnée', default: 'vitesse',
-    choices: [['allure', 'Allure'], ['vitesse', 'Vitesse'], ['fc', 'Fréquence card.'], ['distance', 'Distance']]
+    choices: [['vitesse', 'Vitesse'], ['puissance', 'Puissance'], ['allure', 'Allure'],
+               ['fc', 'Fréquence card.'], ['distance', 'Distance']]
   };
 
   var OPT_SCRIM = {

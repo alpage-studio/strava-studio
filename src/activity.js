@@ -135,6 +135,55 @@
     return out;
   }
 
+  /* ---------- puissance lissée sur 3 secondes ----------
+   * Le flux brut à 1 Hz est illisible : un capteur de pédalier oscille de
+   * 80 W d'un tour à l'autre. Les 3 secondes sont la fenêtre qu'emploient
+   * intervals.icu et les compteurs de vélo — c'est elle qui rend la courbe
+   * lisible sans effacer les relances.
+   *
+   * L'échelle part de ZÉRO et non du minimum : 0 W veut dire « je ne pédale
+   * pas », c'est une information. Une échelle partant du minimum ferait
+   * croire à un effort constant sur une descente. */
+  function powerSeries(points) {
+    var brut = points.map(function (p) { return p.w; });
+    if (!brut.some(function (w) { return w != null; })) {
+      return { data: [], max: null, avg: null };
+    }
+
+    var lisse = [], i, j;
+    for (i = 0; i < points.length; i++) {
+      var t0 = points[i].t ? points[i].t.getTime() : null;
+      var somme = 0, n = 0;
+      // fenêtre centrée de 3 s ; à défaut d'horodatage, 3 échantillons
+      for (j = i; j >= 0; j--) {
+        if (t0 != null && points[j].t && t0 - points[j].t.getTime() > 1500) break;
+        if (t0 == null && i - j > 1) break;
+        if (brut[j] != null) { somme += brut[j]; n++; }
+      }
+      for (j = i + 1; j < points.length; j++) {
+        if (t0 != null && points[j].t && points[j].t.getTime() - t0 > 1500) break;
+        if (t0 == null && j - i > 1) break;
+        if (brut[j] != null) { somme += brut[j]; n++; }
+      }
+      lisse.push(n ? somme / n : 0);
+    }
+
+    var total = points.length ? points[points.length - 1].d : 0;
+    var max = Math.max.apply(null, lisse) || 1;
+    var data = [];
+    points.forEach(function (p, k) {
+      if (!total) return;
+      data.push({ x: p.d / total, y: lisse[k] / max, w: lisse[k] });
+    });
+
+    var valides = brut.filter(function (w) { return w != null; });
+    return {
+      data: data,
+      max: Math.round(max),
+      avg: valides.length ? Math.round(valides.reduce(function (a, b) { return a + b; }, 0) / valides.length) : null
+    };
+  }
+
   function avg(arr) {
     var v = arr.filter(function (x) { return x != null; });
     return v.length ? Math.round(v.reduce(function (a, b) { return a + b; }, 0) / v.length) : null;
@@ -215,6 +264,9 @@
     a.track = a.track || [];
     a.route = a.route || { pts: [], aspect: 1 };
     a.profile = a.profile || [];
+    // la puissance se recalcule depuis la trace, quelle que soit la source
+    if (!a.power) a.power = powerSeries(a.track);
+    a.has_power = !!(a.power && a.power.data.length);
     return a;
   }
 

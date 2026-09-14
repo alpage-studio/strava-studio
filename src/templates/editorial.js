@@ -14,8 +14,9 @@ Studio.template({
     { key: 'encre', type: 'color', label: 'Encre', default: '#121212' },
     { key: 'accent', type: 'color', label: 'Accent', default: '#E5502D' },
     { key: 'serie', type: 'select', label: 'Graphique', default: 'altitude',
-      choices: [['altitude', 'Profil d’altitude'], ['allure', 'Allure par km'],
-                ['fc', 'Fréquence cardiaque'], ['aucun', 'Aucun']] },
+      choices: [['altitude', 'Profil d’altitude'], ['puissance', 'Puissance (3 s)'],
+                ['allure', 'Allure par km'], ['fc', 'Fréquence cardiaque'],
+                ['aucun', 'Aucun']] },
     { key: 'photo', type: 'toggle', label: 'Photo en fond', default: false }
   ],
 
@@ -100,7 +101,8 @@ Studio.template({
           color: alpha(o.encre, 0.55),
           peak: peak,
           peakColor: o.accent,
-          invert: serie.invert
+          invert: serie.invert,
+          min: serie.min          // la puissance se lit depuis 0 W, pas depuis son minimum
         });
 
         // une seule valeur annotée, au-dessus de la barre concernée
@@ -145,6 +147,15 @@ Studio.template({
       return out;
     }
 
+    /* L'étiquette du pic doit valoir CE QUE MONTRE la barre qu'elle
+     * surmonte. Afficher le maximum réel de la série au-dessus d'une barre
+     * qui est une moyenne de 90 secondes, c'est annoter une valeur qui
+     * n'est pas là — le lecteur croit lire la barre. */
+    function etiquettePic(values, unite) {
+      var v = values.filter(function (x) { return x != null && isFinite(x); });
+      return v.length ? Math.round(Math.max.apply(null, v)) + unite : '';
+    }
+
     function pick(act, kind) {
       if (kind === 'allure') {
         var p = act.splits.map(function (sp) { return sp.pace_s; });
@@ -155,19 +166,29 @@ Studio.template({
           peakLabel: H.fmt.pace(best) + '/KM'
         };
       }
+      if (kind === 'puissance') {
+        /* Sans capteur, on ne montre pas un graphique vide : on retombe
+         * sur l'altitude, que toute sortie possède. */
+        if (!act.has_power) return pick(act, 'altitude');
+        var w = resample(act.power.data.map(function (p) { return p.w; }), 56);
+        return {
+          values: w, invert: false, min: 0,
+          peakLabel: etiquettePic(w, ' W')
+        };
+      }
       if (kind === 'fc') {
         var hr = resample(act.track.map(function (t) { return t.hr; }), 56);
         return {
           values: hr, invert: false,
           caption: 'fréquence cardiaque',
-          peakLabel: (act.hr_max || Math.round(Math.max.apply(null, hr.filter(Boolean)))) + ' BPM'
+          peakLabel: etiquettePic(hr, ' BPM')
         };
       }
       var ele = resample(act.track.map(function (t) { return t.ele; }), 56);
       return {
         values: ele, invert: false,
         caption: 'profil d’altitude',
-        peakLabel: (act.elev_max_m != null ? act.elev_max_m : '') + ' M'
+        peakLabel: etiquettePic(ele, ' M')
       };
     }
   }

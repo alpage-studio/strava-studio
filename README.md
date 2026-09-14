@@ -71,6 +71,45 @@ version. Ici, avec du réseau tu as toujours le dernier code ; sans réseau, la
 dernière version vue. En ajoutant un template, pense à l'ajouter à la liste
 `SHELL` de `sw.js` et à changer `VERSION`.
 
+## Sources d'activités
+
+Deux fournisseurs, une même interface. Le panneau essaie **intervals.icu**
+d'abord, **Strava** en repli.
+
+### intervals.icu — recommandé
+
+La clé se génère dans `/settings` → *Developer Settings*. Elle va dans
+`~/.strava-studio/config.json`, hors du dossier servi :
+
+```json
+{ "intervals": { "api_key": "…", "athlete_id": "0" } }
+```
+
+Pourquoi elle plutôt que Strava : elle est en libre-service, elle se
+synchronise **directement depuis Garmin**, et elle ne dépend donc pas de
+l'abonnement Strava. Quotas : 5 000 requêtes par jour, 2 500 par quart
+d'heure. Le studio ne charge que les **cinq dernières sorties** — on fait
+l'affiche du jour, pas l'historique.
+
+Deux pièges appris en testant, absents de leur documentation :
+
+- `/activities` **exige** une fenêtre `oldest`/`newest`, sinon 422 ;
+- le flux de position n'est **pas** une liste de paires : la latitude est
+  dans `data`, la longitude dans `data2`, deux tableaux parallèles. Sans
+  ça l'activité arrive complète et sans aucune trace.
+
+### Puissance
+
+Si la sortie a un capteur, la puissance devient un choix de graphique dans
+« Éditorial » et une troisième donnée dans les surcouches. Le flux brut à
+1 Hz est illisible — un capteur de pédalier oscille de 80 W d'un tour à
+l'autre : le studio le lisse sur **3 secondes**, la fenêtre qu'emploient
+intervals.icu et les compteurs de vélo. L'échelle part de **zéro**, pas du
+minimum : 0 W veut dire « je ne pédale pas », et c'est une information.
+
+Sans capteur, rien n'affiche de tiret : le graphique retombe sur
+l'altitude, la troisième donnée sur la vitesse.
+
 ## Strava
 
 Une fois connecté, les sorties se chargent depuis l'application : plus d'export
