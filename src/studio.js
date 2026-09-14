@@ -265,6 +265,19 @@
     // le socle graphique (grille, échelle typo, carte) s'ajoute ici s'il est chargé
     if (global.Design) global.Design.extend(H);
     if (global.Overlay) global.Overlay.extend(H);
+
+    /* Mode minimaliste : le tracé seul, sans un mot.
+     * On neutralise les helpers d'écriture APRÈS extension, plutôt que de
+     * demander à chaque template de se surveiller. Conséquence voulue :
+     * tout template — y compris ceux écrits plus tard — obéit gratuitement.
+     * Les filets partent aussi : un trait sous un texte absent est un
+     * débris, pas une composition. */
+    if (state.minimal) {
+      var rien = function () {};
+      H.text = rien;
+      H.rule = rien;
+      H.hair = rien;
+    }
     return H;
   }
 
@@ -275,6 +288,7 @@
   var state = { photo: null, progress: 1, textFade: 1 };
 
   function setPhoto(img) { state.photo = img; }
+  function setMinimal(v) { state.minimal = !!v; }
   function setProgress(p, fade) {
     state.progress = p == null ? 1 : Math.max(0, Math.min(1, p));
     state.textFade = fade == null ? 1 : Math.max(0, Math.min(1, fade));
@@ -344,7 +358,7 @@
 
   global.Studio = {
     template: template, all: all, get: get,
-    render: render, exportPNG: exportPNG, setPhoto: setPhoto,
+    render: render, exportPNG: exportPNG, setPhoto: setPhoto, setMinimal: setMinimal,
     setProgress: setProgress, fmt: fmt
   };
 }(window));

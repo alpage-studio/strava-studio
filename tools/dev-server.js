@@ -10,6 +10,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const strava = require('./strava');
+const intervals = require('./intervals');
 
 const ROOT = path.join(__dirname, '..');
 const args = process.argv.slice(2);
@@ -110,6 +111,23 @@ const server = http.createServer(async (req, res) => {
     try {
       if (p === '/api/status') return json(res, 200, strava.status());
 
+      /* ---- intervals.icu ---- */
+      if (p === '/api/icu/status') return json(res, 200, intervals.status());
+
+      if (p === '/api/icu/activities') {
+        const n = parseInt(u.searchParams.get('limit') || '5', 10);
+        return json(res, 200, await intervals.activities(n));
+      }
+
+      const mi = p.match(/^\/api\/icu\/activity\/([\w.-]+)$/);
+      if (mi) {
+        const [detail, st] = await Promise.all([
+          intervals.activity(mi[1]),
+          intervals.streams(mi[1]).catch(() => [])
+        ]);
+        return json(res, 200, { detail: detail, streams: st });
+      }
+
       if (p === '/api/activities') {
         const list = await strava.activities(
           parseInt(u.searchParams.get('page') || '1', 10),
@@ -137,6 +155,8 @@ const server = http.createServer(async (req, res) => {
       return json(res, 404, { error: 'inconnu' });
     } catch (e) {
       if (e.message === 'NOT_AUTHORIZED') return json(res, 401, { error: 'NOT_AUTHORIZED' });
+      if (e.message === 'NOT_CONFIGURED') return json(res, 501, { error: 'NOT_CONFIGURED' });
+      if (e.message === 'BAD_KEY') return json(res, 401, { error: 'BAD_KEY' });
       if (e.message === 'RATE_LIMIT') return json(res, 429, { error: 'RATE_LIMIT' });
       return json(res, 500, { error: e.message });
     }

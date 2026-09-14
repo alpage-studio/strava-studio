@@ -275,6 +275,77 @@
     });
   }
 
+  /* ---------- depuis intervals.icu ----------
+   * Même principe que Strava — les agrégats font foi, les flux donnent la
+   * géométrie — mais la forme diffère : intervals renvoie un TABLEAU de
+   * { type, data }, là où Strava renvoie un objet indexé par type. */
+  function fromIntervals(detail, streams) {
+    var par = {};
+    (streams || []).forEach(function (f) { if (f && f.type) par[f.type] = f; });
+    function flux(nom) { return (par[nom] && par[nom].data) || []; }
+
+    /* Particularité d'intervals.icu, absente de leur documentation : la
+     * position n'est PAS une liste de paires. La latitude est dans `data`,
+     * la longitude dans `data2` — deux tableaux parallèles. */
+    var lat = flux('latlng');
+    var lon = (par.latlng && par.latlng.data2) || [];
+
+    var alt = flux('altitude');
+    var tim = flux('time');
+    var dist = flux('distance');
+    var hr = flux('heartrate');
+    var cad = flux('cadence');
+    var watts = flux('watts');
+
+    var start = detail.start_date_local ? new Date(detail.start_date_local) : null;
+    var points = [], cum = 0, prev = null;
+
+    for (var i = 0; i < lat.length; i++) {
+      if (lat[i] == null || lon[i] == null) continue;
+      var p = {
+        lat: lat[i], lon: lon[i],
+        ele: alt[i] != null ? alt[i] : null,
+        hr: hr[i] != null ? hr[i] : null,
+        cad: cad[i] != null ? cad[i] : null,
+        w: watts[i] != null ? watts[i] : null,
+        t: (start && tim[i] != null) ? new Date(start.getTime() + tim[i] * 1000) : null
+      };
+      if (!isFinite(p.lat) || !isFinite(p.lon)) continue;
+      cum = dist[i] != null ? dist[i] : cum + (prev ? haversine(prev, p) : 0);
+      p.d = cum;
+      points.push(p);
+      prev = p;
+    }
+
+    var el = elevation(points);
+    return build({
+      name: detail.name || 'Sortie',
+      type: detail.type || '',
+      date: start,
+      distance_m: detail.distance != null ? detail.distance : cum,
+      duration_s: detail.moving_time || null,
+      elapsed_s: detail.elapsed_time || null,
+      elev_gain_m: detail.total_elevation_gain != null
+        ? Math.round(detail.total_elevation_gain) : el.gain,
+      elev_loss_m: el.loss,
+      elev_min_m: el.min,
+      elev_max_m: el.max,
+      hr_avg: detail.average_heartrate ? Math.round(detail.average_heartrate) : avg(points.map(function (p) { return p.hr; })),
+      hr_max: detail.max_heartrate ? Math.round(detail.max_heartrate) : null,
+      cadence_avg: detail.average_cadence ? Math.round(detail.average_cadence) : avg(points.map(function (p) { return p.cad; })),
+      // la puissance n'existe que si la sortie a un capteur : les templates
+      // qui l'affichent doivent donc savoir se taire
+      power_avg: detail.icu_average_watts || null,
+      power_weighted: detail.icu_weighted_avg_watts || null,
+      has_power: watts.length > 0,
+      splits: splits(points),
+      track: points,
+      route: project(points),
+      profile: profile(points),
+      icu_id: detail.id
+    });
+  }
+
   function empty() {
     return build({
       name: 'Sortie', type: '', date: new Date(),
@@ -285,6 +356,7 @@
   }
 
   global.Activity = {
-    parseGPX: parseGPX, fromStrava: fromStrava, build: build, empty: empty
+    parseGPX: parseGPX, fromStrava: fromStrava, fromIntervals: fromIntervals,
+    build: build, empty: empty
   };
 }(window));

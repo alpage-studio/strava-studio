@@ -25,7 +25,7 @@
     try {
       localStorage.setItem('strava-studio', JSON.stringify({
         tpl: $('#tpl').value, size: $('#size').value, opts: optionValues,
-        collection: $('#collection').value
+        collection: $('#collection').value, minimal: $('#minimal').checked
       }));
     } catch (e) { /* mode privé : tant pis */ }
   }
@@ -63,6 +63,7 @@
     if (!chargee) { save(); return; }
     var size = SIZES[$('#size').value];
     var tplId = $('#tpl').value;
+    Studio.setMinimal($('#minimal').checked);
     current = Studio.render(canvas, tplId, effective(), resolvedOptions(tplId), size);
     var stage = $('#stage');
     var scale = Math.min(stage.clientWidth / size[0], (stage.clientHeight - 24) / size[1]);
@@ -326,6 +327,7 @@
     });
   });
 
+  $('#minimal').addEventListener('change', draw);
   $('#tpl').addEventListener('change', function () { buildOptions(); draw(); });
   $('#size').addEventListener('change', draw);
   window.addEventListener('resize', draw);
@@ -483,14 +485,20 @@
       .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'sortie';
   }
 
-  /* ---------- Strava ---------- */
+  /* ---------- source d'activités ----------
+   * Deux fournisseurs possibles, même interface : intervals.icu d'abord —
+   * sa clé est en libre-service et il se synchronise directement depuis
+   * Garmin, donc il ne dépend pas de l'abonnement Strava — puis Strava en
+   * repli si quelqu'un d'autre reprend ce code avec un compte abonné. */
   var stravaActs = [];
+  var source = null;          // 'icu' | 'strava'
 
   function stravaState(html) { $('#strava-state').innerHTML = html; }
 
   async function stravaInit() {
-    var st;
+    var icu = null, st = null;
     try {
+      icu = await (await fetch('api/icu/status')).json();
       st = await (await fetch('api/status')).json();
     } catch (e) {
       /* Pas de serveur local : le studio est ouvert depuis un hébergement
@@ -499,18 +507,29 @@
       $('#strava').style.display = 'none';
       return;
     }
-    if (!st.configured) {
-      stravaState('Strava — configuration absente dans <code>' + st.configPath + '</code>.');
+
+    if (icu && icu.configured) {
+      source = 'icu';
+      stravaState('intervals.icu — connecté');
+      $('#strava-refresh').style.display = '';
+      loadList();
       return;
     }
-    if (!st.authorized) {
+
+    if (st && st.configured && st.authorized) {
+      source = 'strava';
+      stravaState('Strava — connecté' + (st.athlete && st.athlete.firstname ? ' · ' + st.athlete.firstname : ''));
+      $('#strava-refresh').style.display = '';
+      loadList();
+      return;
+    }
+
+    if (st && st.configured && !st.authorized) {
       stravaState('Strava — <a href="/connect">connecter mon compte</a> ' +
         '(portée <code>' + st.scope + '</code>, obligatoire pour lire les activités).');
       return;
     }
-    stravaState('Strava — connecté' + (st.athlete && st.athlete.firstname ? ' · ' + st.athlete.firstname : ''));
-    $('#strava-refresh').style.display = '';
-    loadList();
+    stravaState('Aucune source configurée — charge un fichier GPX.');
   }
 
   async function loadList() {
@@ -518,9 +537,12 @@
     sel.style.display = '';
     sel.innerHTML = '<option>chargement…</option>';
     try {
-      var r = await fetch('/api/activities?per_page=30');
-      if (r.status === 401) { stravaState('Strava — <a href="/connect">autorisation à refaire</a>.'); return; }
-      if (r.status === 429) { stravaState('Strava — quota atteint (200 / 15 min). Réessaie plus tard.'); return; }
+      /* Cinq sorties suffisent : on fait une affiche de la sortie du jour,
+       * pas de l'historique. Et chaque appel compte dans le quota. */
+      var url = source === 'icu' ? 'api/icu/activities?limit=5' : 'api/activities?per_page=30';
+      var r = await fetch(url);
+      if (r.status === 401) { stravaState('Autorisation refusée — clé ou jeton à refaire.'); return; }
+      if (r.status === 429) { stravaState('Quota atteint. Réessaie plus tard.'); return; }
       var data = await r.json();
       /* Une réponse d'erreur est un objet, pas un tableau : sans ce garde-fou
        * on tombe sur « .map n'est pas une fonction » au lieu de lire la cause. */
@@ -540,7 +562,8 @@
           return '<option value="' + x.id + '">' +
             d.toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' }) + ' · ' +
             escapeHtml(x.name) + ' · ' + (x.distance / 1000).toFixed(1) + ' km' +
-            (x.has_map ? '' : ' (sans trace)') + '</option>';
+            (x.total_elevation_gain ? ' · ' + Math.round(x.total_elevation_gain) + ' m' : '') +
+            (x.has_power ? ' · W' : '') + '</option>';
         }).join('');
     } catch (e) {
       stravaState('Strava — ' + e.message);
@@ -552,16 +575,18 @@
   $('#strava-list').addEventListener('change', async function () {
     var id = $('#strava-list').value;
     if (!id) return;
-    stravaState('Strava — chargement de la sortie…');
+    stravaState('Chargement de la sortie…');
     try {
-      var r = await fetch('/api/activity/' + id);
+      var r = await fetch((source === 'icu' ? 'api/icu/activity/' : 'api/activity/') + id);
       var j = await r.json();
       if (!r.ok) throw new Error(j.error || 'erreur');
-      base = Activity.fromStrava(j.detail, j.streams);
+      base = source === 'icu'
+        ? Activity.fromIntervals(j.detail, j.streams)
+        : Activity.fromStrava(j.detail, j.streams);
       overrides = {};
       chargee = true;
       $('#gpx-err').textContent = '';
-      stravaState('Strava — connecté');
+      stravaState(source === 'icu' ? 'intervals.icu — connecté' : 'Strava — connecté');
       syncManualFields();
       summary();
       draw();
@@ -614,6 +639,7 @@
   if (saved.opts) optionValues = saved.opts;
   if (saved.tpl && Studio.get(saved.tpl).id === saved.tpl) $('#tpl').value = saved.tpl;
   if (saved.size && SIZES[saved.size]) $('#size').value = saved.size;
+  if (saved.minimal) $('#minimal').checked = true;
 
   buildOptions();
   syncManualFields();
