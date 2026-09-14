@@ -168,12 +168,13 @@
       lisse.push(n ? somme / n : 0);
     }
 
-    var total = points.length ? points[points.length - 1].d : 0;
+    /* L'axe est la distance quand elle existe, le TEMPS sinon : une séance
+     * de home trainer n'avance pas d'un mètre et doit quand même se tracer. */
+    var axe = axeDeProgression(points);
     var max = Math.max.apply(null, lisse) || 1;
     var data = [];
     points.forEach(function (p, k) {
-      if (!total) return;
-      data.push({ x: p.d / total, y: lisse[k] / max, w: lisse[k] });
+      data.push({ x: axe(p, k), y: lisse[k] / max, w: lisse[k] });
     });
 
     var valides = brut.filter(function (w) { return w != null; });
@@ -182,6 +183,19 @@
       max: Math.round(max),
       avg: valides.length ? Math.round(valides.reduce(function (a, b) { return a + b; }, 0) / valides.length) : null
     };
+  }
+
+  /* Position d'un point dans la sortie, entre 0 et 1 : par la distance si
+   * elle progresse, sinon par le temps, sinon par le rang. */
+  function axeDeProgression(points) {
+    var n = points.length;
+    var dTotal = n ? points[n - 1].d : 0;
+    if (dTotal > 0) return function (p) { return p.d / dTotal; };
+    var t0 = points[0] && points[0].t, t1 = points[n - 1] && points[n - 1].t;
+    if (t0 && t1 && t1 - t0 > 0) {
+      return function (p) { return p.t ? (p.t - t0) / (t1 - t0) : 0; };
+    }
+    return function (p, k) { return n > 1 ? k / (n - 1) : 0; };
   }
 
   /* ---------- allumettes brûlées ----------
@@ -249,16 +263,28 @@
       return b - a;   // à défaut d'horodatage, un point vaut une seconde
     }
     function mesure(pts, s, lim, a, b, duree) {
+      /* L'énergie est une puissance MULTIPLIÉE par un temps. La somme des
+       * watts divisée par 1000 supposait un point par seconde : sur un
+       * enregistrement à 5 s, le même effort coûtait cinq fois moins. On
+       * intègre sur l'intervalle réel, en ignorant les trous de mesure. */
       var cout = 0;
-      for (var k = a; k <= b; k++) if (s[k] != null) cout += (s[k] - lim);
+      for (var k = a; k < b; k++) {
+        if (s[k] == null) continue;
+        var dt = 1;
+        if (pts[k] && pts[k + 1] && pts[k].t && pts[k + 1].t) {
+          dt = (pts[k + 1].t - pts[k].t) / 1000;
+          if (!(dt > 0) || dt > 30) continue;   // trou d'enregistrement
+        }
+        cout += (s[k] - lim) * dt;
+      }
       var moy = 0, n = 0;
       for (k = a; k <= b; k++) if (s[k] != null) { moy += s[k]; n++; }
-      var total = pts.length ? pts[pts.length - 1].d : 0;
+      var axe = axeDeProgression(pts);
       return {
         duree: Math.round(duree),
         moyenne: n ? Math.round(moy / n) : 0,
-        cout: Math.round(cout / 1000 * 10) / 10,      // kJ au-dessus du seuil
-        x: total && pts[a] ? pts[a].d / total : 0     // position dans la sortie
+        cout: Math.round(cout / 1000 * 10) / 10,      // kJ au-dessus du seuil (W × s / 1000)
+        x: pts[a] ? axe(pts[a], a) : 0                // position dans la sortie
       };
     }
     function percentile(arr, p) {
@@ -372,6 +398,7 @@
     var dist = (streams.distance || {}).data || [];
     var hr = (streams.heartrate || {}).data || [];
     var cad = (streams.cadence || {}).data || [];
+    var watts = (streams.watts || {}).data || [];
 
     var start = detail.start_date_local ? new Date(detail.start_date_local) : null;
     var points = [], cum = 0, prev = null;
@@ -408,6 +435,10 @@
       hr_avg: detail.average_heartrate ? Math.round(detail.average_heartrate) : avg(points.map(function (p) { return p.hr; })),
       hr_max: detail.max_heartrate ? Math.round(detail.max_heartrate) : null,
       cadence_avg: detail.average_cadence ? Math.round(detail.average_cadence) : avg(points.map(function (p) { return p.cad; })),
+      // Strava renvoie la puissance : elle était demandée puis ignorée
+      ftp: detail.ftp || null,
+      power_avg: detail.average_watts || null,
+      power_weighted: detail.weighted_average_watts || null,
       splits: splits(points),
       track: points,
       route: project(points),
@@ -441,18 +472,25 @@
     var start = detail.start_date_local ? new Date(detail.start_date_local) : null;
     var points = [], cum = 0, prev = null;
 
-    for (var i = 0; i < lat.length; i++) {
-      if (lat[i] == null || lon[i] == null) continue;
+    /* Le nombre d'échantillons vient du flux le plus long, PAS des seules
+     * positions : une séance de home trainer a du temps, de la distance et
+     * des watts sans une seule coordonnée. Se caler sur latlng effaçait
+     * toute la sortie. */
+    var n = Math.max(lat.length, tim.length, dist.length, watts.length, alt.length, hr.length);
+    var avecGPS = lat.length > 0;
+
+    for (var i = 0; i < n; i++) {
+      if (avecGPS && (lat[i] == null || lon[i] == null)) continue;
       var p = {
-        lat: lat[i], lon: lon[i],
+        lat: avecGPS ? lat[i] : null, lon: avecGPS ? lon[i] : null,
         ele: alt[i] != null ? alt[i] : null,
         hr: hr[i] != null ? hr[i] : null,
         cad: cad[i] != null ? cad[i] : null,
         w: watts[i] != null ? watts[i] : null,
         t: (start && tim[i] != null) ? new Date(start.getTime() + tim[i] * 1000) : null
       };
-      if (!isFinite(p.lat) || !isFinite(p.lon)) continue;
-      cum = dist[i] != null ? dist[i] : cum + (prev ? haversine(prev, p) : 0);
+      if (avecGPS && (!isFinite(p.lat) || !isFinite(p.lon))) continue;
+      cum = dist[i] != null ? dist[i] : (avecGPS && prev ? cum + haversine(prev, p) : cum);
       p.d = cum;
       points.push(p);
       prev = p;
@@ -488,11 +526,18 @@
     });
   }
 
+  /* Activité VIDE, au sens strict : aucun chiffre.
+   *
+   * Elle contenait 10 km, 50 minutes et 120 m de dénivelé — des valeurs de
+   * démonstration. L'interface les masquait au démarrage, mais saisir un
+   * simple titre suffisait à marquer l'activité comme chargée : on exportait
+   * alors une affiche annonçant une sortie que personne n'avait faite.
+   * Une donnée inventée qui atteint l'image est pire qu'une donnée absente. */
   function empty() {
     return build({
-      name: 'Sortie', type: '', date: new Date(),
-      distance_m: 10000, duration_s: 3000,
-      elev_gain_m: 120, elev_loss_m: 120, elev_min_m: 400, elev_max_m: 520,
+      name: '', type: '', date: null,
+      distance_m: null, duration_s: null, elapsed_s: null,
+      elev_gain_m: null, elev_loss_m: null, elev_min_m: null, elev_max_m: null,
       hr_avg: null, hr_max: null, cadence_avg: null
     });
   }

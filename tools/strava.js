@@ -123,7 +123,7 @@ function activity(id) { return call('/activities/' + id); }
 
 function streams(id) {
   return call('/activities/' + id + '/streams', {
-    keys: 'latlng,altitude,time,distance,heartrate,cadence',
+    keys: 'latlng,altitude,time,distance,heartrate,cadence,watts',
     key_by_type: 'true'
   });
 }

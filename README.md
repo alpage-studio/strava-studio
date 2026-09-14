@@ -71,6 +71,30 @@ version. Ici, avec du réseau tu as toujours le dernier code ; sans réseau, la
 dernière version vue. En ajoutant un template, pense à l'ajouter à la liste
 `SHELL` de `sw.js` et à changer `VERSION`.
 
+## Le serveur local
+
+```bash
+node tools/dev-server.js [port] [--lan] [--debug]
+```
+
+Il sert le dossier et porte les clés d'API — c'est tout. Quelques règles y
+sont inscrites parce qu'un serveur de développement finit toujours par
+tourner plus longtemps que prévu :
+
+- **`/__save` n'existe qu'avec `--debug`**, et jamais avec `--lan`. Elle
+  écrivait n'importe quel fichier du projet, sans authentification ni limite
+  de taille : en réseau ouvert, toute machine pouvait remplacer un script de
+  l'application. Elle ne fait plus qu'écrire `tools/preview.png`, sous 16 Mo.
+- **Les pages de retour OAuth échappent tout**, et portent une CSP. Elles
+  recopiaient `error` et `scope` tels quels : une URL forgée y plaçait du
+  JavaScript exécuté sous l'origine du studio. Un jeton `state` à usage
+  unique rattache désormais le retour à une connexion lancée ici.
+- **Le confinement des chemins se vérifie par chemin relatif**, pas par
+  préfixe de texte — `startsWith(ROOT)` acceptait un dossier voisin nommé
+  `strava-studio-private`. `.git`, `node_modules` et `tools/` ne se servent
+  pas.
+- **Une URL mal formée répond 400** au lieu d'arrêter le processus.
+
 ## Sources d'activités
 
 Deux fournisseurs, une même interface. Le panneau essaie **intervals.icu**

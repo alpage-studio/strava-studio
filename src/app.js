@@ -19,6 +19,7 @@
   var photoImg = null;              // la même, pour composer la vidéo
   var bgVideo = null;               // vidéo de fond, pour graver la surcouche dessus
   var chargee = false;              // une vraie sortie a-t-elle été fournie ?
+  var exportEnCours = false;        // un export occupe le canvas
 
   /* ---------- persistance légère ---------- */
   function save() {
@@ -57,21 +58,51 @@
 
   function draw() {
     document.body.classList.toggle('vide', !chargee);
-    ['#export', '#export-video', '#export-seq'].forEach(function (sel) {
-      $(sel).disabled = !chargee;
-    });
+    majBoutons();
     if (!chargee) { save(); return; }
     var size = SIZES[$('#size').value];
     var tplId = $('#tpl').value;
     Studio.setMinimal($('#minimal').checked);
     current = Studio.render(canvas, tplId, effective(), resolvedOptions(tplId), size);
+    /* L'échelle prenait la largeur TOTALE du panneau et retirait 24 px à sa
+     * hauteur : en paysage l'image touchait les bords, en story la légende
+     * passait sous l'écran. On mesure l'espace réellement disponible, marges
+     * et légende déduites. */
     var stage = $('#stage');
-    var scale = Math.min(stage.clientWidth / size[0], (stage.clientHeight - 24) / size[1]);
+    var st = getComputedStyle(stage);
+    var padX = parseFloat(st.paddingLeft) + parseFloat(st.paddingRight);
+    var padY = parseFloat(st.paddingTop) + parseFloat(st.paddingBottom);
+    var cap = $('#stage-caption');
+    var capH = cap ? cap.offsetHeight + parseFloat(st.gap || 0) : 0;
+    var dispoW = Math.max(80, stage.clientWidth - padX);
+    var dispoH = Math.max(80, stage.clientHeight - padY - capH);
+    var scale = Math.min(dispoW / size[0], dispoH / size[1]);
     canvas.style.width = Math.floor(size[0] * scale) + 'px';
     canvas.style.height = Math.floor(size[1] * scale) + 'px';
     ground();
     caption(size);
     save();
+  }
+
+  /* Les trois exports partagent le MÊME canvas et le même état d'animation.
+   * Chacun ne désactivait que son propre bouton, et le moindre réglage
+   * rendait les autres cliquables : on pouvait lancer une séquence PNG
+   * pendant un enregistrement vidéo, ou changer de format en plein milieu.
+   * Le verrou est donc central, et il fige aussi ce qui décide du rendu. */
+  function verrouiller(actif) {
+    exportEnCours = actif;
+    majBoutons();
+  }
+
+  function majBoutons() {
+    var bloque = !chargee || exportEnCours;
+    ['#export', '#export-video', '#export-seq'].forEach(function (sel) {
+      $(sel).disabled = bloque;
+    });
+    // pendant un export, ce qui définit l'image ne doit plus bouger
+    ['#size', '#tpl', '#collection', '#minimal'].forEach(function (sel) {
+      var el = $(sel); if (el) el.disabled = exportEnCours;
+    });
   }
 
   /* Sous l'aperçu : ce qu'on regarde exactement. */
@@ -110,6 +141,10 @@
     optionValues[tpl.id] = optionValues[tpl.id] || {};
     var vals = optionValues[tpl.id];
     var driven = Collections.driven(tpl.id, $('#collection').value);
+    /* Un réglage qui ne change rien doit le dire. Le seuil en % du FTP est
+     * inopérant sans FTP déclaré ou sans capteur : le laisser actif fait
+     * croire qu'on règle quelque chose. */
+    var inertes = (typeof tpl.inert === 'function' && chargee) ? (tpl.inert(effective()) || []) : [];
 
     tpl.options.forEach(function (def) {
       if (vals[def.key] === undefined) vals[def.key] = def.default;
@@ -162,6 +197,10 @@
         input.disabled = true;
         row.style.opacity = '.45';
         row.title = 'Piloté par la collection';
+      } else if (inertes.indexOf(def.key) >= 0) {
+        input.disabled = true;
+        row.style.opacity = '.45';
+        row.title = 'Sans effet sur cette sortie';
       }
 
       row.appendChild(input);
@@ -236,6 +275,7 @@
         $('#gpx-err').textContent = '';
         syncManualFields();
         summary();
+        buildOptions();
         draw();
       } catch (err) {
         $('#gpx-err').textContent = err.message;
@@ -347,7 +387,7 @@
     var act = effective();
     var opts = resolvedOptions(tplId);
 
-    btn.disabled = true;
+    verrouiller(true);
     note.textContent = 'Enregistrement…';
 
     /* Une vidéo ne peut pas porter d'alpha : ni le MP4, ni — vérifié — le
@@ -396,16 +436,16 @@
       draw();
       var mp4 = res.mime.indexOf('mp4') >= 0;
       Video.save(res.blob, slug() + '_' + tplId + (mp4 ? '.mp4' : '.webm'));
+      verrouiller(false);
       note.textContent = mp4
         ? 'Vidéo MP4 enregistrée.'
         : 'Enregistré en WebM — Instagram n’accepte pas ce format, il faudra le convertir.';
-      btn.disabled = false;
     }, function (err) {
       if (bgVideo) { bgVideo.pause(); bgVideo.muted = true; }
       Studio.setProgress(1, 1);
       draw();
+      verrouiller(false);
       note.textContent = err.message;
-      btn.disabled = false;
     });
   });
 
@@ -423,7 +463,7 @@
     var fps = 24, secondes = 3;
     var total = fps * secondes;
 
-    btn.disabled = true;
+    verrouiller(true);
     var entries = [];
     try {
       for (var i = 0; i < total; i++) {
@@ -448,8 +488,8 @@
       note.textContent = e.message;
     }
     Studio.setProgress(1, 1);
+    verrouiller(false);
     draw();
-    btn.disabled = false;
   });
 
   /* Remplit la boîte sans déformer — photo ou image de vidéo. */
@@ -589,6 +629,7 @@
       stravaState(source === 'icu' ? 'intervals.icu — connecté' : 'Strava — connecté');
       syncManualFields();
       summary();
+      buildOptions();
       draw();
     } catch (e) {
       stravaState('Strava — ' + e.message);

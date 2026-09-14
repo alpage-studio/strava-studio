@@ -24,6 +24,14 @@ Studio.template({
     { key: 'profil', type: 'toggle', label: 'Poser sur le profil', default: true }
   ],
 
+  /* Le seuil ne s'applique qu'à une sortie dont on connaît le FTP : sans
+   * lui, la détection se cale sur un percentile, et en mode cardiaque sur
+   * la fréquence maximale observée. Le curseur est alors décoratif. */
+  inert: function (a) {
+    var feu = a.burned ? a.burned({}) : null;
+    return (feu && feu.source === 'puissance' && !feu.estime) ? [] : ['seuil'];
+  },
+
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
     var ink = o.encre;
@@ -78,10 +86,31 @@ Studio.template({
       ctx.restore();
     }
 
+    /* Altitude sous une abscisse donnée.
+     *
+     * La silhouette est tracée avec la distance normalisée de chaque point
+     * (p.x), mais on cherchait la hauteur par INDICE — x × nombre de points.
+     * Les deux axes ne coïncident que si l'échantillonnage est parfaitement
+     * régulier ; dès qu'on ralentit en montée, ils divergent, et les
+     * allumettes flottent au-dessus du relief.
+     *
+     * On encadre donc la distance par ses deux points voisins et on
+     * interpole, comme le trait lui-même. */
     function relief(x) {
       if (!o.profil || !prof || prof.length < 2) return 0;
-      var i = Math.min(prof.length - 1, Math.max(0, Math.round(x * (prof.length - 1))));
-      return prof[i].y * relH;
+      if (x <= prof[0].x) return prof[0].y * relH;
+      var fin = prof[prof.length - 1];
+      if (x >= fin.x) return fin.y * relH;
+
+      var lo = 0, hi = prof.length - 1;
+      while (hi - lo > 1) {                     // recherche dichotomique
+        var mid = (lo + hi) >> 1;
+        if (prof[mid].x <= x) lo = mid; else hi = mid;
+      }
+      var a0 = prof[lo], b0 = prof[hi];
+      var ecart = b0.x - a0.x;
+      var k = ecart > 0 ? (x - a0.x) / ecart : 0;
+      return (a0.y + (b0.y - a0.y) * k) * relH;
     }
 
     if (n) {

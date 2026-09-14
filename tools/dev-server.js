@@ -19,8 +19,18 @@ const PORT = parseInt(args.find(a => /^\d+$/.test(a)) || '8778', 10);
  * téléphone. À n'utiliser que sur un réseau de confiance : les routes /api
  * deviennent joignables par toute machine du réseau. */
 const LAN = args.includes('--lan');
+/* --debug rouvre l'écriture de tools/preview.png, utilisée pour contrôler
+ * un rendu hors du navigateur. Jamais avec --lan. */
+const DEBUG = args.includes('--debug');
 const HOST = LAN ? '0.0.0.0' : '127.0.0.1';
 const REDIRECT = 'http://localhost:' + PORT + '/exchange_token';
+
+/* Jeton anti-rejeu du flux OAuth : Strava nous le rend tel quel, et il
+ * prouve que le retour correspond à une connexion lancée depuis CE
+ * serveur. Sans lui, n'importe quelle page peut nous faire échanger un
+ * code qu'elle a choisi. */
+const crypto = require('crypto');
+let oauthState = null;
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -37,33 +47,70 @@ function json(res, code, obj) {
   res.end(body);
 }
 
+/* Tout ce qui vient d'une URL, d'un fournisseur ou d'un fichier est du
+ * texte hostile tant qu'il n'est pas échappé. Les pages de retour OAuth
+ * recopiaient `error` et `scope` tels quels : une URL forgée y plaçait du
+ * JavaScript, exécuté sous l'origine du studio — donc avec accès aux
+ * routes locales du compte connecté. */
+function esc(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function page(res, title, body) {
-  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-  res.end('<!doctype html><meta charset="utf-8"><title>' + title + '</title>' +
+  res.writeHead(200, {
+    'Content-Type': 'text/html; charset=utf-8',
+    // rien d'extérieur ne doit pouvoir s'exécuter dans ces pages
+    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'"
+  });
+  res.end('<!doctype html><meta charset="utf-8"><title>' + esc(title) + '</title>' +
     '<body style="font:15px/1.6 system-ui;background:#0c0e12;color:#e9ecf2;padding:60px;max-width:640px">' +
     body + '</body>');
 }
 
-const server = http.createServer(async (req, res) => {
-  const u = new URL(req.url, 'http://localhost');
+/* Le gestionnaire est asynchrone : toute exception non rattrapée devient
+ * une promesse rejetée, que Node peut traiter en arrêtant le processus.
+ * On l'enveloppe une fois pour toutes. */
+const server = http.createServer((req, res) => {
+  Promise.resolve(traite(req, res)).catch(e => {
+    console.error('erreur non rattrapée :', e && e.message);
+    if (!res.headersSent) { res.writeHead(500); res.end('erreur interne'); }
+  });
+});
+
+async function traite(req, res) {
+  let u;
+  try {
+    u = new URL(req.url, 'http://localhost');
+  } catch (e) {
+    res.writeHead(400); res.end('URL invalide'); return;
+  }
   const p = u.pathname;
 
-  /* ---------- écriture d'un aperçu (débogage) ---------- */
+  /* ---------- écriture d'un aperçu ----------
+   * Cette route écrivait n'importe quel fichier du projet (?name=…), sans
+   * authentification ni limite de taille, et restait ouverte en --lan :
+   * toute machine du réseau pouvait remplacer un script de l'application.
+   *
+   * Elle est désormais ABSENTE par défaut. Avec --debug, elle ne fait plus
+   * qu'une chose : écrire tools/preview.png, en local, sous 16 Mo. Aucun
+   * nom de destination n'est accepté. */
   if (req.method === 'POST' && p === '/__save') {
-    let body = '';
-    req.on('data', c => { body += c; });
+    if (!DEBUG || LAN) { res.writeHead(404); res.end('404'); return; }
+    let taille = 0;
+    const morceaux = [];
+    req.on('data', c => {
+      taille += c.length;
+      if (taille > 16 * 1024 * 1024) { req.destroy(); return; }
+      morceaux.push(c);
+    });
     req.on('end', () => {
-      const b64 = body.replace(/^data:[^;]+;base64,/, '');
-      /* ?name=assets/icon-512.png écrit dans le projet ; sans nom, l'aperçu
-       * de débogage. Le nom est bridé : pas de remontée d'arborescence. */
-      const asked = u.searchParams.get('name');
-      let out = path.join(__dirname, 'preview.png');
-      if (asked && /^[\w/-]+\.(png|webmanifest|json)$/.test(asked) && !asked.includes('..')) {
-        out = path.join(ROOT, asked);
-        fs.mkdirSync(path.dirname(out), { recursive: true });
-      }
-      fs.writeFileSync(out, Buffer.from(b64, 'base64'));
-      res.writeHead(200); res.end(path.relative(ROOT, out));
+      try {
+        const b64 = morceaux.join('').replace(/^data:[^;]+;base64,/, '');
+        fs.writeFileSync(path.join(__dirname, 'preview.png'), Buffer.from(b64, 'base64'));
+        res.writeHead(200); res.end('preview.png');
+      } catch (e) { res.writeHead(400); res.end('corps invalide'); }
     });
     return;
   }
@@ -71,10 +118,11 @@ const server = http.createServer(async (req, res) => {
   /* ---------- OAuth ---------- */
   if (p === '/connect') {
     try {
-      res.writeHead(302, { Location: strava.authorizeURL(REDIRECT) });
+      oauthState = crypto.randomBytes(16).toString('hex');
+      res.writeHead(302, { Location: strava.authorizeURL(REDIRECT) + '&state=' + oauthState });
       res.end();
     } catch (e) {
-      page(res, 'Configuration', '<h2>Configuration absente</h2><p>' + e.message + '</p>');
+      page(res, 'Configuration', '<h2>Configuration absente</h2><p>' + esc(e.message) + '</p>');
     }
     return;
   }
@@ -82,26 +130,36 @@ const server = http.createServer(async (req, res) => {
   if (p === '/exchange_token') {
     const code = u.searchParams.get('code');
     const err = u.searchParams.get('error');
+
+    // le retour doit correspondre à une connexion lancée ici
+    if (!oauthState || u.searchParams.get('state') !== oauthState) {
+      page(res, 'Retour non reconnu',
+        '<h2>Retour non reconnu</h2><p>Ce retour ne correspond à aucune connexion ' +
+        'lancée depuis ce serveur. <a style="color:#C8F04E" href="/connect">Recommencer</a></p>');
+      return;
+    }
+    oauthState = null;   // à usage unique
+
     if (err || !code) {
       page(res, 'Autorisation refusée',
-        '<h2>Autorisation refusée</h2><p>Strava a répondu : ' + (err || 'aucun code') + '</p>');
+        '<h2>Autorisation refusée</h2><p>Strava a répondu : ' + esc(err || 'aucun code') + '</p>');
       return;
     }
     const granted = (u.searchParams.get('scope') || '');
     if (granted.indexOf('activity:read') < 0) {
       page(res, 'Portée insuffisante',
-        '<h2>Portée insuffisante</h2><p>Strava n’a accordé que « ' + granted +
-        ' ». Il faut cocher l’accès aux activités. <a style="color:#E8FF54" href="/connect">Réessayer</a></p>');
+        '<h2>Portée insuffisante</h2><p>Strava n’a accordé que « ' + esc(granted) +
+        ' ». Il faut cocher l’accès aux activités. <a style="color:#C8F04E" href="/connect">Réessayer</a></p>');
       return;
     }
     try {
       const j = await strava.exchange(code);
       page(res, 'Connecté',
-        '<h2>Connecté à Strava</h2><p>Bonjour ' + ((j.athlete && j.athlete.firstname) || '') +
+        '<h2>Connecté à Strava</h2><p>Bonjour ' + esc((j.athlete && j.athlete.firstname) || '') +
         '. Les jetons sont enregistrés hors du dossier du projet.</p>' +
-        '<p><a style="color:#E8FF54" href="/index.html">Retour au studio</a></p>');
+        '<p><a style="color:#C8F04E" href="/index.html">Retour au studio</a></p>');
     } catch (e) {
-      page(res, 'Échec', '<h2>Échec de l’échange</h2><pre>' + e.message + '</pre>');
+      page(res, 'Échec', '<h2>Échec de l’échange</h2><pre>' + esc(e.message) + '</pre>');
     }
     return;
   }
@@ -163,10 +221,30 @@ const server = http.createServer(async (req, res) => {
   }
 
   /* ---------- fichiers ---------- */
-  let rel = decodeURIComponent(p);
+  /* decodeURIComponent lève sur une séquence invalide (/%ZZ). Dans un
+   * gestionnaire asynchrone, la promesse rejetée pouvait terminer le
+   * processus : une URL mal formée suffisait à arrêter le serveur. */
+  let rel;
+  try {
+    rel = decodeURIComponent(p);
+  } catch (e) {
+    res.writeHead(400); res.end('URL mal formée'); return;
+  }
   if (rel === '/') rel = '/index.html';
-  const file = path.join(ROOT, rel);
-  if (!file.startsWith(ROOT)) { res.writeHead(403); res.end(); return; }
+
+  const file = path.resolve(ROOT, '.' + path.posix.normalize(rel.replace(/\\/g, '/')));
+  /* startsWith(ROOT) ne teste qu'un préfixe de texte : un dossier voisin
+   * nommé « strava-studio-private » le satisfaisait. On vérifie
+   * l'appartenance réelle, via le chemin relatif. */
+  const dedans = path.relative(ROOT, file);
+  if (dedans.startsWith('..') || path.isAbsolute(dedans)) {
+    res.writeHead(403); res.end('403'); return;
+  }
+  // rien de ce qui n'appartient pas à l'application ne se sert
+  if (/(^|[\\/])(\.git|node_modules|tools)([\\/]|$)/.test(dedans)) {
+    res.writeHead(403); res.end('403'); return;
+  }
+
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); res.end('404'); return; }
     res.writeHead(200, {
@@ -175,7 +253,7 @@ const server = http.createServer(async (req, res) => {
     });
     res.end(data);
   });
-});
+}
 
 server.listen(PORT, HOST, () => {
   const s = strava.status();
