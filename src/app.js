@@ -541,10 +541,13 @@
       icu = await (await fetch('api/icu/status')).json();
       st = await (await fetch('api/status')).json();
     } catch (e) {
-      /* Pas de serveur local : le studio est ouvert depuis un hébergement
-       * statique. Inutile d'afficher un encadré en panne à quelqu'un qui
-       * n'a rien à connecter — on le retire, le chargement GPX suffit. */
-      $('#strava').style.display = 'none';
+      /* Pas de serveur local : le studio tourne depuis un hébergement
+       * statique. On ne tombe plus dans le vide — intervals.icu accepte les
+       * appels d'origine croisée, donc chacun peut coller SA clé, gardée
+       * dans son seul navigateur. */
+      source = 'icu-web';
+      if (IcuWeb.key()) { connecteIcuWeb(); }
+      else { stravaState('intervals.icu — colle ta clé pour charger tes sorties.'); formulaireCle(true); }
       return;
     }
 
@@ -572,6 +575,38 @@
     stravaState('Aucune source configurée — charge un fichier GPX.');
   }
 
+  function formulaireCle(visible) {
+    $('#icu-form').style.display = visible ? '' : 'none';
+    $('#icu-forget').style.display = visible ? 'none' : '';
+  }
+
+  function connecteIcuWeb() {
+    source = 'icu-web';
+    stravaState('intervals.icu — connecté depuis ce navigateur');
+    formulaireCle(false);
+    $('#strava-refresh').style.display = '';
+    loadList();
+  }
+
+  $('#icu-connect').addEventListener('click', function () {
+    var k = $('#icu-key').value.trim();
+    if (!k) return;
+    IcuWeb.setKey(k);
+    $('#icu-key').value = '';        // on ne la laisse pas dans le champ
+    connecteIcuWeb();
+  });
+  $('#icu-key').addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') $('#icu-connect').click();
+  });
+
+  $('#icu-forget').addEventListener('click', function () {
+    IcuWeb.forget();
+    $('#strava-list').style.display = 'none';
+    $('#strava-refresh').style.display = 'none';
+    stravaState('intervals.icu — clé oubliée.');
+    formulaireCle(true);
+  });
+
   async function loadList() {
     var sel = $('#strava-list');
     sel.style.display = '';
@@ -579,6 +614,11 @@
     try {
       /* Cinq sorties suffisent : on fait une affiche de la sortie du jour,
        * pas de l'historique. Et chaque appel compte dans le quota. */
+      if (source === 'icu-web') {
+        var web = await IcuWeb.activities(5);
+        remplitListe(web);
+        return;
+      }
       var url = source === 'icu' ? 'api/icu/activities?limit=5' : 'api/activities?per_page=30';
       var r = await fetch(url);
       if (r.status === 401) { stravaState('Autorisation refusée — clé ou jeton à refaire.'); return; }
@@ -595,7 +635,28 @@
         stravaState('Strava — ' + escapeHtml(msg));
         return;
       }
+      remplitListe(data);
+    } catch (e) {
+      stravaState(messageIcu(e));
+    }
+  }
+
+  function messageIcu(e) {
+    if (e.message === 'CLE_REFUSEE') return 'intervals.icu — clé refusée. <a href="#" id="re">Recommencer</a>';
+    if (e.message === 'QUOTA') return 'intervals.icu — quota atteint (2 500 / 15 min).';
+    if (e.message === 'RESEAU') return 'intervals.icu — injoignable depuis ce navigateur.';
+    return 'intervals.icu — ' + escapeHtml(e.message);
+  }
+
+  function remplitListe(data) {
+    var sel = $('#strava-list');
+    if (!Array.isArray(data)) {
+      sel.style.display = 'none';
+      stravaState('Réponse inattendue.');
+      return;
+    }
       stravaActs = data;
+      sel.style.display = '';
       sel.innerHTML = '<option value="">— choisir une sortie —</option>' +
         stravaActs.map(function (x) {
           var d = new Date(x.start_date_local);
@@ -605,9 +666,6 @@
             (x.total_elevation_gain ? ' · ' + Math.round(x.total_elevation_gain) + ' m' : '') +
             (x.has_power ? ' · W' : '') + '</option>';
         }).join('');
-    } catch (e) {
-      stravaState('Strava — ' + e.message);
-    }
   }
 
   $('#strava-refresh').addEventListener('click', loadList);
@@ -617,22 +675,28 @@
     if (!id) return;
     stravaState('Chargement de la sortie…');
     try {
-      var r = await fetch((source === 'icu' ? 'api/icu/activity/' : 'api/activity/') + id);
-      var j = await r.json();
-      if (!r.ok) throw new Error(j.error || 'erreur');
-      base = source === 'icu'
+      var j;
+      if (source === 'icu-web') {
+        j = await IcuWeb.activity(id);
+      } else {
+        var r = await fetch((source === 'icu' ? 'api/icu/activity/' : 'api/activity/') + id);
+        j = await r.json();
+        if (!r.ok) throw new Error(j.error || 'erreur');
+      }
+      base = (source === 'icu' || source === 'icu-web')
         ? Activity.fromIntervals(j.detail, j.streams)
         : Activity.fromStrava(j.detail, j.streams);
       overrides = {};
       chargee = true;
       $('#gpx-err').textContent = '';
-      stravaState(source === 'icu' ? 'intervals.icu — connecté' : 'Strava — connecté');
+      stravaState(source === 'icu-web' ? 'intervals.icu — connecté depuis ce navigateur'
+        : source === 'icu' ? 'intervals.icu — connecté' : 'Strava — connecté');
       syncManualFields();
       summary();
       buildOptions();
       draw();
     } catch (e) {
-      stravaState('Strava — ' + e.message);
+      stravaState(messageIcu(e));
     }
   });
 

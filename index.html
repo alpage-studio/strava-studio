@@ -296,6 +296,17 @@
           <div id="strava-state" class="muted">Strava — vérification…</div>
           <select id="strava-list" style="margin-top: 9px; display: none"></select>
           <button class="ghost" id="strava-refresh" type="button" style="display: none">Rafraîchir la liste</button>
+          <div id="icu-form" style="display: none; margin-top: 9px">
+            <input type="password" id="icu-key" placeholder="Clé intervals.icu"
+                   autocomplete="off" spellcheck="false">
+            <button class="ghost" id="icu-connect" type="button">Connecter</button>
+            <div class="muted" style="font-size: 11px; margin-top: 7px; line-height: 1.5">
+              La clé se génère dans <em>intervals.icu → Settings → Developer
+              Settings</em>. Elle reste <strong>dans ce navigateur</strong>, n’est
+              envoyée qu’à intervals.icu, et disparaît à la fermeture de l’onglet.
+            </div>
+          </div>
+          <button class="ghost" id="icu-forget" type="button" style="display: none">Oublier la clé</button>
         </div>
         <label class="file" style="margin-top: 11px">
           <input type="file" id="gpx" accept=".gpx,application/gpx+xml,text/xml">
@@ -393,6 +404,7 @@
 <script src="src/design.js"></script>
 <script src="src/overlay.js"></script>
 <script src="src/collections.js"></script>
+<script src="src/icu-web.js"></script>
 <script src="src/video.js"></script>
 <script src="src/zip.js"></script>
 <script src="src/share.js"></script>

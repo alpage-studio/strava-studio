@@ -35,6 +35,7 @@ const SHELL = [
   './src/design.js',
   './src/overlay.js',
   './src/collections.js',
+  './src/icu-web.js',
   './src/video.js',
   './src/zip.js',
   './src/share.js',
