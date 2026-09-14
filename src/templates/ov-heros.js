@@ -54,7 +54,7 @@ Studio.template({
     var foot = { size: fSize, font: H.MONO, weight: 400, tracking: fSize * 0.12,
                  color: P.a(.78), upper: true };
     H.text(f.name, left, fBase, foot);
-    H.text(f.time + ' · ' + f.third.value.toUpperCase(), w - px(84), fBase,
+    H.text([f.time, f.thirdUpper].filter(function (v) { return v; }).join(' · '), w - px(84), fBase,
       Object.assign({}, foot, { align: 'right' }));
   }
 });

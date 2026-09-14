@@ -140,8 +140,8 @@
       var cols = [
         ['distance', H.fmt.km(a.distance_km, 1) + ' km'],
         ['temps', f.time],
-        [f.third.label, f.third.value]
-      ];
+        [f.third && f.third.label, f.third && f.third.value]
+      ].filter(function (c) { return c[1] != null; });
       var widths = cols.map(function (c) {
         return Math.max(H.measure(String(c[0]).toUpperCase(), label), H.measure(c[1], value));
       });

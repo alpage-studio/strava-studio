@@ -143,13 +143,15 @@
       if (!a.has_power) return { label: 'vitesse', value: H.fmt.speed(a.speed_kmh) + ' km/h' };
       return { label: 'puissance', value: (a.power_avg || a.power.avg) + ' W' };
     },
-    distance: function (a, H) { return { label: 'distance', value: H.fmt.km(a.distance_km, 1) + ' km' }; }
+    distance: function (a, H) { return { label: 'distance', value: H.fmt.km(a.distance_km, 1) + ' km' }; },
+    aucune: function () { return null; }
   };
 
   var MOIS = ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUN', 'JUL', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'];
 
   function fields(a, o, H) {
-    var third = (THIRD[o.troisieme] || THIRD.vitesse)(a, H);
+    var fabrique = Object.prototype.hasOwnProperty.call(THIRD, o.troisieme) ? THIRD[o.troisieme] : THIRD.vitesse;
+    var third = fabrique(a, H);
     var d = a.date;
     var dateline = d
       ? (d.getDate() < 10 ? '0' : '') + d.getDate() + ' ' + MOIS[d.getMonth()] + ' ' + d.getFullYear() +
@@ -163,8 +165,18 @@
       ascent: ascent,
       ascentUpper: ascent.toUpperCase(),
       third: third,
-      // ligne compacte des trois valeurs, séparateur milieu de point
-      line: [ascent.toUpperCase(), H.fmt.duration(a.duration_s), third.value.toUpperCase()].join(' · ')
+      /* La troisième donnée peut être absente : tout ce qui la concatène
+       * doit passer par ces deux-là, sinon on obtient « 3:20 · undefined ».
+       * trio() joint ce qui existe, avec le séparateur demandé. */
+      thirdUpper: third ? third.value.toUpperCase() : null,
+      trio: function (sep) {
+        return [ascent.toUpperCase(), H.fmt.duration(a.duration_s),
+                third ? third.value.toUpperCase() : null]
+          .filter(function (v) { return v != null; }).join(sep || ' · ');
+      },
+      line: [ascent.toUpperCase(), H.fmt.duration(a.duration_s),
+             third ? third.value.toUpperCase() : null]
+        .filter(function (v) { return v != null; }).join(' · ')
     };
   }
 
@@ -205,7 +217,7 @@
   var OPT_THIRD = {
     key: 'troisieme', type: 'select', label: '3ᵉ donnée', default: 'vitesse',
     choices: [['vitesse', 'Vitesse'], ['puissance', 'Puissance'], ['allure', 'Allure'],
-               ['fc', 'Fréquence card.'], ['distance', 'Distance']]
+               ['fc', 'Fréquence card.'], ['distance', 'Distance'], ['aucune', 'Aucune']]
   };
 
   var OPT_SCRIM = {

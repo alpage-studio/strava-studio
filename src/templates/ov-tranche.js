@@ -29,7 +29,7 @@ Studio.template({
     /* colonne verticale : les colonnes se succèdent de droite à gauche */
     H.vcolumn([
       { text: f.name, size: px(44), tracking: -px(44) * 0.01, color: P.ink },
-      { text: (f.time + ' · ' + f.ascentUpper + ' · ' + f.third.value).toUpperCase(),
+      { text: f.trio(' · '),
         size: px(22), font: H.MONO, tracking: px(22) * 0.24, color: P.a(.7) }
     ], w - px(96), py(180), px(30));
 

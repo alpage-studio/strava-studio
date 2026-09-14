@@ -37,7 +37,7 @@ Studio.template({
     });
 
     var dTop = top + H.lh(nSize) + px(22);
-    H.text(f.time + '   ' + f.ascentUpper + '   ' + f.third.value.toUpperCase(),
+    H.text(f.trio('   '),
       cx, H.bl(dTop, dSize), {
         size: dSize, font: H.MONO, weight: 400, tracking: dSize * 0.22,
         color: P.a(.7), align: 'center', maxWidth: w - px(160)

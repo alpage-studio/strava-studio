@@ -39,8 +39,8 @@ Studio.template({
     var rows = [
       ['en mouvement', f.time],
       ['d+', f.ascent],
-      [f.third.label, f.third.value]
-    ];
+      [f.third && f.third.label, f.third && f.third.value]
+    ].filter(function (c) { return c[1] != null; });
 
     rows.forEach(function (r, i) {
       var rowTop = y + px(26);

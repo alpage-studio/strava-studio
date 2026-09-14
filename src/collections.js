@@ -55,7 +55,8 @@
     'trace':          { accent: 'accent' },
     'chiffres':       { papier: 'fond', encre: 'encre', accent: 'accent' },
     'pente':          { fond: 'fond', fond2: 'fond2', encre: 'encre' },
-    'radiale':        { fond: 'fond', fond2: 'fond2', encre: 'encre', accent: 'accent' }
+    'radiale':        { fond: 'fond', fond2: 'fond2', encre: 'encre', accent: 'accent' },
+    'allumettes':     { fond: 'fond', encre: 'encre', accent: 'accent' }
   };
 
   function get(id) {

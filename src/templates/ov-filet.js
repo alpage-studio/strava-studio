@@ -35,8 +35,8 @@ Studio.template({
     var cols = [
       ['temps', f.time],
       ['d+', f.ascent],
-      [f.third.label, f.third.value]
-    ];
+      [f.third && f.third.label, f.third && f.third.value]
+    ].filter(function (c) { return c[1] != null; });
 
     // space-between : on mesure chaque colonne, l'espace restant se partage
     var widths = cols.map(function (c) {
