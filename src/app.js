@@ -579,6 +579,13 @@
   });
 
   /* ---------- démarrage ---------- */
+  /* La version s'affiche dans l'en-tête : c'est ce qui permet de savoir,
+   * d'un coup d'œil, si la page ouverte est bien la dernière déployée. */
+  if (typeof STUDIO_VERSION !== 'undefined') {
+    var note = $('#header-note');
+    if (note) note.textContent = 'v' + STUDIO_VERSION + ' · ' + STUDIO_DATE;
+  }
+
   var saved = load();
   /* Deux familles qui ne se mélangent pas : les images composées et les
    * surcouches à canal alpha. Le regroupement évite de choisir par erreur
