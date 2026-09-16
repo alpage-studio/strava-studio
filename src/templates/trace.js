@@ -19,7 +19,9 @@ Studio.template({
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
 
     /* --- fond --- */
-    if (o.fond === 'photo' && H.photo()) {
+    if (H.surcouche()) {
+      /* surcouche : aucun fond, c'est la photo du montage qui le fournit */
+    } else if (o.fond === 'photo' && H.photo()) {
       ctx.save();
       ctx.fillStyle = 'rgba(8,10,14,' + (o.voile / 100) + ')';
       ctx.fillRect(0, 0, w, h);

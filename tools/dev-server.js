@@ -100,11 +100,29 @@ async function traite(req, res) {
    * nom de destination n'est accepté. */
   if (req.method === 'POST' && p === '/__save') {
     if (!DEBUG || LAN) { res.writeHead(404); res.end('404'); return; }
+    /* D'OÙ vient la requête. Un POST en text/plain est une requête CORS
+     * « simple » : aucun pré-vol, donc n'importe quelle page ouverte dans le
+     * même navigateur pouvait écrire dans apercus/ tant que --debug tournait.
+     * L'écriture reste bornée — un PNG, un dossier ignoré — mais elle était
+     * bien déclenchée par un tiers.
+     *
+     * Une origine absente est acceptée : c'est le cas d'un `curl`, qui n'est
+     * pas un navigateur et n'a donc rien à usurper. */
+    const origine = req.headers.origin;
+    if (origine && origine !== 'http://127.0.0.1:' + PORT &&
+        origine !== 'http://localhost:' + PORT) {
+      res.writeHead(403); res.end('origine refusée'); return;
+    }
     let taille = 0;
     const morceaux = [];
     req.on('data', c => {
       taille += c.length;
-      if (taille > 16 * 1024 * 1024) { req.destroy(); return; }
+      /* Répondre AVANT de couper : `destroy()` seul laisse le client
+       * attendre une réponse qui ne viendra jamais. */
+      if (taille > 16 * 1024 * 1024) {
+        res.writeHead(413); res.end('trop gros');
+        req.destroy(); return;
+      }
       morceaux.push(c);
     });
     req.on('end', () => {
@@ -268,8 +286,23 @@ async function traite(req, res) {
     res.writeHead(403); res.end('403'); return;
   }
   // rien de ce qui n'appartient pas à l'application ne se sert
-  if (/(^|[\\/])(\.git|node_modules|tools)([\\/]|$)/.test(dedans)) {
+  if (/(^|[\\/])(\.git|node_modules|tools|design)([\\/]|$)/.test(dedans)) {
     res.writeHead(403); res.end('403'); return;
+  }
+
+  /* EN RÉSEAU, les traces réelles ne sortent pas.
+   *
+   * --lan sert le répertoire de travail. Or c'est là qu'atterrissent les
+   * .gpx exportés de Strava — ceux que .gitignore écarte précisément parce
+   * que leur premier point est un domicile. Ils étaient donc lisibles par
+   * toute machine du Wi-Fi. Seuls les exemples SYNTHÉTIQUES, ceux que le
+   * dépôt publie, restent accessibles ; la liste suit celle du .gitignore.
+   *
+   * En local (127.0.0.1) rien ne change : c'est ta propre machine. */
+  if (LAN && /\.gpx$/i.test(dedans)) {
+    const base = path.basename(dedans);
+    const publiable = /^(exemple|exemple-[a-z]+|demo-[a-z]+|sem-[a-z0-9]+|loin-[a-z])\.gpx$/i.test(base);
+    if (!publiable) { res.writeHead(403); res.end('403'); return; }
   }
 
   fs.readFile(file, (err, data) => {

@@ -39,8 +39,12 @@
       var faint = alpha(ink, 0.55);
       var hair = alpha(ink, 0.22);
 
-      /* ---------- fond ---------- */
-      if (o.fond === 'photo' && H.photo()) {
+      /* ---------- fond ----------
+       * En surcouche il n'y a pas de fond : ni photo (le moteur la refuse
+       * pour garder l'alpha), ni aplat, ni degrade. */
+      if (H.surcouche()) {
+        /* rien */
+      } else if (o.fond === 'photo' && H.photo()) {
         ctx.fillStyle = alpha('#000000', 0.25);
         ctx.fillRect(0, 0, w, h);
       } else if (o.fond === 'aplat') {

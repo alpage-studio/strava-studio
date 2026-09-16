@@ -270,9 +270,20 @@ Studio.template({
       var champ = Alpage.champDistance(P, boiteChamp, res);
 
       var revelation = H.progressCount(nb + 1);
-      /* Un peu plus épais qu'au premier jet : à 0,45 % du rayon les anneaux
-       * se confondaient en un halo hachuré au lieu de se compter. */
-      var epais = compo === 'contre' ? rayon * 0.011 : rayon * 0.0062;
+
+      /* UNE LIGNE PÂLE DISPARAÎT QUAND LE MÉDAILLON RÉTRÉCIT.
+       *
+       * Dans les compositions à trois sujets — Îlots, Triptyque, Collection —
+       * chaque empreinte fait le tiers d'un sceau, et ses contours, dessinés
+       * à la même finesse et à la même pâleur que sur une planche unique,
+       * s'effaçaient : il ne restait que l'aplat. C'est la TAILLE qui décide
+       * de ce qui reste lisible, pas la composition — on mesure donc le
+       * rayon plutôt que de tester un nom.
+       *
+       * `petit` vaut 0 pour un sceau pleine page, 1 pour un médaillon de
+       * collection. */
+      var petit = Math.max(0, Math.min(1, (u(26) - rayon) / u(14)));
+      var epais = (compo === 'contre' ? rayon * 0.011 : rayon * 0.0062) * (1 + 1.2 * petit);
       ctx.save();
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       for (var k = nb; k >= 1; k--) {
@@ -283,8 +294,11 @@ Studio.template({
           ctx.moveTo(segs[t2][0].x, segs[t2][0].y);
           ctx.lineTo(segs[t2][1].x, segs[t2][1].y);
         }
+        /* Le dégradé du plus lointain au plus proche reste, mais son point
+         * de départ remonte quand la figure est petite. */
         ctx.strokeStyle = melange(encre, compo === 'contre'
-          ? 0.42 + 0.42 * (1 - k / nb) : 0.26 + 0.5 * (1 - k / nb));
+          ? 0.42 + 0.42 * (1 - k / nb)
+          : (0.26 + 0.26 * petit) + (0.5 + 0.16 * petit) * (1 - k / nb));
         ctx.lineWidth = Math.max(0.6, epais);
         ctx.stroke();
       }

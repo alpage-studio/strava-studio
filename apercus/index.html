@@ -2,12 +2,12 @@
 <html lang="fr">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#14141a">
+<meta name="theme-color" content="#121210">
 <title>Alpage — revue des compositions</title>
 <style>
   :root {
-    --papier: #14141a; --encre: #e9e6dd; --mut: #8a8880;
-    --line: #2a2a33; --acc: #C8F04E;
+    --papier: #121210; --encre: #EDEAE0; --mut: #8C897C;
+    --line: #26261F; --acc: #C99A32;
     --col: 150px;            /* largeur mini d'une colonne : deux par ligne sur un téléphone */
     --marge: 14px;
     --sbar: env(safe-area-inset-bottom, 0px);
@@ -43,7 +43,7 @@
     margin: 0 calc(-1 * var(--marge)) 18px;
     padding: 9px var(--marge) 9px;
     padding-top: max(9px, env(safe-area-inset-top, 0px));
-    background: rgba(20,20,26,.95); backdrop-filter: blur(6px);
+    background: rgba(18,18,16,.95); backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--line);
     display: flex; flex-direction: column; gap: 7px;
   }
@@ -68,7 +68,7 @@
     min-height: 34px;                       /* cible tactile */
   }
   button.f:hover { color: var(--encre); }
-  button.f.on { background: var(--acc); border-color: var(--acc); color: #14141a; font-weight: 600; }
+  button.f.on { background: var(--acc); border-color: var(--acc); color: #17150E; font-weight: 600; }
   .compte { color: var(--mut); font-size: 12px; flex: none; }
   @media (min-width: 720px) { .compte { margin-left: auto; } }
   /* Le réglage de taille ne sert à rien tant qu'on ne tient qu'une ou deux
@@ -98,10 +98,10 @@
   .vignette {
     display: block; position: relative; overflow: hidden;
     border: 1px solid var(--line); border-radius: 3px;
-    background-color: #20202a;
+    background-color: #1A1A17;
     background-image:
-      linear-gradient(45deg, #2b2b36 25%, transparent 25%, transparent 75%, #2b2b36 75%),
-      linear-gradient(45deg, #2b2b36 25%, transparent 25%, transparent 75%, #2b2b36 75%);
+      linear-gradient(45deg, #232320 25%, transparent 25%, transparent 75%, #2b2b36 75%),
+      linear-gradient(45deg, #232320 25%, transparent 25%, transparent 75%, #2b2b36 75%);
     background-size: 18px 18px; background-position: 0 0, 9px 9px;
   }
   .vignette.photo { background: #333 url("v/photo-demo.webp") center/cover; }
@@ -118,6 +118,12 @@
     margin: 3px 4px 0 0; color: var(--mut);
   }
   .tag.expl { border-color: #5a5030; color: #b8a05a; }
+  /* Le chemin dans l'outil : discret, mais c'est lui qui fait le lien entre
+     ce qu'on voit ici et ce qu'on règle là-bas. */
+  .chemin {
+    display: block; margin-top: 5px; font-size: 10.5px; line-height: 1.45;
+    color: #6f7a55; font-family: "IBM Plex Mono", ui-monospace, monospace;
+  }
   a { color: inherit; text-decoration: none; }
   a:hover .vignette { border-color: var(--acc); }
   .vide { color: var(--mut); padding: 40px 0; }
@@ -127,7 +133,7 @@
     position: fixed; right: max(12px, env(safe-area-inset-right, 0px));
     bottom: calc(12px + var(--sbar));
     width: 42px; height: 42px; border-radius: 50%;
-    border: 1px solid var(--line); background: rgba(20,20,26,.92);
+    border: 1px solid var(--line); background: rgba(18,18,16,.92);
     color: var(--encre); font-size: 17px; cursor: pointer; display: none;
     backdrop-filter: blur(6px);
   }
@@ -161,10 +167,76 @@
 <div id="sortie"></div>
 <button id="haut" type="button" aria-label="Revenir en haut">↑</button>
 
+<!-- Les templates sont chargés ICI, en vrai : c'est ce qui permet d'écrire
+     sous chaque vignette le chemin exact pour la retrouver dans l'outil, avec
+     les libellés que l'outil affiche et non une copie qui divergera. Ils
+     n'ont besoin d'aucun canvas pour se déclarer. -->
+<script src="../src/studio.js"></script>
+<script src="../src/alpage.js"></script>
+<script src="../src/library.js"></script>
+<script src="../src/templates/encre.js"></script>
+<script src="../src/templates/strates.js"></script>
+<script src="../src/templates/empreinte.js"></script>
+<script src="../src/templates/atlas.js"></script>
+<script src="../src/templates/medaillon.js"></script>
+<script src="../src/templates/almanac.js"></script>
 <script src="../apercus-catalogue.js"></script>
 <script>
 var C = window.Apercus.CATALOGUE;
 var etatF = null, etatG = null;
+
+/* LE CHEMIN DANS L'OUTIL.
+ *
+ * La galerie dit « Empreinte · Exploration → Soleil ». L'outil, lui, n'a pas
+ * de template « Empreinte Exploration » : il a « Empreinte », et un menu
+ * « Composition » où se trouve « Exploration · Soleil ». Sans cette ligne on
+ * cherche un template qui n'existe pas — et on conclut qu'il manque.
+ *
+ * Les libellés sont lus dans les templates chargés ci-dessus, pas recopiés :
+ * une copie finirait par dire autre chose que le menu. */
+function chemin(e) {
+  var tpl = window.Studio && window.Studio.get(e.t);
+  if (!tpl) return '';
+  var pas = [tpl.name.split(' —')[0]];
+  var o = e.o || {};
+
+  var vus = {};
+  Object.keys(o).forEach(function (k) {
+    /* Le fond et le voile sont dits par la ligne « Support » : les laisser
+     * ici ferait passer un reglage de finition pour la composition, et la
+     * vignette « Trait · surcouche » ne dirait plus qu'elle est un Trait. */
+    if (k === 'fond' || k === 'voile') return;
+    var def = tpl.options.filter(function (d) { return d.key === k; })[0];
+    if (!def || def.type !== 'select') return;
+    var choix = (def.choices || []).filter(function (c) { return c[0] === o[k]; })[0];
+    if (!choix) return;
+    vus[k] = true;
+    pas.push(def.label + ' : ' + choix[1].split(' —')[0]);
+  });
+
+  /* Aucune option n'est donnée : c'est la composition par défaut, et c'est
+   * elle qu'il faut nommer — sinon la vignette « Trait » n'indique rien. */
+  if (!Object.keys(vus).length) {
+    var premier = tpl.options.filter(function (d) {
+      return d.type === 'select' && d.key !== 'fond' && d.key !== 'voile';
+    })[0];
+    if (premier) {
+      var par = (premier.choices || []).filter(function (c) { return c[0] === premier.default; })[0];
+      if (par) pas.push(premier.label + ' : ' + par[1].split(' —')[0]);
+    }
+  }
+
+  if (o.fond === 'transparent') {
+    pas.push('Support : Transparent');
+    if (o.voile && o.voile !== 'aucun') {
+      var dv = tpl.options.filter(function (d) { return d.key === 'voile'; })[0];
+      var cv = dv && (dv.choices || []).filter(function (c) { return c[0] === o.voile; })[0];
+      if (cv) pas.push('Voile : ' + cv[1]);
+    }
+  }
+  if (e.nb) pas.push('Rendu : Noir & blanc');
+  return pas.join('  \u2192  ');
+}
 
 function uniques(champ) {
   var vus = [], out = [];
@@ -284,6 +356,7 @@ function rend() {
           (e.nb ? '<span class="tag">noir &amp; blanc</span>' : '') +
           (e.photo ? '<span class="tag">surcouche</span>' : '') +
           '<span class="tag">' + t.join(' × ') + '</span>' +
+          (chemin(e) ? '<span class="chemin">' + chemin(e) + '</span>' : '') +
         '</figcaption>';
       gr.appendChild(f);
     });

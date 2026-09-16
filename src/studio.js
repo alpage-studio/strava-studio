@@ -74,7 +74,25 @@
    * `tpl.transparent` directement. Avec une déclaration devenue fonction,
    * ils auraient tous reçu `true` (une fonction est vraie) et cru que les
    * six planches Alpage étaient toujours transparentes. */
+  /* ---------- le support, réglage GLOBAL ----------
+   *
+   * Le principe du studio : toute planche peut se poser sur une photo. Il
+   * n'était vrai que pour quatorze templates sur trente-trois — les six
+   * Alpage, qui avaient leur propre menu « Fond », et les huit surcouches,
+   * qui ne savent faire que cela. Les dix-neuf autres peignaient un fond
+   * opaque sans que rien ne permette de le retirer.
+   *
+   * Le réglage vit donc ICI, une fois, et non dans chaque template : un
+   * choix qui vaut pour tous n'a pas à être redéclaré trente-trois fois,
+   * et l'oubli d'une seule déclaration est exactement ce qui a produit le
+   * défaut. Le moteur neutralise alors ce qui fabrique un fond — H.fill()
+   * et le grain — et les quatre templates qui peignent un dégradé en
+   * direct demandent H.surcouche() avant de le faire. */
+  var supportSurcouche = false;
+  function setSupport(actif) { supportSurcouche = !!actif; }
+
   function estTransparent(tpl, opts) {
+    if (supportSurcouche) return true;
     if (typeof tpl === 'string') tpl = get(tpl);
     if (!tpl) return false;
     if (typeof tpl.transparent !== 'function') return !!tpl.transparent;
@@ -218,9 +236,17 @@
        * de format (story 9:16 -> post 4:5) sans une seule retouche. */
       u: function (n) { return n * Math.min(w, h) / 100; },
 
+      /* En surcouche, un aplat qui couvre toute la planche EST le fond :
+       * on ne le peint pas, sinon le PNG exporté n'a plus d'alpha et il n'y
+       * a plus rien à poser sur une photo. */
       fill: function (color) {
+        if (state.transparent) return;
         ctx.save(); ctx.fillStyle = color; ctx.fillRect(0, 0, w, h); ctx.restore();
       },
+
+      /* Un template qui peint son fond autrement qu'avec H.fill() — un
+       * dégradé, par exemple — demande ceci avant de le faire. */
+      surcouche: function () { return !!state.transparent; },
 
       /* Dégradé vertical. stops = [[0,'#000'],[1,'#fff']] */
       gradient: function (stops, x0, y0, x1, y1) {
@@ -486,6 +512,19 @@
 
     state.transparent = estTransparent(tpl, o);
 
+    /* Les six planches Alpage ont leur propre menu « Fond » : quand le
+     * reglage global demande une surcouche, on le leur transmet dans leur
+     * propre vocabulaire plutot que de leur retirer le fond sous les pieds.
+     * Leur voile — le degrade qui rend le texte lisible sur une photo —
+     * continue ainsi de fonctionner. */
+    if (supportSurcouche) {
+      tpl.options.forEach(function (def) {
+        if (def.key !== 'fond' || !def.choices) return;
+        var aTransparent = def.choices.some(function (c) { return c[0] === 'transparent'; });
+        if (aTransparent) o.fond = 'transparent';
+      });
+    }
+
     var H = helpers(ctx, w, h, state);
     try {
       /* progress/fade sont aussi passés BRUTS. Les helpers en tiennent déjà
@@ -552,7 +591,8 @@
     estTransparent: estTransparent,
     render: render, exportPNG: exportPNG, setPhoto: setPhoto, setMinimal: setMinimal,
     setLibrary: setLibrary, setHistorique: setHistorique, setMusee: setMusee,
-    setAchromatique: setAchromatique, versGris: versGris, rampeDeGris: rampeDeGris,
+    setAchromatique: setAchromatique,
+    setSupport: setSupport, versGris: versGris, rampeDeGris: rampeDeGris,
     setProgress: setProgress, fmt: fmt
   };
 }(window));

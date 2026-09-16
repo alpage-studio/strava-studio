@@ -44,6 +44,7 @@ const SHELL = [
   './sem-01.gpx', './sem-02.gpx', './sem-03.gpx', './sem-04.gpx',
   './sem-05.gpx', './sem-06.gpx', './sem-07.gpx', './sem-08.gpx',
   './src/version.js',
+  './src/i18n.js',
   './src/activity.js',
   './src/studio.js',
   './src/design.js',

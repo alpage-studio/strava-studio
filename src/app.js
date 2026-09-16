@@ -31,13 +31,45 @@
   var chargee = false;              // une vraie sortie a-t-elle été fournie ?
   var exportEnCours = false;        // un export occupe le canvas
 
+  /* La page statique est traduite AVANT que quoi que ce soit de dynamique
+   * ne soit construit : autrement le parcours des nœuds de texte retomberait
+   * sur des libellés déjà traduits et n'en reconnaîtrait plus la clé. */
+  /* ---------- papier ou sombre ----------
+   * Le papier est l'accueil : l'interface ressemble alors à ce qu'elle
+   * fabrique. Le sombre reste à un doigt, parce qu'une planche nocturne se
+   * juge mal sur du papier — c'est un choix de travail, pas une préférence
+   * de confort. */
+  (function theme() {
+    var CLE = 'strava-studio-theme';
+    var actuel = 'papier';
+    try { actuel = localStorage.getItem(CLE) || 'papier'; } catch (e) { /* mode privé */ }
+    function pose(t) {
+      actuel = t;
+      if (t === 'sombre') document.documentElement.setAttribute('data-theme', 'sombre');
+      else document.documentElement.removeAttribute('data-theme');
+      var meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute('content', t === 'sombre' ? '#0A0A09' : '#F7F5EF');
+      try { localStorage.setItem(CLE, t); } catch (e) { /* tant pis */ }
+    }
+    pose(actuel);
+    $('#theme').addEventListener('click', function () {
+      pose(actuel === 'sombre' ? 'papier' : 'sombre');
+      draw();                      // le fond de contrôle dépend du thème
+    });
+  }());
+
+  I18N.appliquer(document.body);
+  $('#langue').value = I18N.langue();
+  $('#langue').addEventListener('change', function () { I18N.setLangue(this.value); });
+
   /* ---------- persistance légère ---------- */
   function save() {
     try {
       localStorage.setItem('strava-studio', JSON.stringify({
         tpl: $('#tpl').value, size: $('#size').value, opts: optionValues,
         collection: $('#collection').value, minimal: $('#minimal').checked,
-        rendu: $('#rendu').value, photoNb: $('#photo-nb').checked
+        rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
+        support: $('#support').value, periode: $('#periode').value
       }));
     } catch (e) { /* mode privé : tant pis */ }
   }
@@ -70,8 +102,66 @@
   /* La bibliothèque est la source ; `base` n'en est que la sortie courante.
    * Les seize templates simples continuent de lire une activité, ceux qui
    * déclarent multi: true lisent la liste entière. */
+  /* ---------- la période ----------
+   *
+   * Une planche de série lit `s.library`. Jusqu'ici elle lisait TOUT ce qui
+   * était chargé, et composer « la semaine dernière » demandait de retirer à
+   * la main les sorties des autres semaines — puis de les recharger.
+   *
+   * Le filtre s'applique donc en amont, une seule fois, à l'endroit exact où
+   * le moteur reçoit la bibliothèque. Les templates n'en savent rien : ils
+   * reçoivent une liste, comme avant.
+   *
+   * « Tout ce qui est chargé » reste le défaut : un réglage qui change ce
+   * qu'on voit ne doit pas s'appliquer sans qu'on l'ait demandé. */
+  function fenetreCourante() {
+    var v = $('#periode') ? $('#periode').value : 'tout';
+    if (!v || v === 'tout') return null;
+    var p = v.split(':');
+    return Alpage.fenetre(p[0], parseInt(p[1], 10) || 0);
+  }
+
+  function entreesRetenues() {
+    var f = fenetreCourante();
+    if (!f) return Library.list();
+    return Library.list().filter(function (e) {
+      return Alpage.dansLaFenetre(e.activity && e.activity.date, f);
+    });
+  }
+
+  /* Ce que le filtre retient, écrit noir sur blanc. Une planche vide est un
+   * résultat possible — « aucune sortie cette semaine » est une information,
+   * pas une erreur — mais elle doit être ANNONCÉE, sinon elle ressemble à
+   * une panne. */
+  function majPeriode() {
+    var tpl = Studio.get($('#tpl').value);
+    var multi = !!(tpl && tpl.multi);
+    var bloc = $('#opt-periode'), note = $('#periode-state');
+    if (!bloc) return;
+    bloc.hidden = !multi;
+    var f = fenetreCourante();
+    if (!multi || !f) { note.hidden = true; return; }
+    var n = entreesRetenues().length, total = Library.count();
+    note.hidden = false;
+    note.textContent = n + ' / ' + total + ' ' + T('sorties') + ' · ' +
+      f.debut.toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' }) +
+      ' → ' + new Date(f.fin.getTime() - 86400000)
+        .toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' }) +
+      (n === 0 ? ' · ' + T('aucune sortie dans cette période') : '');
+  }
+
   function syncBibliotheque() {
-    Studio.setLibrary(Library.list());
+    Studio.setLibrary(entreesRetenues());
+    if ($('#opt-periode')) majPeriode();
+    /* Les vignettes du catalogue sont des rendus des sorties chargées : elles
+     * doivent être refaites quand la bibliothèque change, sinon elles
+     * continuent d'afficher « charge une sortie » après le chargement.
+     *
+     * Le garde portait sur `typeof construitChoixStyle` — il était toujours
+     * vrai, une déclaration de fonction étant hoistée, et ne protégeait donc
+     * de rien. Ce qui pourrait manquer, c'est la LISTE des groupes, déclarée
+     * en `var` plus bas : c'est elle qu'on teste. */
+    if (GROUPES_STYLE && $('#choix-style')) construitChoixStyle();
     var cur = Library.current();
     if (cur) base = cur;
     chargee = Library.count() > 0 || chargee;
@@ -145,6 +235,9 @@
      * filtre CSS sur l'aperçu ne suivrait pas dans toBlob et l'export
      * sortirait en couleur. */
     Studio.setAchromatique($('#rendu').value === 'nb', $('#photo-nb').checked);
+    /* Le support aussi : il décide s'il y a un fond du tout, donc il doit
+     * être connu avant que le template ne peigne quoi que ce soit. */
+    Studio.setSupport($('#support').value === 'surcouche');
     current = Studio.render(canvas, tplId, effective(), resolvedOptions(tplId), size);
     /* L'échelle prenait la largeur TOTALE du panneau et retirait 24 px à sa
      * hauteur : en paysage l'image touchait les bords, en story la légende
@@ -182,13 +275,13 @@
    * n'a pas la place d'expliquer, et le bouton reste le même. */
   var ETROIT = window.matchMedia('(max-width: 900px)');
   var enLecture = false;                 // drapeau declare AVANT sa premiere lecture
-  function libelle(long, court) { return ETROIT.matches ? court : long; }
+  function libelle(long, court) { return T(ETROIT.matches ? court : long); }
   function majLibelles() {
     if (enLecture) return;               // une lecture en cours a son propre libellé
     $('#preview-play').textContent = libelle('Lire l\u2019aper\u00e7u', 'Aper\u00e7u');
     $('#export-video').textContent = libelle('Vid\u00e9o \u2014 le trac\u00e9 s\u2019anime', 'Vid\u00e9o');
     $('#export-seq').textContent = libelle('S\u00e9quence PNG \u2014 pour le montage', 'S\u00e9quence');
-    $('#export').textContent = libelle('Exporter en PNG', 'Exporter');
+    $('#export').textContent = libelle('Enregistrer l’image', 'Enregistrer');
   }
   ETROIT.addEventListener('change', majLibelles);
   majLibelles();
@@ -216,7 +309,7 @@
   function caption(size) {
     var el = $('#stage-caption');
     if (!el) return;
-    el.textContent = current.name + ' · ' + size[0] + ' × ' + size[1] +
+    el.textContent = T(current.name) + ' · ' + size[0] + ' × ' + size[1] +
       (transparentCourant() ? ' · PNG transparent' : '');
   }
 
@@ -241,10 +334,332 @@
   }
 
   /* ---------- panneau d'options du template ---------- */
+  /* ---------- LA BARRE DU TÉLÉPHONE ----------
+   *
+   * Sous 900 px, la colonne de réglages cède la place à quatre panneaux qui
+   * remontent du bas. Une seule décision occupe l'écran à la fois, et
+   * l'aperçu reste visible pendant qu'on règle.
+   *
+   * Les contrôles ne sont pas DUPLIQUÉS : ils sont DÉPLACÉS. `appendChild`
+   * sur un nœud existant le déplace avec ses écouteurs et ses références ;
+   * les identifiants ne changent pas, donc tout le reste d'app.js continue
+   * de les trouver. Dupliquer aurait demandé de tenir deux interfaces en
+   * accord — et elles auraient divergé au premier réglage ajouté.
+   *
+   * Au-dessus de 900 px, tout revient dans la colonne. */
+  var ZONES = {
+    /* La sortie vit dans le panneau Style : sans elle, sur un téléphone où la
+     * colonne est masquée, il n'y aurait AUCUN moyen d'importer un GPX ni de
+     * choisir une activité — l'application serait jolie et inutilisable. */
+    style:   ['#section-activite', '#choix-style', '#opt-collection', '#collection-note',
+              '#opt-minimal', '#opts'],
+    teintes: ['#opt-teintes', '#opt-photo-nb', '#opt-support', '#section-fond', '#opts-couleur'],
+    texte:   ['#opts-texte'],
+    /* Format porte aussi les SORTIES : aperçu animé, vidéo, séquence, son.
+     * Elles vivaient dans le socle de la colonne — masqué sous 900 px — et
+     * devenaient donc introuvables sur téléphone. Un contrôle resté dans un
+     * conteneur qu'on cache ne disparaît pas de l'écran : il disparaît de
+     * l'application. */
+    format:  ['#rangee-format', '#preview-play', '#son', '#export-video',
+              '#export-seq', '#video-state']
+  };
+  var placeOrigine = {};        // sélecteur -> { parent, suivant } avant déplacement
+  var feuilleOuverte = null;
+
+  function memorisePlace(sel) {
+    if (placeOrigine[sel]) return;
+    var el = document.querySelector(sel);
+    if (!el) return;
+    placeOrigine[sel] = { parent: el.parentNode, suivant: el.nextSibling };
+  }
+
+  function versPanneaux() {
+    Object.keys(ZONES).forEach(function (z) {
+      var zone = document.querySelector('#feuille .zone[data-zone="' + z + '"]');
+      if (!zone) return;
+      ZONES[z].forEach(function (sel) {
+        var el = document.querySelector(sel);
+        if (!el) return;
+        memorisePlace(sel);
+        zone.appendChild(el);
+      });
+    });
+  }
+
+  function versColonne() {
+    Object.keys(ZONES).forEach(function (z) {
+      ZONES[z].forEach(function (sel) {
+        var el = document.querySelector(sel);
+        var p = placeOrigine[sel];
+        if (!el || !p || !p.parent) return;
+        /* `insertBefore` lève si le voisin mémorisé n'est plus un enfant de ce
+         * parent. Ça n'arrive pas aujourd'hui — ces nœuds sont fixes dans la
+         * page — mais un échec ici casserait le retour à la colonne au moment
+         * d'une rotation, et laisserait l'interface sans ses réglages. On
+         * retombe donc sur la fin du parent : l'ordre change, rien ne
+         * disparaît. */
+        try {
+          p.parent.insertBefore(el, p.suivant && p.suivant.parentNode === p.parent
+            ? p.suivant : null);
+        } catch (e) {
+          p.parent.appendChild(el);
+        }
+      });
+    });
+  }
+
+  function ouvreFeuille(z) {
+    var f = $('#feuille');
+    feuilleOuverte = z;
+    Array.prototype.forEach.call(document.querySelectorAll('#feuille .zone'), function (el) {
+      el.hidden = el.getAttribute('data-zone') !== z;
+    });
+    var titres = { style: 'Style', teintes: 'Teintes', texte: 'Texte', format: 'Format' };
+    $('#feuille-titre').textContent = T(titres[z] || '');
+    f.classList.toggle('large', z === 'style');
+    f.hidden = false;
+    Array.prototype.forEach.call(document.querySelectorAll('#barre button[data-feuille]'),
+      function (b) { b.classList.toggle('on', b.getAttribute('data-feuille') === z); });
+  }
+
+  function fermeFeuille() {
+    feuilleOuverte = null;
+    $('#feuille').hidden = true;
+    Array.prototype.forEach.call(document.querySelectorAll('#barre button[data-feuille]'),
+      function (b) { b.classList.remove('on'); });
+  }
+
+  var TELEPHONE = window.matchMedia('(max-width: 900px)');
+  function majDisposition() {
+    var petit = TELEPHONE.matches;
+    $('#barre').hidden = !petit;
+    if (petit) versPanneaux();
+    else { fermeFeuille(); versColonne(); }
+    document.body.classList.toggle('telephone', petit);
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('#barre button[data-feuille]'),
+    function (b) {
+      b.addEventListener('click', function () {
+        var z = b.getAttribute('data-feuille');
+        if (feuilleOuverte === z) fermeFeuille(); else ouvreFeuille(z);
+      });
+    });
+  $('#feuille-fermer').addEventListener('click', fermeFeuille);
+  $('#feuille-voile').addEventListener('click', fermeFeuille);
+  $('#barre-enregistrer').addEventListener('click', function () {
+    fermeFeuille();
+    $('#export').click();
+  });
+  TELEPHONE.addEventListener('change', majDisposition);
+
+  /* ---------- LE CHOIX DE STYLE, EN DEUX TEMPS ----------
+   *
+   * Trente-trois noms dans un menu déroulant demandent de connaître le
+   * catalogue par cœur. On montre donc d'abord des FAMILLES, avec une
+   * vignette rendue depuis les sorties chargées — puis, une fois la famille
+   * choisie, ses variantes.
+   *
+   * Les vignettes sont de vrais rendus, pas des images figées : elles
+   * suivent la sortie, la couleur, le support et le noir & blanc en cours.
+   * Une image figée aurait menti dès le premier réglage.
+   *
+   * Le regroupement est de la NAVIGATION, pas de la donnée : il vit ici et
+   * non dans les templates, qui n'ont pas à connaître le rangement du
+   * magasin. Tout template absent d'un groupe retombe dans « Autres » — en
+   * ajouter un ne peut donc pas le faire disparaître de l'interface. */
+  var GROUPES_STYLE = [
+    { id: 'affiches', nom: 'Affiches',
+      ids: ['encre', 'empreinte', 'mots', 'editorial', 'trace', 'chiffres',
+            'allumettes', 'pente', 'radiale', 'sommet-ligne', 'sommet-barres'] },
+    { id: 'cartes', nom: 'Cartes',
+      ids: ['medaillon', 'atlas', 'metro', 'exploration'] },
+    { id: 'reliefs', nom: 'Reliefs et données',
+      ids: ['strates', 'ressenti', 'almanac', 'tissage'] },
+    { id: 'souvenirs', nom: 'Souvenirs',
+      ids: ['saisons', 'musee', 'serie', 'fresque'] },
+    { id: 'films', nom: 'Films et son', ids: ['film', 'partition'] },
+    { id: 'surcouches', nom: 'Surcouches',
+      ids: ['ov-filet', 'ov-profil', 'ov-trace', 'ov-ardoise', 'ov-heros',
+            'ov-tranche', 'ov-sommet-ligne', 'ov-sommet-barres'] }
+  ];
+
+  var groupeCourant = 'affiches';
+  var familleOuverte = null;          // null = on regarde les familles
+
+  /* La phrase sous le nom vient du template lui-même : « Encre — le geste
+   * du terrain » se coupe en « Encre » et « le geste du terrain ». Aucune
+   * liste de descriptions à tenir à jour en parallèle. */
+  function nomEtDit(tpl) {
+    var n = T(tpl.name);
+    var i = n.indexOf(' — ');
+    return i > 0 ? { nom: n.slice(0, i), dit: n.slice(i + 3) } : { nom: n, dit: '' };
+  }
+
+  /* La variante d'une famille : son premier menu, hors fond et voile qui
+   * sont devenus des réglages globaux. */
+  function optionVariante(tpl) {
+    return (tpl.options || []).filter(function (d) {
+      return d.type === 'select' && d.key !== 'fond' && d.key !== 'voile';
+    })[0] || null;
+  }
+
+  /* Une vignette : un vrai rendu, en petit. On rend à 300 px de large et on
+   * laisse le CSS réduire — en dessous, les textes des planches deviennent
+   * des taches grises et toutes les familles se ressemblent. */
+  function vignette(cv, tplId, valeurs) {
+    var t = Studio.get(tplId);
+    if (!t) return;
+    var ratio = 16 / 9;
+    var L = 300, H2 = Math.round(L * ratio);
+    try {
+      Studio.render(cv, tplId, effective(), valeurs || {}, [L, H2]);
+    } catch (e) { /* une famille qui ne sait pas dessiner ces données */ }
+  }
+
+  function construitChoixStyle() {
+    var boite = $('#choix-style');
+    if (!boite) return;
+    boite.innerHTML = '';
+    var tousIds = Studio.all().map(function (t) { return t.id; });
+    var ranges = {};
+    GROUPES_STYLE.forEach(function (g) {
+      g.ids.forEach(function (i) { ranges[i] = 1; });
+    });
+    var orphelins = tousIds.filter(function (i) { return !ranges[i]; });
+    var groupes = GROUPES_STYLE.slice();
+    if (orphelins.length) groupes.push({ id: 'autres', nom: 'Autres', ids: orphelins });
+
+    if (familleOuverte) return construitVariantes(boite, groupes);
+
+    var chips = document.createElement('div');
+    chips.className = 'groupes-style';
+    groupes.forEach(function (g) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.textContent = T(g.nom);
+      b.className = g.id === groupeCourant ? 'on' : '';
+      b.addEventListener('click', function () {
+        groupeCourant = g.id; construitChoixStyle();
+      });
+      chips.appendChild(b);
+    });
+    boite.appendChild(chips);
+
+    var grille = document.createElement('div');
+    grille.className = 'familles';
+    var g0 = groupes.filter(function (x) { return x.id === groupeCourant; })[0] || groupes[0];
+    g0.ids.forEach(function (id) {
+      var tpl = Studio.get(id);
+      if (!tpl) return;
+      var d = nomEtDit(tpl);
+      var carte = document.createElement('button');
+      carte.type = 'button';
+      carte.className = 'carte-style' + (id === $('#tpl').value ? ' on' : '');
+      var cv = document.createElement('canvas');
+      carte.appendChild(cv);
+      var nom = document.createElement('span');
+      nom.className = 'nom'; nom.textContent = d.nom;
+      carte.appendChild(nom);
+      if (d.dit) {
+        var dit = document.createElement('span');
+        dit.className = 'dit'; dit.textContent = d.dit;
+        carte.appendChild(dit);
+      }
+      carte.addEventListener('click', function () {
+        $('#tpl').value = id;
+        $('#tpl').dispatchEvent(new Event('change'));
+        familleOuverte = optionVariante(tpl) ? id : null;
+        construitChoixStyle();
+      });
+      grille.appendChild(carte);
+      vignette(cv, id, (optionValues[id] || {}));
+    });
+    boite.appendChild(grille);
+    draw();                       // la scène a servi de brouillon aux vignettes
+  }
+
+  function construitVariantes(boite, groupes) {
+    var tpl = Studio.get(familleOuverte);
+    var def = tpl && optionVariante(tpl);
+    if (!tpl || !def) { familleOuverte = null; return construitChoixStyle(); }
+
+    var retour = document.createElement('button');
+    retour.type = 'button';
+    retour.className = 'retour-familles';
+    retour.textContent = '← ' + T('Toutes les familles');
+    retour.addEventListener('click', function () {
+      familleOuverte = null; construitChoixStyle();
+    });
+    boite.appendChild(retour);
+
+    var vals = optionValues[tpl.id] || (optionValues[tpl.id] = {});
+    var grille = document.createElement('div');
+    grille.className = 'variantes';
+    def.choices.forEach(function (c) {
+      var carte = document.createElement('button');
+      carte.type = 'button';
+      carte.className = 'carte-style' + (String(vals[def.key]) === String(c[0]) ? ' on' : '');
+      var cv = document.createElement('canvas');
+      carte.appendChild(cv);
+      var nom = document.createElement('span');
+      nom.className = 'nom';
+      /* Le nom seul : « Original · Sceau — disque décentré » dans une carte
+       * de cent-cinquante pixels ne se lit pas. L'histoire du développement
+       * (Original / Exploration) n'a rien à faire dans le parcours. */
+      var lib = T(c[1]).replace(/^(Original|Exploration)\s*·\s*/, '').split(' — ')[0];
+      nom.textContent = lib;
+      carte.appendChild(nom);
+      carte.addEventListener('click', function () {
+        vals[def.key] = c[0];
+        buildOptions();
+        construitChoixStyle();
+        draw();
+        save();
+      });
+      grille.appendChild(carte);
+      var apercu = {};
+      Object.keys(vals).forEach(function (k) { apercu[k] = vals[k]; });
+      apercu[def.key] = c[0];
+      vignette(cv, tpl.id, apercu);
+    });
+    boite.appendChild(grille);
+    draw();
+  }
+
+  /* ---------- essentiels et réglages fins ----------
+   *
+   * « Beaucoup trop d'options pour que ce soit tout de suite évident » :
+   * c'est vrai, et la réponse n'est pas d'en retirer. Un template déclare
+   * ses réglages dans l'ordre où il les juge importants — le premier est
+   * presque toujours la composition. On montre donc les TROIS premiers,
+   * et on replie le reste.
+   *
+   * Les couleurs descendent toujours dans le repli, quelle que soit leur
+   * place : changer une teinte est un geste de finition, pas le geste par
+   * lequel on découvre une planche.
+   *
+   * L'état du repli est retenu : sans cela, tout réglage marqué `reflow`
+   * reconstruit le panneau et le referme sous les doigts. */
+  var TETE = 3;
+  var finsOuverts = false;
+
   function buildOptions() {
     var tpl = Studio.get($('#tpl').value);
     var box = $('#opts');
     box.innerHTML = '';
+
+    var boiteCouleur = $('#opts-couleur');
+    var boiteTexte = $('#opts-texte');
+    if (boiteCouleur) boiteCouleur.innerHTML = '';
+    if (boiteTexte) boiteTexte.innerHTML = '';
+
+    var fins = document.createElement('details');
+    fins.className = 'fins';
+    fins.open = finsOuverts;
+    fins.addEventListener('toggle', function () { finsOuverts = fins.open; });
+    var resume = document.createElement('summary');
+    fins.appendChild(resume);
     optionValues[tpl.id] = optionValues[tpl.id] || {};
     var vals = optionValues[tpl.id];
     var driven = Collections.driven(tpl.id, $('#collection').value);
@@ -253,13 +668,18 @@
      * croire qu'on règle quelque chose. */
     var inertes = (typeof tpl.inert === 'function' && chargee) ? (tpl.inert(effective(), vals) || []) : [];
 
-    tpl.options.forEach(function (def) {
+    /* Le fond n'appartient plus au template quand le support global demande
+     * une surcouche : son menu dirait le contraire de ce qui se passe. */
+    var supportImpose = $('#support').value === 'surcouche';
+
+    tpl.options.forEach(function (def, rang) {
       if (vals[def.key] === undefined) vals[def.key] = def.default;
+      if (supportImpose && def.key === 'fond' && def.choices) return;
 
       var row = document.createElement('label');
       row.className = 'opt opt--' + def.type;
       var name = document.createElement('span');
-      name.textContent = def.label || def.key;
+      name.textContent = T(def.label || def.key);
       row.appendChild(name);
 
       var input;
@@ -267,7 +687,7 @@
         input = document.createElement('select');
         def.choices.forEach(function (c) {
           var op = document.createElement('option');
-          op.value = c[0]; op.textContent = c[1];
+          op.value = c[0]; op.textContent = T(c[1]);
           input.appendChild(op);
         });
         input.value = vals[def.key];
@@ -325,8 +745,21 @@
       }
 
       row.appendChild(input);
-      box.appendChild(row);
+      /* Chaque réglage rejoint le réceptacle de sa NATURE, pas de son rang :
+       * une couleur est une couleur, qu'elle soit déclarée en premier ou en
+       * dernier. Sur téléphone ces réceptacles partent dans trois panneaux
+       * différents ; sur un écran large ils se suivent. */
+      var dest = def.type === 'color' ? (boiteCouleur || fins)
+               : def.type === 'text' ? (boiteTexte || fins)
+               : (rang < TETE ? box : fins);
+      dest.appendChild(row);
     });
+
+    var replies = fins.childElementCount - 1;      // le résumé ne compte pas
+    if (replies > 0) {
+      resume.textContent = T('Réglages fins') + ' (' + replies + ')';
+      box.appendChild(fins);
+    }
   }
 
   /* ---------- le storyboard ----------
@@ -342,7 +775,7 @@
     var boite = document.createElement('div');
     boite.className = 'ordre';
     var libelles = {};
-    def.items.forEach(function (it) { libelles[it[0]] = it[1]; });
+    def.items.forEach(function (it) { libelles[it[0]] = T(it[1]); });
 
     function lire() {
       return String(vals[def.key] || def.default || '')
@@ -418,7 +851,8 @@
 
   function summary() {
     if (!chargee) {
-      $('#summary').innerHTML = '<span class="muted">Aucune sortie chargée.</span>';
+      $('#summary').innerHTML = '<span class="muted">' +
+        T('Ta prochaine création commence par une sortie.') + '</span>';
       return;
     }
     var a = effective();
@@ -440,9 +874,14 @@
     if (span) span.textContent = nom || defaut;
   }
 
+  /* L'apostrophe en fait partie. Aujourd'hui toutes les interpolations sont
+   * en position texte ou dans un attribut à guillemets doubles, donc elle ne
+   * change rien ; le premier attribut écrit en '…' casserait la garantie
+   * sans le moindre bruit. Une fonction d'échappement qui ne couvre pas tous
+   * les délimiteurs est un piège qui attend son heure. */
   function escapeHtml(s) {
-    return String(s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
   }
 
@@ -704,7 +1143,7 @@
       var descendre = bouton('↓', 'Descendre', function () { echange(i, i + 1); });
       var effacer = bouton('×', 'Retirer de la collection', function () {
         if (!window.confirm('Retirer « ' + p.titre + ' » de la collection ?')) return;
-        Musee.supprimer(p.id).then(function () { return majMusee('Pièce retirée.'); });
+        Musee.supprimer(p.id).then(function () { return majMusee(T('Pièce retirée.')); });
       });
       if (i === 0) monter.disabled = true;
       if (i === piecesMusee.length - 1) descendre.disabled = true;
@@ -736,7 +1175,7 @@
       b.type = 'button'; b.className = 'ghost'; b.textContent = 'Ajouter à la collection';
       b.addEventListener('click', function () {
         Musee.creer(sg.activity, { titre: sg.titre, recit: '', couleur: couleurDe(sg.activity) })
-          .then(function () { return majMusee('Pièce ajoutée — le cartel reste à écrire.'); })
+          .then(function () { return majMusee(T('Pièce ajoutée — le cartel reste à écrire.')); })
           .catch(function (e) { $('#musee-state').textContent = e.message; });
       });
       el.appendChild(b);
@@ -758,7 +1197,7 @@
       couleur: couleurDe(cur)
     }, photoFile).then(function () {
       $('#musee-titre').value = ''; $('#musee-recit').value = '';
-      return majMusee('Pièce créée.');
+      return majMusee(T('Pièce créée.'));
     }).catch(function (e) { $('#musee-state').textContent = e.message; });
   });
 
@@ -804,7 +1243,7 @@
       // recalculent ici plutôt que de rester sur l'état d'avant
       if (window.Musee) rendSuggestions();
       $('#hist-state').textContent = message || (emp.sorties
-        ? emp.sorties + ' sorties de référence · ' + Math.round(emp.km) + ' km · ' +
+        ? emp.sorties + ' ' + T('sorties de référence') + ' · ' + Math.round(emp.km) + ' km · ' +
           emp.cases.toLocaleString('fr-CH') + ' cases'
         : 'Aucun historique — la première importation fera la référence.');
       draw();
@@ -845,6 +1284,7 @@
         tpl: $('#tpl').value, size: $('#size').value,
         collection: $('#collection').value, minimal: $('#minimal').checked,
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
+        support: $('#support').value,
         opts: optionValues
       }, 'projet-' + slug() + '.json');
       note.textContent = Library.count() + ' sorties enregistrées.';
@@ -868,6 +1308,7 @@
     if (p.reglages.collection) $('#collection').value = p.reglages.collection;
     if (p.reglages.minimal != null) $('#minimal').checked = !!p.reglages.minimal;
     if (p.reglages.rendu) $('#rendu').value = p.reglages.rendu;
+    if (p.reglages.support) $('#support').value = p.reglages.support;
     if (p.reglages.photoNb != null) $('#photo-nb').checked = !!p.reglages.photoNb;
     $('#opt-photo-nb').hidden = $('#rendu').value !== 'nb';
     overrides = {};
@@ -946,7 +1387,15 @@
   });
 
   $('#minimal').addEventListener('change', draw);
-  $('#tpl').addEventListener('change', function () { buildOptions(); draw(); });
+  $('#tpl').addEventListener('change', function () { buildOptions(); majPeriode(); draw(); });
+  /* Le catalogue se reconstruit quand la sortie change : les vignettes sont
+   * des rendus de CETTE sortie, pas des images d'illustration.
+   *
+   * Ces trois-là ont déjà leur écouteur plus bas (majRendu, majSupport, la
+   * collection) : un second écouteur ici doublait le travail — deux
+   * redessins complets et N rendus hors écran pour un seul geste. On
+   * appelle donc depuis leur gestionnaire existant. */
+  $('#photo-nb').addEventListener('change', function () { construitChoixStyle(); });
   $('#size').addEventListener('change', draw);
   window.addEventListener('resize', draw);
 
@@ -963,9 +1412,27 @@
   function majRendu() {
     var nb = $('#rendu').value === 'nb';
     $('#opt-photo-nb').hidden = !nb;
+    construitChoixStyle();
     draw();
   }
   $('#rendu').addEventListener('change', majRendu);
+
+  /* Changer de support change ce qu'on voit DERRIÈRE la planche autant que
+   * la planche elle-même : le fond de contrôle et les options propres au
+   * template suivent. */
+  function majSupport() {
+    buildOptions();
+    construitChoixStyle();
+    draw();
+  }
+
+  $('#periode').addEventListener('change', function () {
+    syncBibliotheque();
+    majPeriode();
+    draw();
+    save();
+  });
+  $('#support').addEventListener('change', majSupport);
   $('#photo-nb').addEventListener('change', draw);
 
   /* ---------- aperçu animé ----------
@@ -1179,7 +1646,7 @@
 
     if (icu && icu.configured) {
       source = 'icu';
-      stravaState('intervals.icu — connecté');
+      stravaState(T('intervals.icu — connecté'));
       $('#strava-refresh').style.display = '';
       loadList();
       return;
@@ -1187,7 +1654,11 @@
 
     if (st && st.configured && st.authorized) {
       source = 'strava';
-      stravaState('Strava — connecté' + (st.athlete && st.athlete.firstname ? ' · ' + st.athlete.firstname : ''));
+      /* Le prénom vient de l'API et part dans innerHTML : il s'échappe, comme
+       * tout ce qui n'a pas été écrit ici. C'est la seule chaîne de cette
+       * fonction qui ne soit pas de nous. */
+      stravaState(T('Strava — connecté') +
+        (st.athlete && st.athlete.firstname ? ' · ' + escapeHtml(st.athlete.firstname) : ''));
       $('#strava-refresh').style.display = '';
       loadList();
       return;
@@ -1208,7 +1679,7 @@
 
   function connecteIcuWeb() {
     source = 'icu-web';
-    stravaState('intervals.icu — connecté depuis ce navigateur');
+    stravaState(T('intervals.icu — connecté depuis ce navigateur'));
     formulaireCle(false);
     $('#strava-refresh').style.display = '';
     loadList();
@@ -1283,10 +1754,12 @@
     }
       stravaActs = data;
       sel.style.display = '';
-      sel.innerHTML = '<option value="">— choisir une sortie —</option>' +
+      sel.innerHTML = '<option value="">' + T('— choisir une sortie —') + '</option>' +
         stravaActs.map(function (x) {
           var d = new Date(x.start_date_local);
-          return '<option value="' + x.id + '">' +
+          /* L'identifiant vient de l'API, comme le nom : il s'échappe aussi.
+           * Un guillemet sortirait de l'attribut. */
+          return '<option value="' + escapeHtml(x.id) + '">' +
             d.toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' }) + ' · ' +
             escapeHtml(x.name) + ' · ' + (x.distance / 1000).toFixed(1) + ' km' +
             (x.total_elevation_gain ? ' · ' + Math.round(x.total_elevation_gain) + ' m' : '') +
@@ -1316,8 +1789,8 @@
       chargee = true;
       syncBibliotheque();
       $('#gpx-err').textContent = '';
-      stravaState(source === 'icu-web' ? 'intervals.icu — connecté depuis ce navigateur'
-        : source === 'icu' ? 'intervals.icu — connecté' : 'Strava — connecté');
+      stravaState(T(source === 'icu-web' ? 'intervals.icu — connecté depuis ce navigateur'
+        : source === 'icu' ? 'intervals.icu — connecté' : 'Strava — connecté'));
       syncManualFields();
       summary();
       buildOptions();
@@ -1359,10 +1832,10 @@
   ];
   FAMILLES.forEach(function (f) {
     var og = document.createElement('optgroup');
-    og.label = f.label;
+    og.label = T(f.label);
     Studio.all().filter(function (t) { return t.famille === f.id; }).forEach(function (t) {
       var op = document.createElement('option');
-      op.value = t.id; op.textContent = t.name;
+      op.value = t.id; op.textContent = T(t.name);
       og.appendChild(op);
     });
     if (og.children.length) $('#tpl').appendChild(og);
@@ -1374,8 +1847,32 @@
   if (saved.minimal) $('#minimal').checked = true;
   if (saved.rendu) $('#rendu').value = saved.rendu;
   if (saved.photoNb) $('#photo-nb').checked = true;
+  if (saved.support) $('#support').value = saved.support;
+  if (saved.periode) $('#periode').value = saved.periode;
   $('#opt-photo-nb').hidden = $('#rendu').value !== 'nb';
 
+  majPeriode();
+  construitChoixStyle();
+  majDisposition();
+
+  /* La planche d'accueil : un vrai rendu, depuis l'exemple embarqué. Elle
+   * n'entre PAS dans la bibliothèque — l'application reste vide tant que
+   * l'utilisateur n'a rien chargé, et le studio ne prétend pas qu'il a
+   * pédalé quelque part. */
+  (function plancheAccueil() {
+    var cv = $('#accueil-planche');
+    if (!cv) return;
+    fetch('exemple.gpx')
+      .then(function (r) { return r.ok ? r.text() : null; })
+      .then(function (txt) {
+        if (!txt) return;
+        var act = Activity.parseGPX(txt);
+        Studio.setLibrary([]);
+        Studio.render(cv, 'encre', act, { interpretation: 'trait' }, [300, 533]);
+        syncBibliotheque();        // la scène retrouve son état réel
+      })
+      .catch(function () { cv.hidden = true; });
+  }());
   syncBibliotheque();
   buildOptions();
   syncManualFields();
@@ -1392,6 +1889,62 @@
       .then(function () { return document.fonts.ready; })
       .then(draw, draw);
   }
+  /* ---------- ce qui a changé depuis la dernière visite ----------
+   *
+   * On retient le dernier numéro VU, pas la date : une date se compare mal
+   * entre fuseaux, et surtout elle ne dit pas ce qu'on a lu. Le journal est
+   * ordonné du plus récent au plus ancien ; on s'arrête au numéro retenu.
+   *
+   * Premier passage (rien de retenu) : on n'affiche RIEN. Accueillir un
+   * nouveau venu par la liste de ce qu'il a manqué avant d'arriver n'a
+   * aucun sens. */
+  (function nouveautes() {
+    var boite = $('#nouveautes');
+    if (!boite || typeof STUDIO_JOURNAL === 'undefined') return;
+    var CLE = 'strava-studio-vu';
+    var vu = null;
+    try { vu = localStorage.getItem(CLE); } catch (e) { /* mode privé */ }
+    try { localStorage.setItem(CLE, STUDIO_VERSION); } catch (e) { /* tant pis */ }
+
+    if (!vu || vu === STUDIO_VERSION) return;
+
+    var neuf = [];
+    for (var i = 0; i < STUDIO_JOURNAL.length; i++) {
+      if (STUDIO_JOURNAL[i].v === vu) break;
+      neuf.push(STUDIO_JOURNAL[i]);
+    }
+    if (!neuf.length) return;
+
+    var liste = $('#nouveautes-liste');
+    neuf.forEach(function (e) {
+      var t = document.createElement('div');
+      t.className = 'v';
+      t.textContent = 'Version ' + e.v + ' · ' + e.d;
+      liste.appendChild(t);
+      var ul = document.createElement('ul');
+      e.points.forEach(function (p) {
+        var li = document.createElement('li');
+        li.textContent = p;
+        ul.appendChild(li);
+      });
+      liste.appendChild(ul);
+    });
+    boite.hidden = false;
+    boite.querySelector('.titre').textContent =
+      T('Depuis ta dernière visite') + ' · ' + neuf.length +
+      (neuf.length > 1 ? ' ' + T('versions') : ' ' + T('version'));
+
+    var voir = $('#nouveautes-voir');
+    voir.addEventListener('click', function () {
+      var ouvert = liste.hidden;
+      liste.hidden = !ouvert;
+      voir.textContent = ouvert ? T('Masquer') : T('Voir');
+    });
+    /* Fermer, c'est fermer POUR DE BON : le numéro courant est déjà retenu
+     * plus haut, le bandeau ne reviendra pas pour cette version. */
+    $('#nouveautes-fermer').addEventListener('click', function () { boite.hidden = true; });
+  }());
+
   draw();
   stravaInit();
   // l'empreinte d'exploration est chargée en tâche de fond ; sans elle, la

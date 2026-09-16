@@ -162,11 +162,27 @@ Studio.template({
 
     var reveles = H.progressCount(P.length);
 
-    if (mode === 'fibres') dessineFibres(2.6, 0.30);
-    else if (mode === 'courant') dessineFibres(5.6, 0.14);
+    /* FIBRES et COURANT partagent le trace du faisceau, mais pas la
+     * RESPIRATION — et c'est elle qui les distingue.
+     *
+     *   Fibres  : une vibration. L'ecart varie peu (55 a 100 %) et vite
+     *             (trois et sept ouvertures par tour) : un faisceau serre.
+     *   Courant : une houle. L'ecart descend presque a zero — les lignes
+     *             reviennent alors SUR le parcours — puis s'ouvre au-dela
+     *             de l'amplitude nominale, sur deux ou trois longues
+     *             portions seulement.
+     *
+     * Les deux se ressemblaient parce qu'elles partageaient cette
+     * respiration : seule l'ouverture nominale changeait, ce qui revenait a
+     * dessiner le meme faisceau plus ou moins large. */
+    if (mode === 'fibres') {
+      dessineFibres(2.6, 0.30, { min: 0.55, amp: 0.45, h1: 3, h2: 7, periode: 190 });
+    } else if (mode === 'courant') {
+      dessineFibres(5.6, 0.14, { min: 0.12, amp: 1.28, h1: 2, h2: 5, periode: 430 });
+    }
     else if (mode === 'reserve') dessineReserve();
     else if (mode === 'fil') dessineFil();
-    else if (mode === 'pinceau') dessineRuban(1.25, 0.55);
+    else if (mode === 'pinceau') dessineRuban(1.45, 0.30, true);
     else dessineRuban(0.78, 0.22);
 
     legende(coin);
@@ -175,17 +191,54 @@ Studio.template({
 
     /* TRAIT et PINCEAU — un ruban plein.
      * `ampleur` règle combien l'épaisseur varie, `plancher` son minimum.
-     * Pinceau ouvre beaucoup plus : c'est un geste, pas un trait technique. */
-    function dessineRuban(ampleur, plancher) {
+     *
+     * PINCEAU n'était qu'un Trait plus gras : même courbe d'épaisseur, mêmes
+     * bouts francs. Trois choses distinguent un geste d'un feutre :
+     *
+     *   1. LA PRESSION. La main appuie et relâche sur de longues portions.
+     *      L'épaisseur ne suit donc plus seulement la mesure point par point
+     *      — elle est mélangée à une ondulation lente, sur une période bien
+     *      plus longue que le relief.
+     *   2. LES ATTAQUES. Un pinceau se pose et se lève : le trait s'amincit
+     *      aux deux bouts. Sur une BOUCLE il n'y a pas de bout — on ne
+     *      l'applique donc pas, sinon la couture s'ouvrirait.
+     *   3. L'ASYMÉTRIE. Les deux bords d'un trait de pinceau ne sont pas
+     *      symétriques : le poil charge davantage d'un côté. On décale la
+     *      ligne centrale d'une fraction de l'épaisseur, ce qui épaissit un
+     *      bord et affine l'autre sans toucher au parcours réel. */
+    function dessineRuban(ampleur, plancher, geste) {
       var n = Math.max(2, reveles);
       var vus = P.slice(0, n);
+      var total = P.length;
+
       var demi = ep.slice(0, n).map(function (v, i) {
-        return base * (plancher + ampleur * v) * matiere(i);
+        var e2 = plancher + ampleur * v;
+        if (geste) {
+          /* la pression : 0,45 de mesure, 0,55 de main */
+          var pression = 0.5 + 0.5 * Alpage.ondulation(alea, i, 520, 11);
+          e2 = plancher + ampleur * (0.45 * v + 0.55 * pression);
+          if (!bouclee) {
+            /* attaque et levée : une rampe en puissance sur 9 % du tracé */
+            var kd = Math.min(1, (i + 1) / (total * 0.09));
+            var kf = Math.min(1, (total - i) / (total * 0.09));
+            e2 *= Math.pow(Math.min(kd, kf), 0.65);
+          }
+        }
+        return base * e2 * matiere(i);
       });
+
       /* Le borne-fou : au-delà du rayon de courbure, le bord intérieur se
        * croise et `nonzero` perce un trou. */
       demi = Alpage.borneParCourbure(demi, vus, 0.70);
-      remplit(Alpage.ruban(vus, demi), encre);
+
+      var axe = vus;
+      if (geste) {
+        axe = vus.map(function (q, i) {
+          var d = demi[i] * 0.22;
+          return { x: q.x + N[i].x * d, y: q.y + N[i].y * d };
+        });
+      }
+      remplit(Alpage.ruban(axe, demi), encre);
       frontDEncre(vus);
     }
 
@@ -211,7 +264,7 @@ Studio.template({
      * plus largement : ce sont des resserrements et des ouvertures, pas une
      * vibration. Dans les virages serrés, le décalage est RÉDUIT par le
      * rayon de courbure plutôt que de former des nœuds. */
-    function dessineFibres(ouverture, epaisseurTrait) {
+    function dessineFibres(ouverture, epaisseurTrait, resp) {
       var nb = Math.max(5, Math.min(11, Math.round(o.fibres) | 1));
       var fin = Math.max(2, reveles);
       var periodeBoucle = P.length - (bouclee ? recouvreN : 0) || 1;
@@ -252,11 +305,12 @@ Studio.template({
           var souffle;
           if (bouclee) {
             var tb = i / periodeBoucle;
-            souffle = 0.55 + 0.45 * (0.5 + 0.5 * (
-              Math.sin(tb * Math.PI * 2 * 3 + phase) * 0.62 +
-              Math.sin(tb * Math.PI * 2 * 7 + phase * 1.7) * 0.38));
+            souffle = resp.min + resp.amp * (0.5 + 0.5 * (
+              Math.sin(tb * Math.PI * 2 * resp.h1 + phase) * 0.62 +
+              Math.sin(tb * Math.PI * 2 * resp.h2 + phase * 1.7) * 0.38));
           } else {
-            souffle = 0.55 + 0.45 * (0.5 + 0.5 * Alpage.ondulation(alea, i, 190, 7));
+            souffle = resp.min + resp.amp *
+              (0.5 + 0.5 * Alpage.ondulation(alea, i, resp.periode, 7));
           }
           var d = t * base * ouverture * souffle;
           var plafond = limL[i] * 0.80;

@@ -75,6 +75,8 @@ Studio.template({
                 ['sport', 'Une teinte par sport']] },
     /* --- avancé --- */
     { key: 'decalage', type: 'range', label: 'Période (0 = la dernière)', default: 0, min: -6, max: 0, step: 1, reflow: true },
+    { key: 'symboles', type: 'range', label: 'Taille des symboles', default: 100,
+      min: 60, max: 180, step: 5 },
     { key: 'orbites', type: 'toggle', label: 'Orbites de référence', default: true },
     /* fond, voile, papier, encre : injectés depuis le socle Alpage */
     { key: 'accentC', type: 'color', label: 'Accent', default: '#A54F37' },
@@ -92,6 +94,7 @@ Studio.template({
     var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || o.papierC || '#F2EFE6');
     var accent = o.accentC;
     var faint = melange(encre, 0.42), hair = melange(encre, 0.13);
+    var ampleurSymboles = Math.max(0.5, (Number(o.symboles) || 100) / 100);
 
     /* ================= les familles de formes ================= */
 
@@ -134,13 +137,42 @@ Studio.template({
       return;
     }
 
+    /* Quelles familles sont présentes, et sur combien de lignes tiennent
+     * leurs libellés à la largeur de CETTE page. Le pas était fixe — trente
+     * unités par entrée — et la cinquième s'écrivait à cent-vingt unités
+     * sur une page qui en fait quatre-vingt-six. */
+    function disposeLegende() {
+      var presentes = {};
+      toutes.forEach(function (e) { presentes[familleDe(e.activity)] = 1; });
+      var styleNom = H.t('label', {});
+      var cles = Object.keys(FAMILLES).filter(function (c) { return presentes[c]; });
+      var larges = cles.map(function (cle) {
+        return u(4.2) + H.measure(FAMILLES[cle].nom.toUpperCase(), styleNom) + u(4);
+      });
+      var lignes = [[]];
+      var courante = 0;
+      cles.forEach(function (cle, i) {
+        var l = lignes[lignes.length - 1];
+        if (l.length && courante + larges[i] > g.width) { lignes.push([]); courante = 0; }
+        lignes[lignes.length - 1].push(i);
+        courante += larges[i];
+      });
+      return { cles: cles, larges: larges, lignes: lignes };
+    }
+
     /* ---------- les périodes ---------- */
     var periodes = decoupePeriodes(toutes);
     if (!periodes.length) { return; }
 
     /* ---------- disposition ---------- */
     var multi = o.echelleTemps === 'annees' && periodes.length > 1;
-    var basLegende = g.bottom - u(14.5);
+
+    /* La légende n'a pas de hauteur fixe : elle a le nombre de lignes qu'il
+     * lui faut. On la MESURE donc avant de placer le champ — sinon le
+     * système descend jusqu'à une légende d'une ligne et se fait traverser
+     * par la deuxième. */
+    var LIGNES_LEGENDE = disposeLegende();
+    var basLegende = g.bottom - u(14.5) - (LIGNES_LEGENDE.lignes.length - 1) * u(4.6);
 
     if (multi) {
       /* Le triptyque : même langage graphique, mêmes échelles, trois
@@ -278,7 +310,11 @@ Studio.template({
          * symbole creux, identifié dans la légende. */
         var absente = vs == null;
         var aire = absente ? 0.18 : Math.max(0.02, vs / ech.sMax);
-        var rp = R * (compact ? 0.035 : 0.045) * Math.sqrt(aire) + R * 0.006;
+        /* La taille des symboles est un COEFFICIENT, pas une formule : il
+         * multiplie tous les rayons à l'identique. Les proportions entre
+         * sorties — la seule chose que la surface raconte — sont donc
+         * intactes, on regarde simplement la planche de plus ou moins loin. */
+        var rp = (R * (compact ? 0.035 : 0.045) * Math.sqrt(aire) + R * 0.006) * ampleurSymboles;
         return {
           entree: e, activity: a, t: t, ang: ang, r: rr, rayon: rp,
           absente: absente, nulle: !absente && vs === 0,
@@ -290,14 +326,18 @@ Studio.template({
       if (o.orbites) {
         var pasOrb = choisitPas(ech.rMax);
         ctx.save();
-        ctx.strokeStyle = melange(encre, 0.13);
-        ctx.lineWidth = Math.max(0.4, u(0.05));
+        /* Les orbites de référence sont ce qui rend la planche LISIBLE :
+         * sans elles, un astre à mi-rayon ne dit rien. À 0,13 elles
+         * disparaissaient sur le papier — elles étaient là, mais on ne les
+         * voyait pas, ce qui revient au même. */
+        ctx.strokeStyle = melange(encre, 0.20);
+        ctx.lineWidth = Math.max(0.4, u(0.055));
         for (var v = pasOrb; v <= ech.rMax * 1.001; v += pasOrb) {
           var rr = rNoyau + (R - rNoyau) * (v / ech.rMax);
           ctx.beginPath(); ctx.arc(cx, cy, rr, 0, Math.PI * 2); ctx.stroke();
           if (!compact) {
             H.text(Math.round(v) + ' ' + unite(o.orbite), cx + u(0.8), cy - rr - u(0.8),
-                   H.t('label', { size: 1.25, color: melange(encre, 0.34) }));
+                   H.t('label', { size: 1.35, color: melange(encre, 0.48) }));
           }
         }
         ctx.restore();
@@ -399,8 +439,8 @@ Studio.template({
       var mode = o.echelleTemps;
       var duree = p.fin - p.debut;
       ctx.save();
-      ctx.strokeStyle = melange(encre, 0.2);
-      ctx.lineWidth = Math.max(0.4, u(0.05));
+      ctx.strokeStyle = melange(encre, 0.28);
+      ctx.lineWidth = Math.max(0.4, u(0.055));
 
       if (mode === 'mois') {
         // un repère par semaine, le jour en périphérie
@@ -534,22 +574,39 @@ Studio.template({
 
     function legende() {
       var y = g.bottom;
-      H.rule(g.left, y - u(11.5), g.right, { color: hair });
 
       /* Les familles présentes SEULEMENT : une légende qui liste le ski
-       * quand il n'y a que du vélo occupe de la place pour rien. */
-      var presentes = {};
-      toutes.forEach(function (e) { presentes[familleDe(e.activity)] = 1; });
-      var x = g.left;
-      Object.keys(FAMILLES).forEach(function (cle) {
-        if (!presentes[cle]) return;
-        var f = FAMILLES[cle];
-        var faux = { x: x + u(1.4), y: y - u(7.8), ang: 0, rayon: u(0.85),
-                     famille: cle, absente: false, nulle: false };
-        marque(faux, true);
-        H.text(f.nom, x + u(4.2), y - u(7.2), H.t('label', { color: faint, maxWidth: u(26) }));
-        x += u(30);
+       * quand il n'y a que du vélo occupe de la place pour rien. La
+       * disposition vient d'en haut : c'est elle qui a décidé de la place
+       * laissée au champ, elle ne peut pas être recalculée ici. */
+      /* Le pas était FIXE : trente unités par entrée, quel que soit le mot
+       * et quelle que soit la largeur de la page. À la cinquième famille on
+       * écrivait à cent-vingt unités sur une page qui en fait quatre-vingt-six,
+       * et « Randonnée » sortait de l'image après « Course à pied ».
+       *
+       * On mesure donc chaque libellé, et on passe à la ligne quand la
+       * suivante ne tient plus. La légende monte d'autant — elle n'a pas de
+       * hauteur fixe, elle a le nombre de lignes qu'il lui faut. */
+      var cles = LIGNES_LEGENDE.cles;
+      var larges = LIGNES_LEGENDE.larges;
+      var lignes = LIGNES_LEGENDE.lignes;
+      var hLigne = u(4.6);
+      var yBase = y - u(7.8) - (lignes.length - 1) * hLigne;
+      lignes.forEach(function (ligne, r) {
+        var x = g.left;
+        ligne.forEach(function (i) {
+          var cle = cles[i];
+          var faux = { x: x + u(1.4), y: yBase + r * hLigne, ang: 0, rayon: u(0.85),
+                       famille: cle, absente: false, nulle: false };
+          marque(faux, true);
+          H.text(FAMILLES[cle].nom, x + u(4.2), yBase + r * hLigne + u(0.6),
+                 H.t('label', { color: faint }));
+          x += larges[i];
+        });
       });
+      var hSupp = (lignes.length - 1) * hLigne;
+
+      H.rule(g.left, y - u(11.5) - hSupp, g.right, { color: hair });
 
       var regle = 'ANGLE : POSITION DANS LA PÉRIODE · RAYON : ' + nomMesure(o.orbite).toUpperCase() +
                   ' (ÉCHELLE LINÉAIRE) · SURFACE : ' + nomMesure(o.taille).toUpperCase();

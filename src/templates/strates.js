@@ -140,10 +140,23 @@ Studio.template({
      * les étale au contraire, comme une partition de paysages. Les deux
      * jouent sur le même paramètre, avec des bornes différentes. */
     var compo = o.finition;
-    var force = (Number(o.espacement) || 50) / 100;
+    var brut = (Number(o.espacement) || 50) / 100;      // le curseur, tel quel
+    var force = brut;
     if (compo === 'massif') force = 0.02 + 0.13 * force;
     else if (compo === 'horizons') force = 0.78 + 0.22 * force;
-    var hauteurCouche = zone.h / (1 + (n - 1) * (0.42 + 0.38 * force));
+
+    /* Le RECOUVREMENT : de combien chaque plan monte par rapport au
+     * précédent, en fraction de la hauteur d'une couche.
+     *
+     * Le massif l'empruntait aux autres compositions — 0,45 — et le résultat
+     * restait une pile de profils distincts posés les uns au-dessus des
+     * autres. Un massif, c'est l'inverse : les plans se CHEVAUCHENT, et
+     * chaque couche ne montre plus que sa crête. On descend donc à ~0,25
+     * par défaut, la moitié. Le curseur couvre 0,05 à 0,41 : l'ancienne
+     * disposition reste atteignable en le poussant à droite. */
+    var recouvrement = compo === 'massif' ? (0.05 + 0.36 * brut)
+                                          : (0.42 + 0.38 * force);
+    var hauteurCouche = zone.h / (1 + (n - 1) * recouvrement);
     var pasY = (zone.h - hauteurCouche) / Math.max(1, n - 1);
     var pasX = Math.min(u(4), zone.w * 0.05) * force;
     var largeurUtile = zone.w - pasX * (n - 1);

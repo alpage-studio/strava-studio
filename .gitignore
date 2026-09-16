@@ -41,6 +41,16 @@ design/
 !sem-dim.gpx
 !loin-*.gpx
 
+# Un projet exporté est un .json qui contient des LATITUDES et des
+# LONGITUDES à six décimales : exactement ce que la règle *.gpx ci-dessus
+# empêche de publier. La même discipline s'applique donc aux .json, avec la
+# même liste blanche — sans quoi un `git add -A` après un export à la racine
+# versionne le domicile de quelqu'un.
+*.json
+!exemple-annee.json
+!manifest.webmanifest
+!package.json
+
 # Systèmes
 .DS_Store
 Thumbs.db
@@ -49,3 +59,7 @@ node_modules/
 # Rappel : les identifiants Strava ne sont PAS ici.
 # Ils vivent dans ~/.strava-studio/config.json, hors du dépôt, et n'y
 # entreront jamais — le code ne connaît que le nom des variables.
+
+# Le script d acceptation, copie a la racine le temps de le lancer depuis
+# le navigateur (le serveur refuse de servir tools/). Il ne se publie pas.
+acceptation-run.js

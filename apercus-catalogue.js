@@ -38,8 +38,11 @@
       t: 'encre', o: { interpretation: 'reserve' }, j: 'formes', i: 3 },
     { f: 'Encre', g: 'Exploration', n: 'Fil', d: 'un seul trait net',
       t: 'encre', o: { interpretation: 'fil' }, j: 'formes', i: 2 },
+    /* Sur une boucle très sinueuse, la borne de courbure plafonne l'écart
+     * partout et la houle ne se voit pas : on la montre sur le parcours
+     * ouvert, où elle a la place de s'ouvrir puis de revenir. */
     { f: 'Encre', g: 'Exploration', n: 'Courant', d: 'lignes qui s’ouvrent et se referment',
-      t: 'encre', o: { interpretation: 'courant' }, j: 'formes', i: 0 },
+      t: 'encre', o: { interpretation: 'courant' }, j: 'formes', i: 2 },
     { f: 'Encre', g: 'Exploration', n: 'Pinceau', d: 'le geste, sur un aller-retour',
       t: 'encre', o: { interpretation: 'pinceau' }, j: 'formes', i: 1 },
     { f: 'Encre', g: 'Exploration', n: 'Pinceau · ouvert', d: 'deux extrémités franches',
@@ -111,7 +114,7 @@
     { f: 'Médaillon', g: 'Original', n: 'Nocturne', d: 'fond charbon',
       t: 'medaillon', o: { palette: 'nocturne' }, j: 'formes', i: 0 },
     { f: 'Médaillon', g: 'Original', n: 'Fragment', d: 'la trace déborde du cercle',
-      t: 'medaillon', o: { cadrage: 175 }, j: 'formes', i: 2 },
+      t: 'medaillon', o: { cadrage: 58, decalage: -15 }, j: 'formes', i: 2 },
     { f: 'Médaillon', g: 'Support', n: 'Nocturne · surcouche', d: 'la fenêtre s’ouvre sur la photo',
       t: 'medaillon', o: { palette: 'nocturne', fond: 'transparent', voile: 'bas' },
       j: 'formes', i: 0, photo: true },

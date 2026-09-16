@@ -209,6 +209,24 @@ function testsCoherence() {
   ok('version.js · numéro lisible',
      /var STUDIO_VERSION = '[\d.]+'/.test(ver));
 
+  /* Le journal des nouveautés vit dans le MÊME fichier que le numéro, et
+   * c'est ce contrôle qui rend ce voisinage utile : bumper la version sans
+   * écrire ce qui a changé échoue ici, pas chez un visiteur à qui la page
+   * annoncerait « rien de neuf » après une refonte. */
+  (function () {
+    const bac = { };
+    new Function('window', ver + '; window.V = STUDIO_VERSION;' +
+                 ' window.J = typeof STUDIO_JOURNAL === "undefined" ? null : STUDIO_JOURNAL;')(bac);
+    if (!bac.J) { saute('version.js · journal', 'STUDIO_JOURNAL absent'); return; }
+    ok('version.js · le journal s’ouvre sur la version servie  (' + bac.V + ')',
+       bac.J[0] && bac.J[0].v === bac.V,
+       'le journal commence à ' + (bac.J[0] || {}).v);
+    ok('version.js · chaque entrée dit ce qui a changé',
+       bac.J.every(function (e) { return e.v && e.d && (e.points || []).length; }));
+    const nums = bac.J.map(function (e) { return e.v; });
+    ok('version.js · aucune version en double', new Set(nums).size === nums.length);
+  }());
+
   /* UNE seule horloge. L'aperçu animé, l'export vidéo et la séquence PNG
    * doivent parcourir la même chronologie ; la séquence recopiait autrefois
    * la courbe de la vidéo à la main, avec le commentaire « même courbe que
@@ -266,6 +284,217 @@ function testsCoherence() {
     });
     ok('aucun `var` de template n’est utilisé avant son affectation',
        soucis.length === 0, soucis.join(', '));
+  }());
+
+  /* LES FENÊTRES DE TEMPS.
+   *
+   * « Cette semaine », « le mois dernier » : trois lignes de code et quatre
+   * pièges — le lundi d'une semaine à cheval sur deux années, un mois de
+   * 28 jours, le recul qui traverse janvier, et la borne de fin qu'on croit
+   * inclusive. On éprouve donc sur des dates connues, pas sur « aujourd'hui »
+   * qui rendrait le contrôle vert un jour et rouge un autre. */
+  (function () {
+    const faux = { };
+    new Function('window', fs.readFileSync(path.join(ROOT, 'src', 'alpage.js'), 'utf8'))(faux);
+    const A = faux.Alpage;
+    if (!A || !A.fenetre) { saute('période · fenêtres', 'Alpage.fenetre absent'); return; }
+
+    const jeudi = new Date(2026, 8, 17);            // jeudi 17.09.2026
+    const sem = A.fenetre('semaine', 0, jeudi);
+    ok('période · la semaine commence le lundi  (' +
+       sem.debut.toLocaleDateString('fr-CH') + ')',
+       sem.debut.getDay() === 1 && sem.debut.getDate() === 14);
+    ok('période · la fin est EXCLUE, une semaine dure sept jours',
+       Math.round((sem.fin - sem.debut) / 86400000) === 7);
+
+    const semAvant = A.fenetre('semaine', 2, jeudi);
+    ok('période · reculer de deux semaines recule de quatorze jours',
+       Math.round((sem.debut - semAvant.debut) / 86400000) === 14);
+
+    /* Le 1er janvier 2027 est un vendredi : sa semaine ISO commence en 2026. */
+    const nouvelAn = A.fenetre('semaine', 0, new Date(2027, 0, 1));
+    ok('période · une semaine à cheval sur deux années commence en décembre  (' +
+       nouvelAn.debut.toLocaleDateString('fr-CH') + ')',
+       nouvelAn.debut.getFullYear() === 2026 && nouvelAn.debut.getMonth() === 11);
+
+    const fevrier = A.fenetre('mois', 0, new Date(2026, 1, 15));
+    ok('période · février 2026 fait 28 jours',
+       Math.round((fevrier.fin - fevrier.debut) / 86400000) === 28);
+
+    const janvier = A.fenetre('mois', 1, new Date(2026, 0, 20));
+    ok('période · le mois précédent janvier est décembre de l’année d’avant',
+       janvier.debut.getFullYear() === 2025 && janvier.debut.getMonth() === 11);
+
+    ok('période · sans mode, aucune fenêtre — tout est retenu',
+       A.fenetre('tout', 0, jeudi) === null);
+
+    const f = A.fenetre('mois', 0, new Date(2026, 8, 15));
+    ok('période · le dernier instant du mois précédent est dehors',
+       !A.dansLaFenetre(new Date(2026, 7, 31, 23, 59), f));
+    ok('période · le premier instant du mois est dedans',
+       A.dansLaFenetre(new Date(2026, 8, 1, 0, 0), f));
+    ok('période · une sortie sans date n’est jamais retenue par une fenêtre',
+       !A.dansLaFenetre(null, f));
+  }());
+
+  /* LA NAVIGATION.
+   *
+   * La barre du téléphone ne DUPLIQUE pas les contrôles : elle les DÉPLACE,
+   * par sélecteur. Un identifiant renommé dans index.html ne casse donc
+   * rien de visible — le panneau se contente d'être vide, et on ne s'en
+   * aperçoit qu'en cherchant un réglage qui a disparu. C'est exactement le
+   * genre de défaut qu'un contrôle statique attrape et qu'une relecture
+   * manque.
+   *
+   * On lit les littéraux directement dans app.js : ils vivent dans une IIFE
+   * qu'on ne peut pas charger sans un DOM complet, et fabriquer ce DOM
+   * coûterait plus cher que la règle qu'on vérifie. */
+  (function () {
+    const app = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+
+    const mz = app.match(/var ZONES = \{[\s\S]*?\n  \};/);
+    if (!mz) { saute('navigation · ZONES', 'littéral introuvable'); return; }
+    const selecteurs = (mz[0].match(/'#[A-Za-z0-9_-]+'/g) || [])
+      .map(function (x) { return x.slice(2, -1); });
+    const absents = selecteurs.filter(function (id) {
+      return html.indexOf('id="' + id + '"') < 0;
+    });
+    ok('navigation · chaque contrôle déplacé existe dans la page  (' +
+       selecteurs.length + ')',
+       absents.length === 0, 'identifiants absents : ' + absents.join(', '));
+
+    /* Un contrôle ne peut pas être réclamé par deux panneaux : le second
+     * gagnerait silencieusement, et le premier serait vide. */
+    const doubles = selecteurs.filter(function (x, i) { return selecteurs.indexOf(x) !== i; });
+    ok('navigation · aucun contrôle réclamé par deux panneaux',
+       doubles.length === 0, 'en double : ' + doubles.join(', '));
+
+    /* Les groupes du catalogue : tout template doit être atteignable. Un id
+     * mal orthographié ici, et une famille entière disparaît de l'interface
+     * — le repli « Autres » la rattrape, mais un id qui ne désigne RIEN
+     * laisse une case vide dans la grille. */
+    const mg = app.match(/var GROUPES_STYLE = \[[\s\S]*?\n  \];/);
+    if (mg) {
+      const cites = (mg[0].match(/'[a-z0-9-]+'/g) || [])
+        .map(function (x) { return x.slice(1, -1); });
+      const fichiers = (html.match(/src="src\/templates\/[^"]+"/g) || []);
+      const sources = fichiers.map(function (f) {
+        return fs.readFileSync(path.join(ROOT, f.slice(5, -1)), 'utf8');
+      }).join('\n');
+      const inconnus = cites.filter(function (id) {
+        if (['affiches', 'cartes', 'reliefs', 'souvenirs', 'films', 'surcouches'].indexOf(id) >= 0) return false;
+        return sources.indexOf("id: '" + id + "'") < 0;
+      });
+      ok('navigation · tout identifiant cité par le catalogue existe',
+         inconnus.length === 0, 'inconnus : ' + inconnus.join(', '));
+    } else {
+      saute('navigation · GROUPES_STYLE', 'littéral introuvable');
+    }
+
+    /* La règle qui a coûté un bandeau impossible à fermer : `display: flex`
+     * sur un élément portant `hidden` écrase l'attribut, et le JavaScript a
+     * beau faire exactement ce qu'on lui demande, rien ne se passe. */
+    ok('navigation · l’attribut hidden est respecté partout',
+       /\[hidden\]\s*\{[^}]*display:\s*none\s*!important/.test(html));
+
+    /* Un panneau qui s'ouvre doit pouvoir se fermer. */
+    ok('navigation · le panneau a une fermeture et un voile',
+       html.indexOf('id="feuille-fermer"') > 0 && html.indexOf('id="feuille-voile"') > 0 &&
+       app.indexOf("$('#feuille-fermer').addEventListener") > 0 &&
+       app.indexOf("$('#feuille-voile').addEventListener") > 0);
+
+    /* Sur téléphone la colonne est masquée : si la section de l'activité
+     * n'est pas déplacée, il devient impossible d'importer quoi que ce soit
+     * — l'application est alors jolie et inutilisable. */
+    ok('navigation · la sortie reste accessible quand la colonne disparaît',
+       mz[0].indexOf('#section-activite') > 0);
+  }());
+
+  /* LA LANGUE.
+   *
+   * Un template ajouté sans traduction ne casse rien : son libellé reste en
+   * français au milieu d'une interface anglaise. C'est précisément pour ça
+   * qu'il faut un contrôle — le défaut est invisible à l'exécution, et
+   * personne ne le verra tant qu'un anglophone ne l'aura pas signalé.
+   *
+   * On charge les templates dans un vrai contexte (ils lisent le global
+   * `Studio`, pas un paramètre) et on confronte chaque chaîne AFFICHÉE au
+   * dictionnaire. */
+  (function () {
+    const vm = require('vm');
+    const bac = {
+      devicePixelRatio: 1, console: console,
+      matchMedia: function () { return { matches: false, addEventListener: function () {} }; },
+      requestAnimationFrame: function () { return 0; },
+      cancelAnimationFrame: function () {},
+      CanvasRenderingContext2D: function () {}, Image: function () {},
+      DOMParser: function () {}, performance: { now: function () { return 0; } },
+      localStorage: { getItem: function () { return null; }, setItem: function () {} },
+      location: { reload: function () {} },
+      document: {
+        createElement: function () { return { getContext: function () { return {}; }, style: {} }; },
+        addEventListener: function () {}, querySelector: function () { return null; },
+        querySelectorAll: function () { return []; },
+        createTreeWalker: function () { return { nextNode: function () { return null; } }; },
+        documentElement: {}, body: null
+      }
+    };
+    bac.window = bac; bac.self = bac;
+    vm.createContext(bac);
+
+    function charge(rel) {
+      vm.runInContext(fs.readFileSync(path.join(ROOT, rel), 'utf8'), bac, { filename: rel });
+    }
+
+    try {
+      ['src/studio.js', 'src/alpage.js', 'src/library.js', 'src/overlay.js',
+       'src/design.js', 'src/i18n.js'].forEach(charge);
+      const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const fichiers = (html.match(/src="(src\/templates\/[^"]+)"/g) || [])
+        .map(function (m) { return m.slice(5, -1); });
+      fichiers.forEach(function (f) { try { charge(f); } catch (e) { /* template à part */ } });
+    } catch (e) {
+      saute('langue · chargement', e.message);
+      return;
+    }
+
+    const reg = bac.Studio.all();
+    const manquantes = [];
+    const DICO = bac.I18N.DICOS.en;
+    function verifie(x) {
+      if (typeof x !== 'string' || !x.trim()) return;
+      if (!Object.prototype.hasOwnProperty.call(DICO, x)) manquantes.push(x);
+    }
+    reg.forEach(function (t) {
+      verifie(t.name);
+      (t.options || []).forEach(function (o) {
+        verifie(o.label);
+        (o.choices || []).forEach(function (c) { verifie(c[1]); });
+        (o.items || []).forEach(function (c) { verifie(c[1]); });
+      });
+    });
+
+    /* Une chaîne identique dans les deux langues — « Composition », « Photo »,
+     * « Pause » — est présente au dictionnaire avec la même valeur : elle
+     * compte comme traduite. Ce qui est signalé ici n'a jamais été écrit. */
+    const vraiesManquantes = manquantes;
+
+    /* Le nombre COMPTE : un contrôle qui ne charge que vingt-cinq templates
+     * sur trente-trois est vert pour huit templates qu'il n'a pas regardés. */
+    const attendus = (fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8')
+      .match(/src="src\/templates\//g) || []).length;
+    ok('langue · tous les templates sont chargés pour le contrôle  (' +
+       reg.length + ')', reg.length >= attendus,
+       'index.html en liste ' + attendus + ', le contrôle en voit ' + reg.length);
+
+    ok('langue · tout libellé de template a sa traduction anglaise  (' +
+       reg.length + ' templates)',
+       vraiesManquantes.length === 0,
+       'sans traduction : ' + vraiesManquantes.slice(0, 8).join(' | ') +
+       (vraiesManquantes.length > 8 ? ' … et ' + (vraiesManquantes.length - 8) + ' autres' : ''));
+
+    ok('langue · l\u2019anglais est la langue par d\u00e9faut', bac.I18N.langue() === 'en');
   }());
 
   /* La galerie de revue. Le catalogue décrit ce qui existe ; la génération

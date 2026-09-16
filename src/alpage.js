@@ -561,6 +561,48 @@
    * voulu : mêler « date » et « heure » donnerait à deux sorties du même
    * jour un écart angulaire de deux semaines.
    */
+  /* ---------- une fenêtre de temps ----------
+   *
+   * « Cette semaine », « le mois dernier », « cette année » : trois phrases
+   * ordinaires, trois calculs qu'on rate facilement. Le calcul vit donc ici,
+   * seul, sans interface autour, et le harnais l'éprouve sur des dates
+   * connues — changement d'année, semaine à cheval, mois de 28 jours.
+   *
+   * La fenêtre est [debut, fin[ : fin exclue. Deux fenêtres consécutives ne
+   * peuvent donc pas revendiquer la même sortie, ce qu'un `<=` aurait permis
+   * pour une sortie partie à minuit pile.
+   *
+   * `recul` recule d'autant d'unités : 0 = en cours, 1 = la précédente.
+   */
+  function fenetre(mode, recul, maintenant) {
+    var ref = maintenant ? new Date(maintenant.getTime()) : new Date();
+    recul = recul || 0;
+    var debut, fin;
+
+    if (mode === 'semaine') {
+      debut = lundiDe(ref);
+      debut.setDate(debut.getDate() - 7 * recul);
+      fin = new Date(debut.getTime());
+      fin.setDate(fin.getDate() + 7);
+    } else if (mode === 'mois') {
+      debut = new Date(ref.getFullYear(), ref.getMonth() - recul, 1);
+      fin = new Date(debut.getFullYear(), debut.getMonth() + 1, 1);
+    } else if (mode === 'annee') {
+      debut = new Date(ref.getFullYear() - recul, 0, 1);
+      fin = new Date(debut.getFullYear() + 1, 0, 1);
+    } else {
+      return null;                       // « tout ce qui est chargé »
+    }
+    return { debut: debut, fin: fin };
+  }
+
+  function dansLaFenetre(date, f) {
+    if (!f) return true;
+    if (!date) return false;             // sans date, on ne peut pas répondre oui
+    var t = date.getTime();
+    return t >= f.debut.getTime() && t < f.fin.getTime();
+  }
+
   function semaineISO(d) {
     var t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
@@ -608,7 +650,9 @@
     graine: graine, ondulation: ondulation,
     champDistance: champDistance, ligneDeNiveau: ligneDeNiveau,
     mesures: mesures, serie: serie, cadre: cadre,
-    semaineISO: semaineISO, lundiDe: lundiDe, positionDansPeriode: positionDansPeriode,
+    semaineISO: semaineISO,
+    fenetre: fenetre,
+    dansLaFenetre: dansLaFenetre, lundiDe: lundiDe, positionDansPeriode: positionDansPeriode,
     socle: socle, optionsFond: optionsFond, luminance: luminance
   };
 }(window));

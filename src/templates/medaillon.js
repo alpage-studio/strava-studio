@@ -44,7 +44,8 @@ Studio.template({
     { key: 'palette', type: 'select', label: 'Palette', default: 'mineral', reflow: true,
       choices: [['mineral', 'Minéral — papier clair'],
                 ['nocturne', 'Nocturne — fond charbon']] },
-    { key: 'cadrage', type: 'range', label: 'Cadrage', default: 100, min: 45, max: 260, step: 5 },
+    { key: 'cadrage', type: 'range', label: 'Cadrage — sous 100, la trace déborde',
+      default: 100, min: 45, max: 260, step: 5 },
     { key: 'decalage', type: 'range', label: 'Décalage horizontal', default: 0, min: -50, max: 50, step: 5 },
     { key: 'decalageY', type: 'range', label: 'Décalage vertical', default: 0, min: -50, max: 50, step: 5 },
     { key: 'graticule', type: 'range', label: 'Graticule', default: 35, min: 0, max: 100, step: 5 },
@@ -70,14 +71,19 @@ Studio.template({
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
     var nocturne = o.palette === 'nocturne';
     var papier = nocturne ? '#191B18' : '#F2EFE6';
-    var encre = nocturne ? '#E8E4D9' : '#242820';
+    /* L'encre suit la palette — sauf en surcouche, où il n'y a plus de
+     * papier derrière elle. Le charbon de « Minéral », conçu pour un papier
+     * crème, disparaît sur une photo de montagne : on passe donc à la crème,
+     * qui tient sur presque toutes les images. Ce n'est qu'un DÉFAUT — la
+     * palette Nocturne reste choisissable et garde la main. */
+    var enSurcouche = o.fond === 'transparent';
+    var encre = nocturne ? '#E8E4D9' : (enSurcouche ? '#F2EFE6' : '#242820');
     var accent = o.accentC;
     var faint = melange(encre, 0.42), hair = melange(encre, 0.16);
 
     /* Papier ou surcouche : le même dessin, seul le fond change. Le médaillon
      * est même la planche la plus naturelle à poser sur une photo — la
      * fenêtre circulaire s'ouvre alors littéralement sur l'image. */
-    var enSurcouche = o.fond === 'transparent';
     Alpage.socle(H, { fond: o.fond, voile: o.voile, papier: papier, encre: encre,
                       grain: !enSurcouche });
     if (!enSurcouche) H.grain(nocturne ? 0.008 : 0.004);
@@ -109,9 +115,15 @@ Studio.template({
     var cos = Math.cos(laC * Math.PI / 180);
     var etendue = Math.max((loMax - loMin) * cos * 111320, (laMax - laMin) * 110540) || 1000;
 
-    /* Le cadrage : 100 % fait tenir la sortie dans le cercle. Au-delà on
-     * s'approche, en dessous on prend du champ — le parcours déborde alors,
-     * ce qui est le propos de la planche. */
+    /* Le cadrage : 100 % fait tenir la sortie juste dans le cercle.
+     *
+     * Le sens est INVERSE de ce qu'on lit d'abord : le nombre divise
+     * l'échelle. Au-dessus de 100 on prend du champ et la trace rétrécit ;
+     * EN DESSOUS on s'approche et elle déborde — c'est le propos de
+     * « Fragment ». Le commentaire disait l'inverse, et la démonstration de
+     * Fragment était réglée à 175 : elle montrait donc une trace bien au
+     * chaud au milieu du cercle. On ne renverse pas l'échelle ici — un
+     * projet enregistré se rouvrirait autrement qu'il n'a été composé. */
     var k = (rayon * 1.84) / etendue * (100 / Math.max(45, Number(o.cadrage) || 100));
     var ox = cx + (Number(o.decalage) || 0) / 100 * rayon;
     var oy = cy + (Number(o.decalageY) || 0) / 100 * rayon;

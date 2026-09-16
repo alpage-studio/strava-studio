@@ -49,6 +49,11 @@ Studio.template({
       choices: [['encre', 'Encre commune, une sortie en accent'],
                 ['activite', 'Une couleur par sortie — avec légende']] },
     { key: 'accent', type: 'range', label: 'Sortie en accent', default: 0, min: 0, max: 12, step: 1 },
+    /* ARCHIPEL seulement : les noms des lieux, dans l'ordre des médaillons.
+     * Vide, on retombe sur « RÉGION 1 » — un identifiant de calcul, pas un
+     * lieu. Le studio ne peut pas deviner qu'un groupe de traces s'appelle
+     * le Jorat : seul celui qui y est allé le sait. */
+    { key: 'regions', type: 'text', label: 'Noms des régions (séparés par ;)', default: '' },
     { key: 'titre', type: 'text', label: 'Titre', default: '' },
     /* --- avancé --- */
     /* fond, voile, papier, encre : injectés depuis le socle Alpage */
@@ -172,9 +177,14 @@ Studio.template({
 
     /* ---------- la carte ---------- */
     if (estTerritoire) {
-      /* Deux tiers de l'affiche pour la carte : c'est la définition de cette
-       * vision. On lui rend l'espace des profils, qui n'existent pas ici. */
-      carte.h = Math.max(carte.h, (basProfils - (g.top + u(13))) * 0.98);
+      /* TERRITOIRE : la carte prend tout ce qui reste au-dessus des totaux.
+       * Elle s'arrêtait à la ligne des profils — qui n'existent pas ici —
+       * et la planche ressemblait alors à l'Épurée. Les jours descendent
+       * sous la carte et non plus dans une bande réservée : c'est cela qui
+       * fait la différence entre « une carte un peu plus grande » et « la
+       * carte domine ». */
+      carte.y = g.top + u(9);
+      carte.h = (yTotaux - hTotaux - u(4)) - carte.y;
     }
     var groupes = regroupe(avecGPS, estArchipel);
     dessineCarte(carte, groupes);
@@ -266,8 +276,13 @@ Studio.template({
         var cy = boite.y + Math.floor(k / cols) * chh + chh / 2;
         /* Les rayons sont ÉQUILIBRÉS, pas proportionnels : chaque médaillon
          * a sa propre échelle, donc leurs tailles ne comparent rien. Les
-         * faire varier aurait suggéré une comparaison qui n'existe pas. */
-        var rayon = Math.min(cw, chh) * (n === 1 ? 0.46 : n <= 4 ? 0.40 : 0.34);
+         * faire varier aurait suggéré une comparaison qui n'existe pas.
+         *
+         * En ARCHIPEL ils gagnent un quart : deux lieux dans une page ont la
+         * place de se raconter, et les réduire au format « trois régions »
+         * laissait du blanc partout autour. */
+        var ampleur = estArchipel ? 1.25 : 1;
+        var rayon = Math.min(cw, chh) * (n === 1 ? 0.46 : n <= 4 ? 0.40 : 0.34) * ampleur;
         medaillon(gr, cx, cy, rayon, n > 1 ? k : -1);
       });
 
@@ -335,7 +350,15 @@ Studio.template({
       ctx.moveTo(bx, by - u(0.7)); ctx.lineTo(bx, by + u(0.7));
       ctx.moveTo(bx + lp, by - u(0.7)); ctx.lineTo(bx + lp, by + u(0.7));
       ctx.stroke(); ctx.restore();
-      H.text(kmBarre + ' KM' + (index >= 0 ? '  ·  RÉGION ' + (index + 1) : ''),
+      /* Le nom du lieu s'il est donné, son numéro sinon. « RÉGION 1 » ne
+       * raconte rien d'un endroit qu'on a parcouru — c'est un identifiant de
+       * calcul qui s'est retrouvé sur la planche. */
+      var nomsRegions = String(o.regions || '').split(';')
+        .map(function (x) { return x.trim(); }).filter(Boolean);
+      var etiquette = index < 0 ? ''
+        : '  ·  ' + (nomsRegions[index] ? nomsRegions[index].toUpperCase()
+                                            : 'RÉGION ' + (index + 1));
+      H.text(kmBarre + ' KM' + etiquette,
              cx, by + u(3.4), H.t('label', { color: faint, align: 'center' }));
     }
 
@@ -471,8 +494,27 @@ Studio.template({
 
     /* ================= totaux ================= */
 
+    /* De bas en haut : les grands chiffres posent leur ligne de base sur le
+     * bas de la zone sûre, le filet les surmonte, et la mention a sa PROPRE
+     * ligne au-dessus du filet.
+     *
+     * Avant, la mention était écrite sur cette même ligne de base que les
+     * chiffres : H.field pose sa VALEUR sous le y qu'on lui donne, et la
+     * phrase passait donc au travers de « 31 km », « 3:02:41 » et
+     * « 2137 m ». En archipel, où la mention est longue, c'était illisible. */
     function totaux(y, colX, colW) {
-      H.rule(colX, y - u(5) - u(corpsChiffre) - u(2.4), colX + colW, { color: hair });
+      var yValeur  = y - u(corpsChiffre) * 0.98;   // H.field écrit sa valeur SOUS ce y
+      var yRegle   = yValeur - u(3.4);
+      var yMention = yRegle - u(2.6);
+
+      var mentions = [semaine.length + (semaine.length > 1 ? ' sorties' : ' sortie')];
+      if (estArchipel) mentions.push('chaque médaillon a son échelle — ils ne se comparent pas');
+      if (sansGPS.length) mentions.push(sansGPS.length + ' sans GPS — comptées, hors carte');
+      if (sansDate) mentions.push(sansDate + ' sans date — hors semaine');
+      H.text(mentions.join('   ·   ').toUpperCase(), colX, yMention,
+             H.t('label', { color: faint, maxWidth: colW }));
+
+      H.rule(colX, yRegle, colX + colW, { color: hair });
       var km = semaine.reduce(function (t, e) { return t + (e.activity.distance_km || 0); }, 0);
       var sec = semaine.reduce(function (t, e) { return t + (e.activity.duration_s || 0); }, 0);
       var dp = semaine.reduce(function (t, e) { return t + (e.activity.elev_gain_m || 0); }, 0);
@@ -482,18 +524,12 @@ Studio.template({
         /* Largeur de colonne ET corps s'adaptent au format : « 2 807 m » à
          * 5,4 unités dans un tiers de colonne paysage débordait sur le
          * voisin. `maxWidth` rétrécit, mais rétrécir de moitié se voit. */
-        H.field(c[0], c[1], colX + i * (colW / 3), y - u(5), {
+        H.field(c[0], c[1], colX + i * (colW / 3), yValeur, {
           color: encre, labelColor: faint, size: corpsChiffre,
           maxWidth: colW / 3 - u(3)
         });
       });
 
-      var mentions = [semaine.length + (semaine.length > 1 ? ' sorties' : ' sortie')];
-      if (estArchipel) mentions.push('chaque médaillon a son échelle — ils ne se comparent pas');
-      if (sansGPS.length) mentions.push(sansGPS.length + ' sans GPS — comptées, hors carte');
-      if (sansDate) mentions.push(sansDate + ' sans date — hors semaine');
-      H.text(mentions.join('   ·   ').toUpperCase(), colX, y,
-             H.t('label', { color: faint, maxWidth: colW }));
     }
 
     /* ================= utilitaires ================= */

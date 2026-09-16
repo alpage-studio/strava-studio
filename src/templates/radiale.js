@@ -27,9 +27,11 @@ Studio.template({
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
     var ink = o.encre, faint = alpha(ink, 0.55);
 
-    ctx.fillStyle = H.gradient([[0, o.fond], [1, o.fond2]]);
-    ctx.fillRect(0, 0, w, h);
-    if (o.grain) H.grain(0.05);
+    if (!H.surcouche()) {
+      ctx.fillStyle = H.gradient([[0, o.fond], [1, o.fond2]]);
+      ctx.fillRect(0, 0, w, h);
+      if (o.grain) H.grain(0.05);
+    }
 
     var g = H.grid({ cols: 6, margin: u(7), gutter: u(1.6) });
     var CH = g.height;

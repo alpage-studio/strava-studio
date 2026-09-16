@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Strava Studio</title>
+<title>alpage studio</title>
 
 <!-- application installable : icône sur l'écran d'accueil, plein écran, hors ligne -->
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#08090B">
+<meta name="theme-color" content="#F7F5EF">
 <link rel="icon" href="assets/icon-192.png">
 <!-- iOS ignore le manifeste pour l'icône et le mode plein écran : il lui faut
      ses propres balises -->
@@ -49,19 +49,62 @@
                    U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
   }
 
+  /* ---------- la palette ----------
+   *
+   * L'atelier prend la couleur de ce qu'on y fabrique. Le vert acide venait
+   * d'ailleurs — il disait « application sportive » quand les planches, elles,
+   * parlent gravure, papier et encre. L'accent est donc l'OCRE de la palette
+   * Alpage (#C99A32), celui qu'on retrouve sur les planches.
+   *
+   * Les neutres sont réchauffés : une pointe de rouge et de vert dans les
+   * gris, pour que le panneau ne soit plus bleu-noir à côté d'un papier
+   * crème. Ils restent sombres, parce qu'une image se juge sur un fond
+   * sombre — c'est la seule raison d'être de cette interface.
+   *
+   * Revenir en arrière tient en une ligne : --acc.
+   */
+  /* ---------- la palette ----------
+   *
+   * L'atelier prend la matière de ce qu'on y fabrique. Le fond sombre et le
+   * vert vif disaient « outil technique » ; les planches, elles, parlent
+   * papier, encre et gravure. Le PAPIER devient donc l'accueil.
+   *
+   * Le fond du site n'est pas le papier des affiches : #F7F5EF contre
+   * #F2EFE6. Deux blancs chauds volontairement distincts — une affiche
+   * posée sur un fond identique au sien n'aurait plus de bord, et c'est
+   * justement son bord qu'on juge.
+   *
+   * Le sombre reste disponible : une planche sombre se juge mal sur du
+   * papier. Il n'est plus le défaut, il est un choix. */
   :root {
-    --bg:      #08090B;
-    --panel:   #0F1114;
-    --raised:  #16191E;
-    --line:    #22262D;
-    --line-2:  #2E333C;
-    --ink:     #E9ECF1;
-    --mut:     #858C98;
-    --acc:     #C8F04E;
-    --acc-ink: #14180A;
-    --danger:  #FF6B6B;
-    --ok:      #6EE7A8;
-    --r:       9px;
+    --bg:      #F7F5EF;
+    --panel:   #EEEAE1;
+    --raised:  #E6E1D6;
+    --line:    #D8D5CC;
+    --line-2:  #C3BEB1;
+    --ink:     #252820;
+    --mut:     #62665C;
+    --acc:     #A54F37;
+    --acc-ink: #FBF9F4;
+    --danger:  #A3402C;
+    --ok:      #4E6B45;
+    --r:       10px;
+    --ombre:   0 1px 2px rgba(37, 40, 32, .07);
+  }
+
+  [data-theme="sombre"] {
+    --bg:      #0A0A09;
+    --panel:   #121210;
+    --raised:  #1A1A17;
+    --line:    #26261F;
+    --line-2:  #35342B;
+    --ink:     #EDEAE0;
+    --mut:     #8C897C;
+    --acc:     #C99A32;
+    --acc-ink: #17150E;
+    --danger:  #D96A4E;
+    --ok:      #8FB877;
+    --ombre:   0 1px 2px rgba(0, 0, 0, .4);
   }
 
   * { box-sizing: border-box; }
@@ -83,24 +126,180 @@
     display: flex; align-items: center; gap: 14px;
     background: var(--panel);
   }
-  .mark {
-    width: 22px; height: 22px; border-radius: 6px; flex: none;
-    background: var(--acc);
-    -webkit-mask: radial-gradient(circle at 50% 50%, #000 39%, transparent 40%) ,
-                  linear-gradient(#000 0 0);
-    -webkit-mask-composite: xor; mask-composite: exclude;
-  }
+  /* La marque : une planche, et dedans une courbe de niveau qui la traverse.
+     C'est exactement ce que fait l'outil — un terrain devient une image
+     imprimable — et cela reste lisible à seize pixels, ce qu'un tracé de
+     parcours détaillé ne ferait pas. */
+  .mark { width: 24px; height: 24px; flex: none; display: block; }
+  .mark .plaque { fill: none; stroke: var(--mut); stroke-width: 1.4; }
+  .mark .ligne  { fill: none; stroke: var(--acc); stroke-width: 1.6;
+                  stroke-linecap: round; }
+  .mark .sommet { fill: var(--acc); }
+  /* Le mot-symbole en bas de casse : une maison d'édition signe, elle ne
+     crie pas. Les capitales espacées restent, mais pour les mentions. */
   header h1 {
-    font-size: 13px; margin: 0; font-weight: 700;
-    letter-spacing: .13em; text-transform: uppercase;
+    font-size: 15px; margin: 0; font-weight: 600;
+    letter-spacing: -.005em; text-transform: none;
   }
+  header h1 .second { color: var(--mut); font-weight: 400; }
   header .sub { color: var(--mut); font-size: 12px; }
   header .lien-galerie {
     color: var(--mut); font-size: 12px; text-decoration: none; white-space: nowrap;
     border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px;
   }
   header .lien-galerie:hover { color: var(--acc); border-color: var(--acc); }
+  header .theme {
+    width: auto; flex: none; padding: 4px 9px; font-size: 14px; line-height: 1;
+    background: none; color: var(--mut); border: 1px solid var(--line);
+    border-radius: 999px;
+  }
+  header .theme:hover { color: var(--ink); border-color: var(--line-2); }
+  header #langue {
+    width: auto; flex: none; padding: 5px 24px 5px 9px; font-size: 11.5px;
+    color: var(--mut); background-color: transparent; border-radius: 999px;
+    background-position: calc(100% - 11px) 50%, calc(100% - 7px) 50%;
+  }
+  header #langue:hover { color: var(--ink); }
   header .spacer { flex: 1; }
+
+  /* ---------- les nouveautés ----------
+   *
+   * `[hidden]` n'était PAS respecté : la règle `display: flex` d'ici même
+   * l'écrasait, l'attribut ne masquait rien, et la croix ne fermait donc
+   * rien. La règle ci-dessous existe pour cela, et vaut pour tout le
+   * document — c'est le genre de défaut qu'on ne trouve pas en relisant le
+   * JavaScript, qui lui faisait exactement ce qu'on lui demandait. */
+  [hidden] { display: none !important; }
+
+  #nouveautes {
+    flex: none; display: flex; align-items: baseline; flex-wrap: wrap;
+    gap: 10px 12px; padding: 9px 18px;
+    background: var(--panel); border-bottom: 1px solid var(--line);
+    font-size: 12.5px; color: var(--mut);
+  }
+  #nouveautes .titre { color: var(--ink); }
+  #nouveautes .spacer { flex: 1; }
+  #nouveautes .voir, #nouveautes .fermer {
+    width: auto; padding: 2px 0; background: none; border: 0;
+    color: var(--acc); font: inherit; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  #nouveautes .fermer {
+    color: var(--mut); text-decoration: none; font-size: 17px;
+    line-height: 1; padding: 0 4px;
+  }
+  #nouveautes .fermer:hover { color: var(--ink); }
+  #nouveautes-liste { flex: 1 1 100%; margin: 2px 0 6px; }
+  #nouveautes .v {
+    font: 600 9.5px/1 "IBM Plex Mono", monospace; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--mut); margin: 12px 0 6px;
+  }
+  #nouveautes .v:first-child { margin-top: 2px; }
+  #nouveautes ul { margin: 0; padding-left: 16px; }
+  #nouveautes li {
+    margin-bottom: 5px; font-size: 12.5px; line-height: 1.55; color: var(--ink);
+  }
+
+  /* ---------- le choix de style, en deux temps ---------- */
+  #choix-style { margin-bottom: 10px; }
+  .familles, .variantes {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .carte-style {
+    display: block; width: 100%; text-align: left; padding: 0;
+    background: var(--raised); border: 1px solid var(--line);
+    border-radius: var(--r); overflow: hidden; cursor: pointer;
+    color: var(--ink); font: inherit;
+  }
+  .carte-style:hover { border-color: var(--line-2); }
+  .carte-style.on { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc); }
+  .carte-style canvas {
+    display: block; width: 100%; height: auto; background: var(--panel);
+    border-bottom: 1px solid var(--line);
+  }
+  .carte-style .nom {
+    display: block; padding: 7px 9px 2px; font-size: 12.5px; font-weight: 600;
+  }
+  .carte-style .dit {
+    display: block; padding: 0 9px 8px; font-size: 11px; line-height: 1.4;
+    color: var(--mut);
+  }
+  .carte-style.on .nom::after {
+    content: " ✓"; color: var(--acc);
+  }
+  .groupes-style {
+    display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none;
+    margin: 0 0 9px; padding-bottom: 2px;
+  }
+  .groupes-style::-webkit-scrollbar { display: none; }
+  .groupes-style button {
+    width: auto; flex: none; padding: 5px 11px; font-size: 11.5px; font-weight: 500;
+    background: none; color: var(--mut); border: 1px solid var(--line);
+    border-radius: 999px; white-space: nowrap;
+  }
+  .groupes-style button.on {
+    background: var(--acc); border-color: var(--acc); color: var(--acc-ink);
+  }
+  .retour-familles {
+    width: auto; padding: 4px 0; margin-bottom: 8px; background: none;
+    border: 0; color: var(--acc); font-size: 12px; text-align: left;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+
+  /* Sur téléphone, la colonne de réglages est VIDE : tout est parti dans les
+     panneaux. On lui retire sa place, sinon elle laisse un blanc sous
+     l'aperçu, et on rend cette hauteur à la planche. */
+  body.telephone aside { display: none; }
+  body.telephone .dock { display: none; }
+  @media (max-width: 900px) {
+    body.telephone #stage { height: 100%; position: static; border-bottom: 0; }
+    body.telephone main { padding-bottom: calc(62px + env(safe-area-inset-bottom)); }
+    body.telephone.vide #stage { height: auto; }
+  }
+
+  /* ---------- barre et panneau du téléphone ---------- */
+  #barre {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    background: var(--panel); border-top: 1px solid var(--line);
+  }
+  #barre button {
+    width: auto; min-height: 44px; padding: 6px 2px; font-size: 11.5px;
+    font-weight: 500; background: none; color: var(--mut);
+    border: 1px solid transparent; border-radius: var(--r);
+  }
+  #barre button.on { color: var(--ink); background: var(--raised); border-color: var(--line); }
+  #barre button.principal {
+    background: var(--acc); color: var(--acc-ink); font-weight: 600;
+  }
+
+  #feuille { position: fixed; inset: 0; z-index: 9; }
+  #feuille .voile { position: absolute; inset: 0; background: rgba(37, 40, 32, .30); }
+  #feuille .panneau {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    max-height: 62vh; display: flex; flex-direction: column;
+    background: var(--bg); border-top: 1px solid var(--line-2);
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 40px rgba(37, 40, 32, .18);
+  }
+  /* Le catalogue de styles a le droit à presque tout l'écran : c'est le
+     seul panneau où l'on REGARDE au lieu de régler. */
+  #feuille.large .panneau { max-height: 88vh; }
+  #feuille .tete {
+    flex: none; display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px 10px; border-bottom: 1px solid var(--line);
+    font-size: 13px; font-weight: 600;
+  }
+  #feuille .tete button {
+    width: auto; margin-left: auto; padding: 7px 13px; font-size: 12.5px;
+    background: var(--acc); color: var(--acc-ink); border-radius: 999px;
+  }
+  #feuille .corps {
+    flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    padding: 12px 16px calc(18px + env(safe-area-inset-bottom));
+  }
+  #feuille .zone[hidden] { display: none; }
 
   /* ---------- colonnes ---------- */
   main { flex: 1; display: flex; min-height: 0; }
@@ -134,9 +333,9 @@
     padding: 8px 10px; font: inherit; transition: border-color .12s;
   }
   input[type=text]:hover, select:hover { border-color: var(--line-2); }
-  input[type=text]:focus, select:focus {
+  input[type=text]:focus, select:focus, textarea:focus, button:focus-visible {
     outline: none; border-color: var(--acc);
-    box-shadow: 0 0 0 3px rgba(200, 240, 78, .13);
+    box-shadow: 0 0 0 3px rgba(201, 154, 50, .18);
   }
   select {
     cursor: pointer; appearance: none;
@@ -281,6 +480,24 @@
   details[open] summary::before { content: "– "; }
   details summary:hover { color: var(--ink); }
 
+  /* Un titre de section qui se replie : il garde l'allure d'un titre, pas
+     celle d'un lien « en savoir plus ». */
+  summary.titre {
+    font: 600 10px/1 "IBM Plex Mono", monospace;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--mut); margin: 0 0 10px; padding: 2px 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  summary.titre::before {
+    content: ""; width: 4px; height: 4px; border-radius: 50%;
+    background: var(--line-2); flex: none; font-family: inherit;
+  }
+  details[open] > summary.titre { margin-bottom: 12px; }
+  .pliable { padding-bottom: 12px; }
+
+  /* Le repli des réglages fins, sous les trois essentiels. */
+  details.fins > summary { margin: 12px 0 6px; }
+
   /* pied de la colonne : les exports, toujours atteignables */
   .dock {
     flex: none; border-top: 1px solid var(--line);
@@ -295,14 +512,15 @@
     flex: 1; display: flex; flex-direction: column; align-items: center;
     justify-content: center; gap: 12px; padding: 18px;
     min-width: 0; min-height: 0; overflow: hidden;
-    background:
-      radial-gradient(1200px 600px at 50% 0%, #101318 0%, transparent 70%),
-      var(--bg);
+    background: var(--bg);
   }
+  /* L'affiche est POSÉE, pas mise en scène : un filet, une ombre courte.
+     Une ombre spectaculaire ajoute à l'image quelque chose qui ne sera pas
+     dans le fichier exporté — on jugerait alors autre chose que l'œuvre. */
   #sheet {
     position: relative; line-height: 0;
-    border-radius: 3px;
-    box-shadow: 0 24px 70px rgba(0,0,0,.65), 0 0 0 1px var(--line);
+    border-radius: 2px;
+    box-shadow: 0 6px 22px rgba(37, 40, 32, .13), 0 0 0 1px var(--line);
     background-position: center; background-size: cover;
   }
   #sheet.damier {
@@ -318,6 +536,17 @@
     display: none; max-width: 320px; text-align: center; color: var(--mut);
     flex-direction: column; align-items: center; gap: 10px; line-height: 1.6;
   }
+  #empty .accroche {
+    font-size: 19px; font-weight: 600; color: var(--ink); letter-spacing: -.01em;
+    margin: 0;
+  }
+  #empty .sous-accroche { color: var(--mut); font-size: 12.5px; margin: 0; }
+  #empty #accueil-planche {
+    width: 190px; height: auto; border-radius: 2px;
+    box-shadow: 0 6px 22px rgba(37, 40, 32, .13), 0 0 0 1px var(--line);
+  }
+  #empty .autres { width: 100%; }
+  #empty .autres > summary { margin: 4px 0 8px; }
   #empty svg { color: var(--line-2); }
   #empty p { margin: 0; font-size: 13px; }
   #empty strong { color: var(--ink); font-weight: 600; font-size: 14.5px; }
@@ -421,45 +650,124 @@
 <body>
 
 <header>
-  <div class="mark"></div>
-  <h1>Strava Studio</h1>
+  <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+    <rect class="plaque" x="2.6" y="2.6" width="18.8" height="18.8" rx="3.4"></rect>
+    <path class="ligne" d="M5.6 16.4c2.1 0 2.6-3.2 4.3-3.2 1.5 0 1.9 2 3.3 2
+                           1.6 0 2.1-4.1 3.8-4.1"></path>
+    <path class="ligne" d="M5.6 19.2c2.6 0 3.1-2.1 4.9-2.1 1.6 0 2 1.3 3.4 1.3
+                           1.5 0 2-2.6 4.5-2.6" opacity=".45"></path>
+    <circle class="sommet" cx="17" cy="11.1" r="1.5"></circle>
+  </svg>
+  <h1>alpage <span class="second">studio</span></h1>
   <span class="sub">tes données, tes templates, ton code</span>
   <div class="spacer"></div>
   <span class="sub" id="header-note"></span>
   <!-- La revue des compositions. Elle vit à côté du studio et non dedans :
        c'est une page de contact, pas un écran de l'outil. -->
   <a class="lien-galerie" href="apercus/">Galerie</a>
+  <!-- Anglais par défaut : le studio se partage, et « Épaisseur par » ne se
+       devine pas. Le choix est retenu dans ce navigateur. -->
+  <button class="theme" id="theme" type="button" aria-label="Papier ou sombre">◐</button>
+  <select id="langue" aria-label="Language">
+    <option value="en">EN</option>
+    <option value="fr">FR</option>
+  </select>
 </header>
+
+<!-- Ce qui a changé depuis la dernière visite de CE navigateur. Fermé,
+     il ne revient plus : il n'y a rien de plus agaçant qu'une nouvelle
+     qu'on a déjà lue. -->
+<!-- Un bandeau, pas une fenêtre modale. Une nouvelle n'a pas à barrer la
+     route : on arrive pour composer une affiche, pas pour lire des notes de
+     version. Il s'ouvre si on le veut, il se ferme pour de bon. -->
+<div id="nouveautes" hidden>
+  <span class="titre">Depuis ta dernière visite</span>
+  <button class="voir" id="nouveautes-voir" type="button">Voir</button>
+  <div class="spacer"></div>
+  <button class="fermer" id="nouveautes-fermer" type="button" aria-label="Fermer">×</button>
+  <div id="nouveautes-liste" hidden></div>
+</div>
+
+<!-- LE TÉLÉPHONE : une barre d'outils en bas, des panneaux qui remontent.
+     Une seule décision occupe l'écran à la fois, et l'aperçu reste visible
+     pendant qu'on règle. Masquée au-dessus de 900 px, où la colonne fait
+     déjà ce travail. -->
+<nav id="barre" hidden>
+  <button type="button" data-feuille="style">Style</button>
+  <button type="button" data-feuille="teintes">Teintes</button>
+  <button type="button" data-feuille="texte">Texte</button>
+  <button type="button" data-feuille="format">Format</button>
+  <button type="button" id="barre-enregistrer" class="principal">Enregistrer</button>
+</nav>
+
+<div id="feuille" hidden>
+  <div class="voile" id="feuille-voile"></div>
+  <div class="panneau">
+    <div class="tete">
+      <span id="feuille-titre"></span>
+      <button type="button" id="feuille-fermer">Voir le résultat</button>
+    </div>
+    <div class="corps">
+      <div class="zone" data-zone="style"></div>
+      <div class="zone" data-zone="teintes"></div>
+      <div class="zone" data-zone="texte"></div>
+      <div class="zone" data-zone="format"></div>
+    </div>
+  </div>
+</div>
 
 <main>
   <aside>
     <div class="scroll">
 
-      <section>
+      <section id="section-activite">
         <h2>Activité</h2>
         <div id="strava">
           <div id="strava-state" class="muted">Strava — vérification…</div>
-          <select id="strava-list" style="margin-top: 9px; display: none"></select>
+          <select id="strava-list" data-brut style="margin-top: 9px; display: none"></select>
           <button class="ghost" id="strava-refresh" type="button" style="display: none">Rafraîchir la liste</button>
           <div id="icu-form" style="display: none; margin-top: 9px">
             <input type="password" id="icu-key" placeholder="Clé intervals.icu"
                    autocomplete="off" spellcheck="false">
             <button class="ghost" id="icu-connect" type="button">Connecter</button>
-            <div class="muted" style="font-size: 11px; margin-top: 7px; line-height: 1.5">
-              La clé se génère dans <em>intervals.icu → Settings → Developer
-              Settings</em>. Elle reste <strong>dans ce navigateur</strong>, n’est
-              envoyée qu’à intervals.icu, et disparaît à la fermeture de l’onglet.
-            </div>
+            <!-- Quatre lignes d'explication en permanence sous un champ qu'on
+                 remplit une fois : sur un téléphone, elles coûtent plus cher que
+                 ce qu'elles apprennent. Elles restent à un doigt. -->
+            <details>
+              <summary>Où trouver la clé, et où elle va</summary>
+              <div class="muted" style="font-size: 11px; line-height: 1.5">
+                Elle se génère dans <em>intervals.icu → Settings → Developer
+                Settings</em>. Elle reste <strong>dans ce navigateur</strong>, n’est
+                envoyée qu’à intervals.icu, et disparaît à la fermeture de l’onglet.
+              </div>
+            </details>
           </div>
           <button class="ghost" id="icu-forget" type="button" style="display: none">Oublier la clé</button>
         </div>
         <label class="file" style="margin-top: 11px">
           <input type="file" id="gpx" accept=".gpx,application/gpx+xml,text/xml" multiple>
-          <span>Charger un ou plusieurs GPX</span>
+          <span>Importer une sortie</span>
         </label>
         <div id="gpx-err"></div>
-        <div id="summary"></div>
-        <div id="library"></div>
+        <div id="summary" data-brut></div>
+        <div id="library" data-brut></div>
+        <!-- Les planches multi-sorties ne se composent pas en cochant des
+             fichiers un par un : elles racontent une PÉRIODE. Le menu ne
+             s'affiche que pour elles, et il dit combien de sorties il retient
+             — sans quoi une planche vide passerait pour une panne. -->
+        <label class="opt" id="opt-periode" hidden><span>Période</span>
+          <select id="periode">
+            <option value="tout">Tout ce qui est chargé</option>
+            <option value="semaine:0">Cette semaine</option>
+            <option value="semaine:1">La semaine dernière</option>
+            <option value="semaine:2">Il y a deux semaines</option>
+            <option value="mois:0">Ce mois</option>
+            <option value="mois:1">Le mois dernier</option>
+            <option value="annee:0">Cette année</option>
+            <option value="annee:1">L’an dernier</option>
+          </select>
+        </label>
+        <div id="periode-state" class="muted" hidden></div>
         <details>
           <summary>Corriger ou saisir à la main</summary>
           <div class="grid">
@@ -472,20 +780,24 @@
       </section>
 
       <section>
-        <h2>Template</h2>
+        <h2>Style</h2>
+        <!-- Le choix en deux temps : une famille, puis sa variante. Le menu
+             déroulant listait trente-trois noms à la suite, sans image et sans
+             hiérarchie — il fallait connaître le catalogue pour s'en servir. -->
+        <div id="choix-style"></div>
         <select id="tpl"></select>
-        <label class="opt" style="margin-top: 9px"><span>Collection</span>
+        <label class="opt" id="opt-collection" style="margin-top: 9px"><span>Collection</span>
           <select id="collection"></select>
         </label>
         <div id="collection-note" class="muted" style="font-size: 11.5px; margin: 0 0 4px"></div>
-        <label class="opt"><span>Minimaliste — tracé seul</span>
+        <label class="opt" id="opt-minimal"><span>Minimaliste — tracé seul</span>
           <input type="checkbox" id="minimal">
         </label>
         <!-- Rendu et support sont deux choix INDÉPENDANTS : une affiche
              sombre peut être colorée, une affiche claire strictement en noir
              et blanc. Les fusionner en un seul menu aurait fabriqué six
              combinaisons dont quatre n'ont pas de nom. -->
-        <label class="opt"><span>Rendu</span>
+        <label class="opt" id="opt-teintes"><span>Teintes</span>
           <select id="rendu">
             <option value="couleur">Couleur</option>
             <option value="nb">Noir &amp; blanc</option>
@@ -494,18 +806,39 @@
         <label class="opt" id="opt-photo-nb" hidden><span>Photo aussi en N&amp;B</span>
           <input type="checkbox" id="photo-nb">
         </label>
+        <!-- Le support est GLOBAL, comme le rendu. Toute planche peut se
+             poser sur une photo : le réglage n'appartient donc pas au
+             template. Quand il y vivait, il fallait le redéclarer une fois
+             par template — et il manquait sur dix-neuf des trente-trois. -->
+        <label class="opt" id="opt-support"><span>Support</span>
+          <select id="support">
+            <option value="papier">Fond plein — affiche</option>
+            <option value="surcouche">Sans fond — sur ta photo</option>
+          </select>
+        </label>
+        <!-- Les réglages d'un template partent dans TROIS réceptacles selon
+             leur nature. Sur un écran large ils se suivent, et rien ne
+             change. Sur un téléphone, chacun rejoint son panneau : la
+             composition dans Style, les couleurs dans Teintes, les mots dans
+             Texte. Un seul constructeur les remplit — buildOptions() — donc
+             ils ne peuvent pas diverger. -->
         <div id="opts"></div>
+        <div id="opts-couleur"></div>
+        <div id="opts-texte"></div>
       </section>
 
-      <section>
-        <h2>Fond</h2>
+      <!-- Repliée par défaut : on ne charge pas une photo à chaque planche,
+           et cette section poussait les réglages du template hors de l'écran. -->
+      <section class="pliable" id="section-fond">
+        <details>
+          <summary class="titre">Fond</summary>
         <label class="file">
           <input type="file" id="photo" accept="image/*">
-          <span>Charger une photo</span>
+          <span>Ajouter une photo</span>
         </label>
         <label class="file" style="margin-top: 7px">
           <input type="file" id="bgvideo" accept="video/*">
-          <span>Charger une vidéo</span>
+          <span>Ajouter une vidéo</span>
         </label>
         <div id="bgvideo-state"></div>
         <label class="opt" style="margin-top: 9px"><span>Aperçu sur</span>
@@ -517,12 +850,13 @@
           </select>
         </label>
         <button class="ghost" id="photo-clear" type="button">Retirer la photo</button>
+        </details>
       </section>
 
     </div>
 
     <div class="dock">
-      <div class="row">
+      <div class="row" id="rangee-format">
         <select id="size">
           <option value="story">Story — 1080 × 1920</option>
           <option value="post">Post — 1080 × 1350</option>
@@ -532,7 +866,7 @@
           <option value="a3">Impression A3 — 3508 × 4961 (300 dpi)</option>
         </select>
       </div>
-      <button id="export" type="button">Exporter en PNG</button>
+      <button id="export" type="button">Enregistrer l’image</button>
       <button class="ghost" id="preview-play" type="button">Lire l’aperçu</button>
       <div id="son" hidden>
         <div class="rangee">
@@ -551,18 +885,21 @@
 
   <div id="stage">
     <div id="empty">
-      <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor"
-           stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M4 14c0-3 2-5 4-5s3 2 5 2 3-3 5-3 2 2 2 4"></path>
-        <circle cx="6" cy="18" r="2.4"></circle>
-        <circle cx="18" cy="18" r="2.4"></circle>
-      </svg>
-      <p><strong>Dépose une sortie pour commencer</strong></p>
-      <p>Un fichier GPX — depuis Strava, une activité → <em>Exporter en GPX</em>.
-         Ou saisis les valeurs à la main.</p>
+      <!-- On montre une PLANCHE avant de demander quoi que ce soit. Le
+           premier écran demandait une clé d'API et un fichier GPX à quelqu'un
+           qui n'avait pas encore vu ce que l'outil fabrique. -->
+      <p class="accroche">Donne une forme à tes sorties.</p>
+      <canvas id="accueil-planche" width="300" height="533" aria-hidden="true"></canvas>
+      <p class="sous-accroche">Une trace GPX devient une affiche, une estampe ou une carte.</p>
       <button class="ghost" id="load-example" type="button"
               style="width: auto; margin-top: 6px">Voir avec une sortie d’exemple</button>
-      <button class="ghost" id="load-examples" type="button"
+      <!-- Un seul exemple en avant. Les six autres existent pour éprouver des
+           cas particuliers — huit semaines, une année, deux régions éloignées —
+           et sept boutons alignés font ressembler l'accueil à un menu de
+           débogage. Ils restent à un doigt. -->
+      <details class="autres">
+        <summary>Voir d’autres exemples</summary>
+<button class="ghost" id="load-examples" type="button"
               style="width: auto; margin-top: 6px">Voir avec trois sorties — planches multiples</button>
       <button class="ghost" id="load-weeks" type="button"
               style="width: auto; margin-top: 6px">Voir avec huit semaines — tissage</button>
@@ -574,12 +911,13 @@
               style="width: auto; margin-top: 6px">Une semaine partagée — Atlas</button>
       <button class="ghost" id="load-regions" type="button"
               style="width: auto; margin-top: 6px">Deux régions éloignées — Archipel</button>
+      </details>
       <div class="projet" id="musee-panneau">
         <button class="ghost" id="musee-creer" type="button">Créer une pièce de musée</button>
         <input type="text" id="musee-titre" placeholder="Titre de la pièce">
         <textarea id="musee-recit" rows="2" placeholder="Cartel — quelques lignes, de ta main"></textarea>
-        <div id="musee-suggestions"></div>
-        <div id="musee-liste"></div>
+        <div id="musee-suggestions" data-brut></div>
+        <div id="musee-liste" data-brut></div>
         <div class="rangee">
           <button class="ghost" id="musee-save" type="button">Sauvegarder la collection</button>
           <label class="file"><input type="file" id="musee-open" accept=".json,application/json">
@@ -606,6 +944,9 @@
 
 <!-- moteur -->
 <script src="src/version.js"></script>
+<!-- La langue AVANT tout le reste : app.js traduit les libellés qu'il
+     construit, et il ne peut pas le faire si le dictionnaire arrive après. -->
+<script src="src/i18n.js"></script>
 <script src="src/activity.js"></script>
 <script src="src/studio.js"></script>
 <script src="src/design.js"></script>

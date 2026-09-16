@@ -163,6 +163,9 @@
      * faible lui rend de la matière. Tuile mise en cache : la générer par
      * pixel sur 1080 × 1920 coûterait cher à chaque rendu. */
     H.grain = function (amount) {
+      /* Le grain couvre toute la planche : en surcouche il remplacerait la
+       * transparence par un voile de bruit. */
+      if (H.surcouche && H.surcouche()) return;
       if (!amount) return;
       if (!global.__grainTile) {
         var t = document.createElement('canvas');
