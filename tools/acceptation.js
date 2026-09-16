@@ -2,7 +2,18 @@
  *
  *   1. lancer le serveur :   node tools/dev-server.js 8783 --debug
  *   2. ouvrir               http://localhost:8783/
- *   3. coller CE FICHIER dans la console, et lire le tableau.
+ *   3. dans la console, CHARGER ce fichier — ne pas le coller :
+ *
+ *        var s = document.createElement('script');
+ *        s.src = 'tools/acceptation.js';
+ *        document.head.appendChild(s);
+ *
+ *      La page porte une politique de sécurité de contenu en `script-src
+ *      'self'` : elle refuse `eval` et `new Function`, donc tout lanceur qui
+ *      évalue une chaîne. Une balise vers un fichier de la même origine,
+ *      elle, passe. C'est le premier résultat du test : la politique tient.
+ *
+ *      Les résultats arrivent dans la console et dans `window.__acceptation`.
  *
  * POURQUOI CE N'EST PAS DANS tools/test.js
  *   Le harnais de test tourne dans Node : il lit des fichiers, charge des
@@ -161,6 +172,33 @@
     $('#feuille-voile').click();
     await attends(250);
     ok('téléphone · le voile ferme aussi', $('#feuille').hidden);
+
+    /* LA PLANCHE N'EST PAS CACHÉE PAR LA BARRE.
+     *
+     * Ce cas existe parce que le défaut a été commis deux fois de suite :
+     * `height: 100%` reprend la marge basse du parent quand box-sizing est
+     * en border-box, et `flex: 1` ne divise rien quand la page défile.
+     * Dans les deux cas le bas de la planche — son titre, sa mention —
+     * passait sous la barre d'outils. Ça ne se voit pas dans le DOM : il
+     * faut mesurer. */
+    await attends(300);
+    var scene = $('#stage').getBoundingClientRect();
+    var barre = $('#barre').getBoundingClientRect();
+    ok('téléphone · la planche s’arrête au-dessus de la barre  (' +
+       Math.round(barre.top - scene.bottom) + ' px)',
+       scene.bottom <= barre.top + 1,
+       'la scène passe de ' + Math.round(scene.bottom - barre.top) + ' px sous la barre');
+
+    var legende = $('#stage-caption');
+    if (legende && legende.textContent) {
+      var lc = legende.getBoundingClientRect();
+      ok('téléphone · la légende de la planche reste lisible',
+         lc.bottom <= barre.top + 1 && lc.top >= 0);
+    }
+
+    /* Rien ne doit déborder en largeur, à aucune largeur d'écran. */
+    ok('téléphone · aucun débordement horizontal  (' + innerWidth + ' px)',
+       document.documentElement.scrollWidth <= innerWidth);
   }
 
   // ---------- 7. le bandeau ----------

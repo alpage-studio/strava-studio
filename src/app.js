@@ -94,8 +94,11 @@
   /* ---------- rendu ---------- */
   /* Les valeurs d'options réellement envoyées au template : celles du
    * panneau, puis la collection par-dessus si une est choisie. */
-  function resolvedOptions(tplId) {
-    var vals = optionValues[tplId] || {};
+  /* `remplacantes` sert aux vignettes du catalogue : elles doivent montrer
+   * une variante qui n'est pas encore choisie, tout en passant par la
+   * collection comme la planche. */
+  function resolvedOptions(tplId, remplacantes) {
+    var vals = remplacantes || optionValues[tplId] || {};
     return Collections.apply(tplId, vals, $('#collection').value);
   }
 
@@ -148,6 +151,23 @@
       ' → ' + new Date(f.fin.getTime() - 86400000)
         .toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' }) +
       (n === 0 ? ' · ' + T('aucune sortie dans cette période') : '');
+  }
+
+  /* LES RÉGLAGES GLOBAUX, POSÉS AVANT TOUT RENDU.
+   *
+   * Le rendu achromatique et le support vivent dans le moteur, pas dans les
+   * templates. Ils étaient posés dans draw() — donc APRÈS les vignettes du
+   * catalogue, qui rendent elles aussi par Studio.render(). Le catalogue
+   * avait ainsi toujours un réglage de retard : on passait en noir & blanc,
+   * la planche suivait, les vignettes restaient en couleur. Et au premier
+   * chargement, quelqu'un qui avait laissé le noir & blanc voyait un
+   * catalogue en couleur.
+   *
+   * Un seul endroit les pose, et tout ce qui dessine l'appelle d'abord. */
+  function poseEtatGlobal() {
+    Studio.setMinimal($('#minimal').checked);
+    Studio.setAchromatique($('#rendu').value === 'nb', $('#photo-nb').checked);
+    Studio.setSupport($('#support').value === 'surcouche');
   }
 
   function syncBibliotheque() {
@@ -227,17 +247,13 @@
   function draw() {
     document.body.classList.toggle('vide', !chargee);
     majBoutons();
-    if (!chargee) { save(); return; }
+    if (!chargee) return;
     var size = SIZES[$('#size').value];
     var tplId = $('#tpl').value;
-    Studio.setMinimal($('#minimal').checked);
     /* Le rendu achromatique est posé AVANT le rendu, dans le moteur : un
      * filtre CSS sur l'aperçu ne suivrait pas dans toBlob et l'export
      * sortirait en couleur. */
-    Studio.setAchromatique($('#rendu').value === 'nb', $('#photo-nb').checked);
-    /* Le support aussi : il décide s'il y a un fond du tout, donc il doit
-     * être connu avant que le template ne peigne quoi que ce soit. */
-    Studio.setSupport($('#support').value === 'surcouche');
+    poseEtatGlobal();
     current = Studio.render(canvas, tplId, effective(), resolvedOptions(tplId), size);
     /* L'échelle prenait la largeur TOTALE du panneau et retirait 24 px à sa
      * hauteur : en paysage l'image touchait les bords, en story la légende
@@ -256,7 +272,6 @@
     canvas.style.height = Math.floor(size[1] * scale) + 'px';
     ground();
     caption(size);
-    save();
   }
 
   /* Les trois exports partagent le MÊME canvas et le même état d'animation.
@@ -291,10 +306,22 @@
     ['#export', '#export-video', '#export-seq', '#preview-play'].forEach(function (sel) {
       $(sel).disabled = bloque;
     });
-    // pendant un export, ce qui définit l'image ne doit plus bouger
-    ['#size', '#tpl', '#collection', '#minimal'].forEach(function (sel) {
+    /* Pendant un export, ce qui définit l'image ne doit plus bouger.
+     *
+     * La liste avait vieilli : les réglages GLOBAUX ajoutés depuis — teintes,
+     * support, période — n'y figuraient pas, et changer « Teintes » pendant
+     * un enregistrement vidéo basculait le film en cours en noir et blanc.
+     *
+     * Le catalogue, lui, ne se fige pas avec `disabled` : ses cartes posent
+     * `#tpl.value` puis émettent l'événement elles-mêmes, et `disabled` ne
+     * bloque que les gestes de l'utilisateur, pas un dispatchEvent. On le
+     * neutralise donc par un drapeau, lu au moment du clic. */
+    ['#size', '#tpl', '#collection', '#minimal',
+     '#rendu', '#support', '#photo-nb', '#periode'].forEach(function (sel) {
       var el = $(sel); if (el) el.disabled = exportEnCours;
     });
+    var cat = $('#choix-style');
+    if (cat) cat.classList.toggle('fige', exportEnCours);
   }
 
   /* La transparence du rendu courant. Elle ne dépend plus seulement du
@@ -334,6 +361,15 @@
   }
 
   /* ---------- panneau d'options du template ---------- */
+  /* Sauvegarder est une réaction à un GESTE, pas à une image.
+   *
+   * `save()` était appelé à la fin de draw(). Or draw() est rappelé à chaque
+   * image par l'aperçu animé et par le suivi audio : soixante
+   * `JSON.stringify` et soixante écritures dans le stockage local PAR
+   * SECONDE, pour un état qui n'a pas bougé. On sauvegarde donc aux
+   * changements, là où il y a quelque chose de neuf à retenir. */
+  function changement() { draw(); save(); }
+
   /* ---------- LA BARRE DU TÉLÉPHONE ----------
    *
    * Sous 900 px, la colonne de réglages cède la place à quatre panneaux qui
@@ -352,9 +388,12 @@
      * colonne est masquée, il n'y aurait AUCUN moyen d'importer un GPX ni de
      * choisir une activité — l'application serait jolie et inutilisable. */
     style:   ['#section-activite', '#choix-style', '#opt-collection', '#collection-note',
-              '#opt-minimal', '#opts'],
+              '#opt-minimal', '#opts', '#section-garder'],
     teintes: ['#opt-teintes', '#opt-photo-nb', '#opt-support', '#section-fond', '#opts-couleur'],
     texte:   ['#opts-texte'],
+    /* « Garder » rejoint le panneau Style : c'est ce qu'on fait d'une sortie
+     * une fois qu'on en a une. Sans cela ces blocs restaient dans la colonne
+     * masquée du téléphone — perdus deux fois. */
     /* Format porte aussi les SORTIES : aperçu animé, vidéo, séquence, son.
      * Elles vivaient dans le socle de la colonne — masqué sous 900 px — et
      * devenaient donc introuvables sur téléphone. Un contrôle resté dans un
@@ -508,19 +547,28 @@
    * laisse le CSS réduire — en dessous, les textes des planches deviennent
    * des taches grises et toutes les familles se ressemblent. */
   function vignette(cv, tplId, valeurs) {
-    var t = Studio.get(tplId);
-    if (!t) return;
-    var ratio = 16 / 9;
-    var L = 300, H2 = Math.round(L * ratio);
-    try {
-      Studio.render(cv, tplId, effective(), valeurs || {}, [L, H2]);
-    } catch (e) { /* une famille qui ne sait pas dessiner ces données */ }
+    var L = 300, H2 = Math.round(L * 16 / 9);
+    /* Les réglages posés avant de peindre, comme pour la scène — sinon la
+     * vignette ment d'un cran sur le noir & blanc et le support.
+     *
+     * Et surtout : les options passent par resolvedOptions(), donc par la
+     * COLLECTION. Sans cela une collection choisie pilotait la planche mais
+     * pas les vignettes, et la carte montrait autre chose que ce qu'elle
+     * allait produire — exactement ce qu'un rendu vivant était censé éviter.
+     *
+     * Studio.render attrape déjà toute exception et peint une carte d'erreur :
+     * pas de try/catch ici, il ne pourrait rien attraper. */
+    poseEtatGlobal();
+    Studio.render(cv, tplId, effective(), resolvedOptions(tplId, valeurs), [L, H2]);
   }
 
   function construitChoixStyle() {
     var boite = $('#choix-style');
     if (!boite) return;
     boite.innerHTML = '';
+    /* Le damier derrière les vignettes quand le support est transparent :
+     * sans lui, une encre sombre sur une carte sombre est invisible. */
+    boite.classList.toggle('surcouche', $('#support').value === 'surcouche');
     var tousIds = Studio.all().map(function (t) { return t.id; });
     var ranges = {};
     GROUPES_STYLE.forEach(function (g) {
@@ -567,6 +615,7 @@
         carte.appendChild(dit);
       }
       carte.addEventListener('click', function () {
+        if (exportEnCours) return;          // un export en cours a la priorité
         $('#tpl').value = id;
         $('#tpl').dispatchEvent(new Event('change'));
         familleOuverte = optionVariante(tpl) ? id : null;
@@ -611,6 +660,7 @@
       nom.textContent = lib;
       carte.appendChild(nom);
       carte.addEventListener('click', function () {
+        if (exportEnCours) return;
         vals[def.key] = c[0];
         buildOptions();
         construitChoixStyle();
@@ -722,7 +772,7 @@
         vals[def.key] = (def.type === 'toggle') ? input.checked
           : (def.type === 'range') ? parseFloat(input.value)
           : input.value;
-        draw();
+        changement();
       });
 
       /* Certains réglages décident si d'AUTRES réglages servent encore —
@@ -902,7 +952,7 @@
   $('#gpx').addEventListener('change', function (e) {
     var fichiers = Array.prototype.slice.call(e.target.files || []);
     if (!fichiers.length) return;
-    nomFichier('#gpx', 'Charger un ou plusieurs GPX',
+    nomFichier('#gpx', T('Importer une sortie'),
       fichiers.length === 1 ? fichiers[0].name : fichiers.length + ' fichiers');
 
     /* Les lectures se terminent dans un ordre non garanti. On trie par nom
@@ -940,7 +990,7 @@
   $('#photo').addEventListener('change', function (e) {
     var file = e.target.files[0];
     if (!file) { Studio.setPhoto(null); photoURL = null; photoFile = null; draw(); return; }
-    nomFichier('#photo', 'Charger une photo', file.name);
+    nomFichier('#photo', T('Ajouter une photo'), file.name);
     photoFile = file;
     photoURL = URL.createObjectURL(file);
     var img = new Image();
@@ -955,7 +1005,7 @@
 
   $('#photo-clear').addEventListener('click', function () {
     $('#photo').value = '';
-    nomFichier('#photo', 'Charger une photo');
+    nomFichier('#photo', T('Ajouter une photo'));
     Studio.setPhoto(null);
     photoURL = null; photoImg = null; photoFile = null;
     if ($('#ground').value === 'photo') $('#ground').value = 'damier';
@@ -1090,7 +1140,7 @@
     $('#son-play').addEventListener('click', function () {
       try {
         lecteur.jouer(partitionCourante(), { volume: volumeCourant() });
-        $('#son-state').textContent = 'Lecture…';
+        $('#son-state').textContent = T('Lecture…');
         boucleSon = requestAnimationFrame(suitLeSon);
       } catch (e) { $('#son-state').textContent = e.message; }
     });
@@ -1266,7 +1316,7 @@
      * juste à côté de celui qui ajoute. */
     if (!window.confirm('Effacer tout l’historique d’exploration de ce navigateur ?')) return;
     Historique.vider()
-      .then(function () { return majHistorique('Historique effacé.'); })
+      .then(function () { return majHistorique(T('Historique effacé.')); })
       .then(function () { setTimeout(function () { majHistorique(); }, 1800); })
       .catch(function (e) { $('#hist-state').textContent = e.message; });
   });
@@ -1284,7 +1334,7 @@
         tpl: $('#tpl').value, size: $('#size').value,
         collection: $('#collection').value, minimal: $('#minimal').checked,
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
-        support: $('#support').value,
+        support: $('#support').value, periode: $('#periode').value,
         opts: optionValues
       }, 'projet-' + slug() + '.json');
       note.textContent = Library.count() + ' sorties enregistrées.';
@@ -1303,12 +1353,28 @@
       if (entree && so.couleur) Library.setColor(entree.id, so.couleur);
     });
     if (p.reglages.opts) optionValues = p.reglages.opts;
-    if (p.reglages.tpl && Studio.get(p.reglages.tpl)) $('#tpl').value = p.reglages.tpl;
+    /* `Studio.get` ne rend JAMAIS null — il retombe sur le premier template
+     * du registre. La garde était donc toujours vraie, et un projet portant
+     * un identifiant inconnu posait une valeur que le menu ne connaît pas :
+     * `select.value` devient '', et tout le reste retombe silencieusement
+     * sur Encre. On compare l'identifiant rendu à celui demandé, comme le
+     * fait déjà la restauration depuis le stockage local. */
+    if (p.reglages.tpl && Studio.get(p.reglages.tpl).id === p.reglages.tpl) {
+      $('#tpl').value = p.reglages.tpl;
+    }
     if (p.reglages.size && SIZES[p.reglages.size]) $('#size').value = p.reglages.size;
     if (p.reglages.collection) $('#collection').value = p.reglages.collection;
     if (p.reglages.minimal != null) $('#minimal').checked = !!p.reglages.minimal;
     if (p.reglages.rendu) $('#rendu').value = p.reglages.rendu;
     if (p.reglages.support) $('#support').value = p.reglages.support;
+    /* La période décide QUELLES sorties composent la planche : sans elle, un
+     * projet multi-sorties se rouvrait sur une autre sélection que celle
+     * qu'on avait enregistrée. C'est le réglage qui change le plus ce qu'on
+     * voit, et c'était le seul à manquer à l'appel. */
+    if (p.reglages.periode) $('#periode').value = p.reglages.periode;
+    /* Le catalogue repart des familles : rester sur les variantes d'une
+     * famille qui n'est plus la bonne n'a aucun sens. */
+    familleOuverte = null;
     if (p.reglages.photoNb != null) $('#photo-nb').checked = !!p.reglages.photoNb;
     $('#opt-photo-nb').hidden = $('#rendu').value !== 'nb';
     overrides = {};
@@ -1348,7 +1414,7 @@
       // sans ça, rouvrir DEUX FOIS le même fichier ne déclenche rien
       e.target.value = '';
     };
-    reader.onerror = function () { note.textContent = 'Lecture impossible.'; };
+    reader.onerror = function () { note.textContent = T('Lecture impossible.'); };
     reader.readAsText(file);
   });
 
@@ -1357,7 +1423,7 @@
     var file = e.target.files[0];
     var note = $('#bgvideo-state');
     if (!file) { bgVideo = null; note.textContent = ''; return; }
-    nomFichier('#bgvideo', 'Charger une vidéo', file.name);
+    nomFichier('#bgvideo', T('Ajouter une vidéo'), file.name);
     var v = document.createElement('video');
     v.muted = true; v.playsInline = true; v.preload = 'auto';
     v.src = URL.createObjectURL(file);
@@ -1386,8 +1452,10 @@
     });
   });
 
-  $('#minimal').addEventListener('change', draw);
-  $('#tpl').addEventListener('change', function () { buildOptions(); majPeriode(); draw(); });
+  $('#minimal').addEventListener('change', changement);
+  $('#tpl').addEventListener('change', function () {
+    buildOptions(); majPeriode(); changement();
+  });
   /* Le catalogue se reconstruit quand la sortie change : les vignettes sont
    * des rendus de CETTE sortie, pas des images d'illustration.
    *
@@ -1395,15 +1463,28 @@
    * collection) : un second écouteur ici doublait le travail — deux
    * redessins complets et N rendus hors écran pour un seul geste. On
    * appelle donc depuis leur gestionnaire existant. */
-  $('#photo-nb').addEventListener('change', function () { construitChoixStyle(); });
-  $('#size').addEventListener('change', draw);
-  window.addEventListener('resize', draw);
+  $('#photo-nb').addEventListener('change', function () {
+    construitChoixStyle();
+    draw();
+  });
+  $('#size').addEventListener('change', changement);
+  /* AMORTI. Sous 900 px la page défile, donc la barre d'adresse du
+   * navigateur apparaît et disparaît au défilement — et chaque apparition
+   * émet un `resize`. Sans amortissement, chacune relançait un rendu complet
+   * au format choisi : dix-sept mégapixels si l'on est resté en A3. */
+  var minuteurTaille = null;
+  window.addEventListener('resize', function () {
+    if (minuteurTaille) clearTimeout(minuteurTaille);
+    minuteurTaille = setTimeout(function () { minuteurTaille = null; draw(); }, 140);
+  });
 
   $('#collection').addEventListener('change', function () {
     var c = Collections.get($('#collection').value);
     $('#collection-note').textContent = c.note || '';
     buildOptions();
+    construitChoixStyle();      // les vignettes suivent la collection
     draw();
+    save();
   });
 
   /* ---------- export vidéo ---------- */
@@ -1413,7 +1494,7 @@
     var nb = $('#rendu').value === 'nb';
     $('#opt-photo-nb').hidden = !nb;
     construitChoixStyle();
-    draw();
+    changement();
   }
   $('#rendu').addEventListener('change', majRendu);
 
@@ -1423,17 +1504,18 @@
   function majSupport() {
     buildOptions();
     construitChoixStyle();
-    draw();
+    changement();
   }
 
   $('#periode').addEventListener('change', function () {
+    /* syncBibliotheque() appelle déjà majPeriode() et reconstruit le
+     * catalogue : refaire les deux ici donnait deux rendus pleine taille
+     * pour un seul geste. */
     syncBibliotheque();
-    majPeriode();
-    draw();
-    save();
+    changement();
   });
   $('#support').addEventListener('change', majSupport);
-  $('#photo-nb').addEventListener('change', draw);
+  /* pas d'écouteur `draw` ici : majPhotoNb s'en charge, avec le catalogue */
 
   /* ---------- aperçu animé ----------
    * Il rejoue EXACTEMENT la chronologie de l'export : même durée, même
@@ -1666,7 +1748,7 @@
 
     if (st && st.configured && !st.authorized) {
       stravaState('Strava — <a href="/connect">connecter mon compte</a> ' +
-        '(portée <code>' + st.scope + '</code>, obligatoire pour lire les activités).');
+        '(portée <code>' + escapeHtml(st.scope) + '</code>, obligatoire pour lire les activités).');
       return;
     }
     stravaState('Aucune source configurée — charge un fichier GPX.');
@@ -1849,6 +1931,13 @@
   if (saved.photoNb) $('#photo-nb').checked = true;
   if (saved.support) $('#support').value = saved.support;
   if (saved.periode) $('#periode').value = saved.periode;
+  /* La collection était sauvée et jamais relue : c'était le seul réglage
+   * global à se perdre au rechargement. */
+  if (saved.collection) {
+    $('#collection').value = saved.collection;
+    var cInit = Collections.get(saved.collection);
+    if (cInit) $('#collection-note').textContent = cInit.note || '';
+  }
   $('#opt-photo-nb').hidden = $('#rendu').value !== 'nb';
 
   majPeriode();

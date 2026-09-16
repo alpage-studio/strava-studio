@@ -45,6 +45,7 @@ const SHELL = [
   './sem-05.gpx', './sem-06.gpx', './sem-07.gpx', './sem-08.gpx',
   './src/version.js',
   './src/i18n.js',
+  './src/installe.js',
   './src/activity.js',
   './src/studio.js',
   './src/design.js',
@@ -126,9 +127,10 @@ self.addEventListener('fetch', function (e) {
   if (url.origin !== self.location.origin) return;
   /* L'API Strava et l'écriture d'aperçus ne se mettent jamais en cache.
    *
-   * La galerie de revue non plus : c'est une page annexe de quatorze
-   * mégaoctets. La mettre en cache remplirait le stockage hors ligne du
-   * studio avec des images qu'on regarde une fois. */
+   * La galerie de revue non plus : trois mégaoctets d'images qu'on regarde
+   * une fois n'ont rien à faire dans le stockage hors ligne d'un outil.
+   * (Le chiffre disait quatorze : c'était le poids des PNG d'origine, que
+   * la galerie ne sert plus depuis qu'elle est en WebP.) */
   if (url.pathname.indexOf('/apercus/') >= 0) return;
   if (url.pathname.startsWith('/api/') ||
       url.pathname.startsWith('/__save') ||

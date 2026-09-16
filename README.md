@@ -1,4 +1,4 @@
-# Strava Studio
+# alpage studio
 
 Générateur de visuels d'activité. Tes données, **tes templates, ton code**.
 Aucune dépendance, aucun compte, aucun build : du HTML, du JS et un canvas.

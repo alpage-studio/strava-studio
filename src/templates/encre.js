@@ -417,8 +417,17 @@ Studio.template({
       var titre = String(o.titre || '').trim() || a.name || 'Sortie';
       H.text(titre, g.left, y, H.t('title', { size: 3.2, color: encre, maxWidth: g.w(3) }));
 
+      /* LE PINCEAU DIT QU'IL EST UN GESTE.
+       *
+       * Sa pression mélange la mesure à une ondulation de main : 45 % de ce
+       * que le capteur a relevé, 55 % d'invention. Écrire « ÉPAISSEUR :
+       * ALTITUDE · 412 M → 1180 M » sous un trait pareil serait exactement
+       * ce que l'en-tête de ce fichier interdit — laisser croire qu'on lit
+       * une mesure là où on regarde un effet. La planche le dit donc. */
       var note;
-      if (estFin) note = 'TRAIT NET — ÉPAISSEUR CONSTANTE';
+      if (mode === 'pinceau') {
+        note = 'GESTE — LA MESURE N’EST QU’UNE PART DE L’ÉPAISSEUR';
+      } else if (estFin) note = 'TRAIT NET — ÉPAISSEUR CONSTANTE';
       else if (o.source === 'courbure') note = 'ÉPAISSEUR : COURBURE DU PARCOURS — EFFET DE STYLE';
       else if (o.source === 'egale') note = 'ÉPAISSEUR CONSTANTE';
       else if (mesureUtilisee) {

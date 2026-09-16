@@ -78,7 +78,13 @@
     /* Les six planches Alpage. Elles nomment leur papier « papier » et non
      * « fond » : le rôle de collection reste le même, seule la clé change. */
     'encre':          { papier: 'fond', encre: 'encre' },
-    'strates':        { papierC: 'fond', encre: 'encre', accentC: 'accent' },
+    /* `papierC` ne désignait aucun réglage de Strates : la collection
+     * écrivait donc une clé que le template ne lisait pas, et changer de
+     * collection ne changeait pas son papier. Pire, `driven()` rendait
+     * `papierC`, donc le vrai sélecteur restait actif et non grisé : rien
+     * ne signalait la contradiction. Strates nomme son papier « papier »,
+     * comme les cinq autres planches Alpage. */
+    'strates':        { papier: 'fond', encre: 'encre', accentC: 'accent' },
     'empreinte':      { papier: 'fond', encre: 'encre', accentC: 'accent' },
     'atlas':          { papier: 'fond', encre: 'encre', accentC: 'accent' },
     'medaillon':      { accentC: 'accent' },

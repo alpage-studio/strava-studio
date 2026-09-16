@@ -91,7 +91,7 @@ Studio.template({
      * le voile éventuel, et rend l'encre à utiliser. */
     var socle = Alpage.socle(H, o);
     var encre = socle.encre;
-    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || o.papierC || '#F2EFE6');
+    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || '#F2EFE6');
     var accent = o.accentC;
     var faint = melange(encre, 0.42), hair = melange(encre, 0.13);
     var ampleurSymboles = Math.max(0.5, (Number(o.symboles) || 100) / 100);

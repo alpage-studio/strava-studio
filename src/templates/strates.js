@@ -65,7 +65,7 @@ Studio.template({
      * le voile éventuel, et rend l'encre à utiliser. */
     var socle = Alpage.socle(H, o);
     var encre = socle.encre;
-    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || o.papierC || '#F2EFE6');
+    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || '#F2EFE6');
     var faint = melange(encre, 0.45), hair = melange(encre, 0.16);
 
 

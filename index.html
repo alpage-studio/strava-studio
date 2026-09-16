@@ -8,6 +8,39 @@
 <!-- application installable : icône sur l'écran d'accueil, plein écran, hors ligne -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#F7F5EF">
+
+<!-- LA POLITIQUE DE SÉCURITÉ DE CONTENU.
+     Le studio affirme partout qu'il ne charge rien d'un tiers et n'envoie
+     rien nulle part. C'était une promesse ; ceci en fait un REFUS, prononcé
+     par le navigateur et non par nous.
+       script-src 'self'   aucun script en ligne, aucun script distant. C'est
+                           pour cette ligne que l'enregistrement du service
+                           worker a quitté le bas de cette page pour
+                           src/installe.js : autoriser 'unsafe-inline' aurait
+                           vidé la règle de son sens.
+       connect-src         la même origine, et intervals.icu — le fournisseur
+                           que l'utilisateur a lui-même choisi. Rien d'autre
+                           ne peut être contacté.
+       img-src blob: data: la photo de fond arrive en blob: local, et les
+                           planches s'exportent en data:.
+       style-src 'unsafe-inline' : les attributs style= de la page. Une
+                           injection de style ne vaut pas une injection de
+                           script ; la retirer demanderait de réécrire la
+                           mise en page, pour un gain sans rapport.
+       frame-ancestors     personne ne met le studio dans une iframe. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' blob: data:;
+  media-src 'self' blob:;
+  font-src 'self';
+  connect-src 'self' https://intervals.icu;
+  form-action 'none';
+  frame-src 'none';
+  object-src 'none';
+  base-uri 'self';
+  frame-ancestors 'none'">
 <link rel="icon" href="assets/icon-192.png">
 <!-- iOS ignore le manifeste pour l'icône et le mode plein écran : il lui faut
      ses propres balises -->
@@ -49,20 +82,6 @@
                    U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
   }
 
-  /* ---------- la palette ----------
-   *
-   * L'atelier prend la couleur de ce qu'on y fabrique. Le vert acide venait
-   * d'ailleurs — il disait « application sportive » quand les planches, elles,
-   * parlent gravure, papier et encre. L'accent est donc l'OCRE de la palette
-   * Alpage (#C99A32), celui qu'on retrouve sur les planches.
-   *
-   * Les neutres sont réchauffés : une pointe de rouge et de vert dans les
-   * gris, pour que le panneau ne soit plus bleu-noir à côté d'un papier
-   * crème. Ils restent sombres, parce qu'une image se juge sur un fond
-   * sombre — c'est la seule raison d'être de cette interface.
-   *
-   * Revenir en arrière tient en une ligne : --acc.
-   */
   /* ---------- la palette ----------
    *
    * L'atelier prend la matière de ce qu'on y fabrique. Le fond sombre et le
@@ -142,6 +161,18 @@
     letter-spacing: -.005em; text-transform: none;
   }
   header h1 .second { color: var(--mut); font-weight: 400; }
+
+  /* Sur un écran de 320 px, l'entête ne tient qu'à condition de resserrer :
+     le mot-symbole passait à la ligne et la marque se lisait « alpage » puis
+     « studio », comme deux mots sans rapport. On ne retire aucun bouton —
+     un contrôle qu'on masque est un contrôle qu'on supprime. */
+  header h1 { white-space: nowrap; }
+  @media (max-width: 400px) {
+    header { padding: env(safe-area-inset-top) 11px 0; gap: 8px; }
+    header h1 { font-size: 14px; letter-spacing: -.01em; }
+    header .lien-galerie { padding: 5px 9px; }
+    header #langue { padding: 4px 20px 4px 7px; background-position: calc(100% - 9px) 50%, calc(100% - 5px) 50%; }
+  }
   header .sub { color: var(--mut); font-size: 12px; }
   header .lien-galerie {
     color: var(--mut); font-size: 12px; text-decoration: none; white-space: nowrap;
@@ -202,8 +233,16 @@
 
   /* ---------- le choix de style, en deux temps ---------- */
   #choix-style { margin-bottom: 10px; }
+  #tpl { display: none; }
+  /* Pendant un export, le catalogue ne répond plus — et ça se voit. */
+  #choix-style.fige { opacity: .45; pointer-events: none; }
+  /* Deux colonnes sur un téléphone, davantage dès qu'il y a la place : sur
+     une tablette de 768 px, deux cartes de trois cent soixante-dix pixels
+     montraient deux familles là où quatre tiennent. `min(…, 100%)` évite
+     qu'une colonne plus large que l'écran ne déborde. */
   .familles, .variantes {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    display: grid; gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
   }
   .carte-style {
     display: block; width: 100%; text-align: left; padding: 0;
@@ -216,6 +255,15 @@
   .carte-style canvas {
     display: block; width: 100%; height: auto; background: var(--panel);
     border-bottom: 1px solid var(--line);
+  }
+  /* En SURCOUCHE, la planche n'a pas de fond : une encre charbon sur une
+     carte sombre ne se voit tout simplement pas, et on se retrouve à choisir
+     un style à l'aveugle. La vignette reçoit alors le même damier que la
+     scène — c'est déjà le signe que quelque chose est transparent. */
+  #choix-style.surcouche .carte-style canvas {
+    background-color: #d9d9d9;
+    background-image: repeating-conic-gradient(#cfcfcf 0% 25%, #f0f0f0 0% 50%);
+    background-size: 14px 14px;
   }
   .carte-style .nom {
     display: block; padding: 7px 9px 2px; font-size: 12.5px; font-weight: 600;
@@ -252,9 +300,49 @@
   body.telephone aside { display: none; }
   body.telephone .dock { display: none; }
   @media (max-width: 900px) {
-    body.telephone #stage { height: 100%; position: static; border-bottom: 0; }
-    body.telephone main { padding-bottom: calc(62px + env(safe-area-inset-bottom)); }
-    body.telephone.vide #stage { height: auto; }
+    /* `flex: 1` et non `height: 100%`.
+     *
+     * Avec `box-sizing: border-box` sur tout le document, la hauteur de
+     * `main` INCLUT sa marge basse : un enfant à `height: 100%` la reprenait
+     * donc en entier et passait sous la barre d'outils. Le bas de la planche
+     * — son titre, sa mention — était caché derrière elle. Un élément
+     * flexible, lui, ne reçoit que la place qui RESTE. */
+    /* LA SCÈNE PREND CE QUI RESTE — et on laisse le navigateur le calculer.
+     *
+     * Trois tentatives ont échoué avant celle-ci, chacune pour une raison
+     * différente :
+     *   `height: 100%`   reprend la marge basse du parent, que box-sizing
+     *                    compte dans la hauteur ;
+     *   `flex: 1`        ne divise rien tant que la page défile, faute de
+     *                    hauteur définie à partager ;
+     *   `calc(100dvh − …)` soustrait ce qu'on a PENSÉ à soustraire — et le
+     *                    bandeau de nouveautés, lui, n'était pas dans la
+     *                    liste. Il poussait la planche de trente-trois
+     *                    pixels sous la barre d'outils.
+     *
+     * Une soustraction à la main est une liste qu'on oubliera d'allonger.
+     * On donne donc au corps une hauteur définie, on lui réserve la barre en
+     * marge basse, et la colonne flexible distribue le reste : l'entête, le
+     * bandeau s'il est là, puis la scène. Ajouter un bandeau demain ne
+     * demandera rien.
+     *
+     * `dvh` suit la barre d'adresse des navigateurs mobiles ; `vh` reste en
+     * repli pour les moteurs qui ne la connaissent pas. */
+    body.telephone:not(.vide) {
+      height: 100vh; height: 100dvh; overflow: hidden;
+      padding-bottom: calc(66px + env(safe-area-inset-bottom));
+    }
+    body.telephone:not(.vide) main { flex: 1; min-height: 0; padding-bottom: 0; }
+    body.telephone:not(.vide) #stage {
+      flex: 1; min-height: 0; height: auto; position: static; border-bottom: 0;
+    }
+    body.telephone.vide #stage { position: static; border-bottom: 0; }
+    /* À l'accueil, la scène porte tout le panneau d'accueil et défile : elle
+     * reprend sa hauteur naturelle, et réserve la place de la barre. */
+    body.telephone.vide #stage {
+      height: auto; min-height: 0;
+      padding-bottom: calc(74px + env(safe-area-inset-bottom));
+    }
   }
 
   /* ---------- barre et panneau du téléphone ---------- */
@@ -335,7 +423,9 @@
   input[type=text]:hover, select:hover { border-color: var(--line-2); }
   input[type=text]:focus, select:focus, textarea:focus, button:focus-visible {
     outline: none; border-color: var(--acc);
-    box-shadow: 0 0 0 3px rgba(201, 154, 50, .18);
+    /* La même teinte que --acc, en transparence : l'anneau de focus était
+       resté sur l'ocre de la version précédente. */
+    box-shadow: 0 0 0 3px rgba(165, 79, 55, .22);
   }
   select {
     cursor: pointer; appearance: none;
@@ -378,7 +468,10 @@
     border: 1px solid var(--line); font-weight: 500; font-size: 12.5px;
     padding: 8px 12px; margin-top: 7px;
   }
-  button.ghost:hover { border-color: var(--line-2); background: #1B1F25; }
+  /* Un reste de l'ancien thème sombre (#1B1F25) était resté en dur ici :
+     sur le papier, il donnait du charbon sur du charbon au survol — une
+     quinzaine de boutons devenaient illisibles dès qu'on passait dessus. */
+  button.ghost:hover { border-color: var(--line-2); background: var(--line); }
 
   .opt {
     display: flex; align-items: center; justify-content: space-between;
@@ -723,7 +816,7 @@
       <section id="section-activite">
         <h2>Activité</h2>
         <div id="strava">
-          <div id="strava-state" class="muted">Strava — vérification…</div>
+          <div id="strava-state" class="muted" data-brut>Strava — vérification…</div>
           <select id="strava-list" data-brut style="margin-top: 9px; display: none"></select>
           <button class="ghost" id="strava-refresh" type="button" style="display: none">Rafraîchir la liste</button>
           <div id="icu-form" style="display: none; margin-top: 9px">
@@ -748,7 +841,7 @@
           <input type="file" id="gpx" accept=".gpx,application/gpx+xml,text/xml" multiple>
           <span>Importer une sortie</span>
         </label>
-        <div id="gpx-err"></div>
+        <div id="gpx-err" data-brut></div>
         <div id="summary" data-brut></div>
         <div id="library" data-brut></div>
         <!-- Les planches multi-sorties ne se composent pas en cochant des
@@ -785,6 +878,11 @@
              déroulant listait trente-trois noms à la suite, sans image et sans
              hiérarchie — il fallait connaître le catalogue pour s'en servir. -->
         <div id="choix-style"></div>
+        <!-- Le menu déroulant reste la SOURCE DE VÉRITÉ — tout le code lit
+             `#tpl.value`, la sauvegarde l'écrit, un projet le restaure — mais
+             il n'est plus montré : il affichait les trente-trois noms à côté
+             du catalogue qui les remplace. On le masque, on ne le supprime
+             pas ; le supprimer reviendrait à réécrire vingt endroits. -->
         <select id="tpl"></select>
         <label class="opt" id="opt-collection" style="margin-top: 9px"><span>Collection</span>
           <select id="collection"></select>
@@ -825,6 +923,43 @@
         <div id="opts"></div>
         <div id="opts-couleur"></div>
         <div id="opts-texte"></div>
+      </section>
+
+      <!-- MUSÉE, HISTORIQUE, PROJETS.
+           Ces trois blocs vivaient à l'INTÉRIEUR de l'écran d'accueil, qui
+           disparaît dès qu'une sortie est chargée. Ils n'étaient donc
+           atteignables que dans l'état où ils refusent de travailler :
+           « Enregistrer le projet » répondait « Rien à enregistrer ».
+           Ils rejoignent la colonne, avec le reste de ce qu'on fait d'une
+           sortie une fois qu'on en a une. -->
+      <section class="pliable" id="section-garder">
+        <details>
+          <summary class="titre">Garder</summary>
+        <div class="projet" id="musee-panneau">
+        <button class="ghost" id="musee-creer" type="button">Créer une pièce de musée</button>
+        <input type="text" id="musee-titre" placeholder="Titre de la pièce">
+        <textarea id="musee-recit" rows="2" placeholder="Cartel — quelques lignes, de ta main"></textarea>
+          <div id="musee-suggestions" data-brut></div>
+          <div id="musee-liste" data-brut></div>
+          <div class="rangee">
+          <button class="ghost" id="musee-save" type="button">Sauvegarder la collection</button>
+          <label class="file"><input type="file" id="musee-open" accept=".json,application/json">
+            <span>Restaurer</span></label>
+        </div>
+          <div id="musee-state" data-brut></div>
+      </div>
+        <div class="projet">
+        <button class="ghost" id="hist-add" type="button">Ajouter ces sorties à l’historique</button>
+        <button class="ghost" id="hist-clear" type="button">Effacer l’historique</button>
+          <div id="hist-state"></div>
+      </div>
+        <div class="projet">
+        <button class="ghost" id="projet-save" type="button">Enregistrer le projet</button>
+        <label class="file"><input type="file" id="projet-open" accept=".json,application/json">
+          <span>Rouvrir un projet</span></label>
+          <div id="projet-state"></div>
+      </div>
+        </details>
       </section>
 
       <!-- Repliée par défaut : on ne charge pas une photo à chaque planche,
@@ -912,30 +1047,6 @@
       <button class="ghost" id="load-regions" type="button"
               style="width: auto; margin-top: 6px">Deux régions éloignées — Archipel</button>
       </details>
-      <div class="projet" id="musee-panneau">
-        <button class="ghost" id="musee-creer" type="button">Créer une pièce de musée</button>
-        <input type="text" id="musee-titre" placeholder="Titre de la pièce">
-        <textarea id="musee-recit" rows="2" placeholder="Cartel — quelques lignes, de ta main"></textarea>
-        <div id="musee-suggestions" data-brut></div>
-        <div id="musee-liste" data-brut></div>
-        <div class="rangee">
-          <button class="ghost" id="musee-save" type="button">Sauvegarder la collection</button>
-          <label class="file"><input type="file" id="musee-open" accept=".json,application/json">
-            <span>Restaurer</span></label>
-        </div>
-        <div id="musee-state"></div>
-      </div>
-      <div class="projet">
-        <button class="ghost" id="hist-add" type="button">Ajouter ces sorties à l’historique</button>
-        <button class="ghost" id="hist-clear" type="button">Effacer l’historique</button>
-        <div id="hist-state"></div>
-      </div>
-      <div class="projet">
-        <button class="ghost" id="projet-save" type="button">Enregistrer le projet</button>
-        <label class="file"><input type="file" id="projet-open" accept=".json,application/json">
-          <span>Rouvrir un projet</span></label>
-        <div id="projet-state"></div>
-      </div>
     </div>
     <div id="sheet"><canvas id="canvas"></canvas></div>
     <div class="caption" id="stage-caption"></div>
@@ -1001,17 +1112,6 @@
 <!-- interface -->
 <script src="src/app.js"></script>
 
-<script>
-  /* Le service worker n'a de sens qu'en contexte sûr — HTTPS ou localhost.
-     Ailleurs (file://, IP du réseau local en clair) on s'en passe : le studio
-     fonctionne, il n'est simplement pas installable. */
-  if ('serviceWorker' in navigator && window.isSecureContext) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('sw.js').catch(function (e) {
-        console.warn('service worker non enregistré :', e.message);
-      });
-    });
-  }
-</script>
+<script src="src/installe.js"></script>
 </body>
 </html>

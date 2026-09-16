@@ -285,24 +285,49 @@ async function traite(req, res) {
   if (dedans.startsWith('..') || path.isAbsolute(dedans)) {
     res.writeHead(403); res.end('403'); return;
   }
-  // rien de ce qui n'appartient pas à l'application ne se sert
-  if (/(^|[\\/])(\.git|node_modules|tools|design)([\\/]|$)/.test(dedans)) {
+  /* UN FLUX NTFS N'EST PAS UNE EXTENSION.
+   *
+   * « exemple.gpx::$DATA » désigne le même fichier pour Windows, mais plus
+   * pour une expression régulière qui cherche « .gpx » à la fin : le garde
+   * plus bas ne s'exécutait pas et la trace sortait quand même. Le
+   * deux-points n'a rien à faire dans un chemin de fichier servi ; on refuse
+   * avant d'aller plus loin. */
+  if (dedans.indexOf(':') >= 0) { res.writeHead(403); res.end('403'); return; }
+
+  /* LA CASSE.
+   *
+   * Windows et macOS ouvrent « /.GIT/config » comme « /.git/config » ; cette
+   * liste, elle, distinguait les deux. On servait donc le dépôt entier —
+   * historique compris — à qui demandait en majuscules. Le chemin est
+   * comparé en minuscules, comme le système de fichiers le résout. */
+  const dedansBas = dedans.toLowerCase();
+  if (/(^|[\\/])(\.git|node_modules|tools|design)([\\/]|$)/.test(dedansBas)) {
     res.writeHead(403); res.end('403'); return;
   }
 
-  /* EN RÉSEAU, les traces réelles ne sortent pas.
+  /* EN RÉSEAU, ON NE SERT QUE CE QUE LE DÉPÔT PUBLIE.
    *
    * --lan sert le répertoire de travail. Or c'est là qu'atterrissent les
-   * .gpx exportés de Strava — ceux que .gitignore écarte précisément parce
-   * que leur premier point est un domicile. Ils étaient donc lisibles par
-   * toute machine du Wi-Fi. Seuls les exemples SYNTHÉTIQUES, ceux que le
-   * dépôt publie, restent accessibles ; la liste suit celle du .gitignore.
+   * fichiers personnels : les .gpx exportés de Strava, dont le premier point
+   * est un domicile, mais aussi les projets .json — qui contiennent les
+   * mêmes latitudes à six décimales, ce que le .gitignore dit lui-même — et
+   * les photos qu'on dépose pour les essayer en fond.
+   *
+   * La première version de ce garde ne regardait que les .gpx : elle
+   * raisonnait sur l'EXTENSION du danger plutôt que sur ce que le dépôt
+   * publie. On renverse donc la règle — en réseau, un fichier de données
+   * n'est servi que s'il fait partie des exemples synthétiques versionnés.
    *
    * En local (127.0.0.1) rien ne change : c'est ta propre machine. */
-  if (LAN && /\.gpx$/i.test(dedans)) {
-    const base = path.basename(dedans);
-    const publiable = /^(exemple|exemple-[a-z]+|demo-[a-z]+|sem-[a-z0-9]+|loin-[a-z])\.gpx$/i.test(base);
-    if (!publiable) { res.writeHead(403); res.end('403'); return; }
+  if (LAN) {
+    const base = path.basename(dedansBas);
+    const donnee = /\.(gpx|json|png|jpg|jpeg|webp|mp4|mov|webm)$/.test(base);
+    const publiable =
+      /^(exemple|exemple-[a-z]+|demo-[a-z]+|sem-[a-z0-9]+|loin-[a-z])\.gpx$/.test(base) ||
+      base === 'exemple-annee.json' ||
+      base === 'manifest.webmanifest' ||
+      /^(assets|apercus)[\\/]/.test(dedansBas);
+    if (donnee && !publiable) { res.writeHead(403); res.end('403'); return; }
   }
 
   fs.readFile(file, (err, data) => {
