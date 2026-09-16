@@ -36,8 +36,13 @@
 
     var fps = opt.fps || 30;
     var duration = opt.duration || 4000;   // ms
-    var tail = opt.tail || 900;            // temps d'arrêt sur l'image finale
-    var reveal = duration - tail;
+    /* La courbe du temps vient d'AILLEURS (Studio.chrono) : l'aperçu animé,
+     * cet enregistrement et la séquence PNG doivent parcourir exactement la
+     * même chronologie, sinon ce qu'on regarde n'est pas ce qu'on exporte. */
+    var at = opt.at || function (k) {
+      var p = Math.min(1, k / 0.78);
+      return { p: easeOut(p), fade: Math.max(0, Math.min(1, (p - 0.55) / 0.3)) };
+    };
 
     var stream = canvas.captureStream(fps);
 
@@ -119,10 +124,8 @@
           rec.stop();
           return;
         }
-        var p = Math.min(1, elapsed / reveal);
-        // le texte n'apparaît qu'une fois le tracé bien engagé
-        var fade = Math.max(0, Math.min(1, (p - 0.55) / 0.3));
-        drawFrame(easeOut(p), fade);
+        var etat = at(elapsed / duration);
+        drawFrame(etat.p, etat.fade);
         if (opt.onProgress) opt.onProgress(elapsed / duration);
         requestAnimationFrame(frame);
       }

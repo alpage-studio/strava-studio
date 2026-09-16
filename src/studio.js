@@ -17,14 +17,73 @@
       throw new Error('Template invalide : il faut un id et une fonction draw().');
     }
     def.options = def.options || [];
+    /* La famille range le template dans le sélecteur. Déduite si elle n'est
+     * pas déclarée : seize templates existaient avant cette notion, aucun
+     * n'a à être modifié pour continuer à s'afficher au bon endroit. */
+    if (!def.famille) def.famille = def.transparent ? 'surcouche' : 'affiche';
+    /* `transparent` peut être une FONCTION des options : les planches Alpage
+     * s'exportent au choix sur papier ou en surcouche à poser sur une photo.
+     * Ce qui suit — le fond de contrôle, la légende, la composition vidéo —
+     * doit donc interroger l'état RÉSOLU, pas la déclaration. */
+    if (typeof def.transparent === 'function') def.transparentDynamique = true;
     registry.push(def);
     return def;
   }
 
   function all() { return registry.slice(); }
+
+  /* ---------- chronologie ----------
+   * UNE seule définition du temps, lue par l'aperçu animé, l'export vidéo et
+   * la séquence PNG. Chacun avait la sienne : la séquence PNG recopiait la
+   * courbe de la vidéo « à l'identique » dans un commentaire, ce qui est la
+   * définition d'une divergence qui attend son heure.
+   *
+   *   'trace'    — le tracé se dessine, le texte arrive ensuite (par défaut)
+   *   'lineaire' — le temps passe tel quel : à une planche qui raconte sa
+   *                propre histoire, on ne superpose pas une deuxième courbe.
+   */
+  function chrono(tplId, opts) {
+    var tpl = get(tplId) || {};
+    var lineaire = tpl.chrono === 'lineaire';
+    /* `duree` peut être une FONCTION des options : la partition dure ce que
+     * dure la pièce, et son réglage de tempo la fait varier de dix à vingt
+     * secondes. Une durée figée ici aurait laissé l'aperçu et la vidéo
+     * s'arrêter au milieu du morceau — la désynchronisation exacte que la
+     * chronologie unique est censée rendre impossible. */
+    var duree = typeof tpl.duree === 'function' ? tpl.duree(opts || {}) : tpl.duree;
+    return {
+      duree: duree || 4200,
+      // fraction du temps consacrée à la révélation ; le reste est l'arrêt final
+      reveal: lineaire ? 1 : 0.78,
+      at: function (k) {                   // k = temps écoulé / durée totale
+        k = Math.max(0, Math.min(1, k));
+        if (lineaire) return { p: k, fade: 1 };
+        var p = Math.min(1, k / this.reveal);
+        return { p: 1 - Math.pow(1 - p, 3), fade: Math.max(0, Math.min(1, (p - 0.55) / 0.3)) };
+      }
+    };
+  }
   function get(id) {
     for (var i = 0; i < registry.length; i++) if (registry[i].id === id) return registry[i];
     return registry[0];
+  }
+
+  /* Un template est-il transparent POUR CES OPTIONS ?
+   * Trois endroits en dépendent — le fond de contrôle sous l'aperçu, la
+   * légende, et la composition de la vidéo — et chacun lisait jusqu'ici
+   * `tpl.transparent` directement. Avec une déclaration devenue fonction,
+   * ils auraient tous reçu `true` (une fonction est vraie) et cru que les
+   * six planches Alpage étaient toujours transparentes. */
+  function estTransparent(tpl, opts) {
+    if (typeof tpl === 'string') tpl = get(tpl);
+    if (!tpl) return false;
+    if (typeof tpl.transparent !== 'function') return !!tpl.transparent;
+    var o = {};
+    tpl.options.forEach(function (def) { o[def.key] = def.default; });
+    Object.keys(opts || {}).forEach(function (k) {
+      if (opts[k] !== undefined && opts[k] !== null) o[k] = opts[k];
+    });
+    return !!tpl.transparent(o);
   }
 
   /* ---------- formatage ---------- */
@@ -93,6 +152,11 @@
       /* Photo de fond en "cover" : remplit sans déformer.
        * Refusée sur un template transparent : la photo ne doit jamais entrer
        * dans le canvas, sinon le PNG exporté n'a plus d'alpha. */
+      /* Une photo est-elle disponible ici ? Un template qui compose un récit
+       * doit pouvoir retirer une scène « photo » avant de la dessiner, pas
+       * découvrir en cours de route que H.photo() a refusé. */
+      hasPhoto: function () { return !!state.photo && !state.transparent; },
+
       photo: function (box) {
         var img = state.photo;
         if (!img || state.transparent) return false;
@@ -285,10 +349,20 @@
 
   /* progress : fraction de la géométrie révélée (animation)
    * textFade : opacité du texte — les deux valent 1 en rendu normal */
-  var state = { photo: null, progress: 1, textFade: 1 };
+  var state = { photo: null, progress: 1, textFade: 1, library: [], historique: null, musee: [] };
 
   function setPhoto(img) { state.photo = img; }
   function setMinimal(v) { state.minimal = !!v; }
+  /* Les sorties chargées, dans l'ordre choisi. Les templates simples
+   * l'ignorent ; ceux qui déclarent multi: true la lisent dans s.library. */
+  function setLibrary(entrees) { state.library = entrees || []; }
+  /* L'empreinte de l'historique d'exploration, déjà aplatie. Elle arrive par
+   * ce chemin plutôt que d'être lue dans le template : IndexedDB est
+   * asynchrone, et un draw() ne peut pas attendre. */
+  function setHistorique(h) { state.historique = h || null; }
+  /* La collection du musée, pour les mêmes raisons : IndexedDB est
+   * asynchrone, le rendu ne l'est pas. */
+  function setMusee(p) { state.musee = p || []; }
   function setProgress(p, fade) {
     state.progress = p == null ? 1 : Math.max(0, Math.min(1, p));
     state.textFade = fade == null ? 1 : Math.max(0, Math.min(1, fade));
@@ -306,17 +380,23 @@
     var ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, w, h);
 
-    state.transparent = !!tpl.transparent;
-
     var o = {};
     tpl.options.forEach(function (def) { o[def.key] = def.default; });
     Object.keys(options || {}).forEach(function (k) {
       if (options[k] !== undefined && options[k] !== null) o[k] = options[k];
     });
 
+    state.transparent = estTransparent(tpl, o);
+
     var H = helpers(ctx, w, h, state);
     try {
-      tpl.draw({ ctx: ctx, w: w, h: h, a: activity, o: o, H: H });
+      /* progress/fade sont aussi passés BRUTS. Les helpers en tiennent déjà
+       * compte — c'est ce qui fait que tout template s'anime gratuitement —
+       * mais une planche qui raconte une chronologie (le film) a besoin de
+       * savoir OÙ l'on en est, pas seulement d'être tronquée. */
+      tpl.draw({ ctx: ctx, w: w, h: h, a: activity, o: o, H: H, library: state.library,
+                 historique: state.historique, musee: state.musee,
+                 progress: state.progress, fade: state.textFade });
     } catch (e) {
       ctx.fillStyle = '#111'; ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = '#ff5a5a';
@@ -357,8 +437,10 @@
   }
 
   global.Studio = {
-    template: template, all: all, get: get,
+    template: template, all: all, get: get, chrono: chrono,
+    estTransparent: estTransparent,
     render: render, exportPNG: exportPNG, setPhoto: setPhoto, setMinimal: setMinimal,
+    setLibrary: setLibrary, setHistorique: setHistorique, setMusee: setMusee,
     setProgress: setProgress, fmt: fmt
   };
 }(window));

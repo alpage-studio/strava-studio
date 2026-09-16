@@ -196,8 +196,70 @@
   .warn { color: #FFB454; }
   #gpx-err { color: var(--danger); font-size: 12px; margin-top: 7px; }
   #video-state, #bgvideo-state { font-size: 11.5px; color: var(--mut); margin-top: 7px; }
+  #projet-state, #hist-state, #musee-state, #son-state { font-size: 11.5px; color: var(--mut); margin-top: 6px; }
+  #son { margin-top: 8px; }
+  #musee-panneau textarea { width: 100%; resize: vertical; font: inherit; }
+  #musee-liste .piece, #musee-suggestions .sugg {
+    display: flex; align-items: center; gap: 7px; padding: 5px 7px;
+    border: 1px solid var(--line); border-radius: 7px; margin-bottom: 5px;
+    background: var(--raised); font-size: 12px;
+  }
+  #musee-suggestions .sugg { display: block; }
+  #musee-suggestions .sugg .pourquoi { color: var(--mut); font-size: 11px; margin: 3px 0 5px; }
+  #musee-suggestions .sugg button { width: auto; padding: 2px 9px; margin: 0; }
+  #musee-liste .piece .nom { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #musee-liste .piece button {
+    width: auto; padding: 1px 5px; background: none; border: 0;
+    color: var(--mut); font-size: 13px; line-height: 1; margin: 0;
+  }
+  #musee-liste .piece button:hover { color: var(--ink); }
+  .rangee { display: flex; gap: 6px; align-items: center; }
+  .rangee > * { flex: 1; }
+  .projet { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
 
   /* fiche de l'activité chargée */
+  /* bibliothèque : une ligne par sortie chargée */
+  #library { margin-top: 9px; display: none; }
+  #library.on { display: block; }
+  #library .lib {
+    display: flex; align-items: center; gap: 8px; padding: 5px 7px;
+    border: 1px solid var(--line); border-radius: 7px; margin-bottom: 5px;
+    background: var(--raised); font-size: 12px; cursor: pointer;
+  }
+  #library .lib.sel { border-color: var(--acc); }
+  #library .lib .pastille {
+    width: 14px; height: 14px; border-radius: 50%; flex: none;
+    padding: 0; border: 0; margin: 0; cursor: pointer; background: none;
+    -webkit-appearance: none; appearance: none;
+  }
+  #library .lib .pastille::-webkit-color-swatch-wrapper { padding: 0; }
+  #library .lib .pastille::-webkit-color-swatch { border: 0; border-radius: 50%; }
+  #library .lib .nom { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #library .lib .chiffre { color: var(--mut); font-size: 11px; font-family: "IBM Plex Mono", monospace; }
+  #library .lib button {
+    width: auto; padding: 1px 5px; background: none; border: 0;
+    color: var(--mut); font-size: 13px; line-height: 1; margin: 0;
+  }
+  #library .lib button:hover { color: var(--ink); }
+
+  /* storyboard : une liste de scènes, cochables et réordonnables */
+  .opt--order { display: block; }
+  .opt--order > span { display: block; margin-bottom: 6px; }
+  .ordre-l {
+    display: flex; align-items: center; gap: 7px; padding: 4px 7px;
+    border: 1px solid var(--line); border-radius: 7px; margin-bottom: 4px;
+    background: var(--raised); font-size: 12px; opacity: .45;
+  }
+  .ordre-l.on { opacity: 1; }
+  .ordre-l span { flex: 1; }
+  .ordre-l input[type="checkbox"] { width: auto; margin: 0; }
+  .ordre-l button {
+    width: auto; padding: 1px 5px; background: none; border: 0;
+    color: var(--mut); font-size: 13px; line-height: 1; margin: 0;
+  }
+  .ordre-l button:disabled { opacity: .3; }
+  .ordre-l button:hover:not(:disabled) { color: var(--ink); }
+
   #summary {
     background: var(--raised); border: 1px solid var(--line);
     border-radius: var(--r); padding: 11px 12px; margin: 11px 0 0;
@@ -309,11 +371,12 @@
           <button class="ghost" id="icu-forget" type="button" style="display: none">Oublier la clé</button>
         </div>
         <label class="file" style="margin-top: 11px">
-          <input type="file" id="gpx" accept=".gpx,application/gpx+xml,text/xml">
-          <span>Charger un fichier GPX</span>
+          <input type="file" id="gpx" accept=".gpx,application/gpx+xml,text/xml" multiple>
+          <span>Charger un ou plusieurs GPX</span>
         </label>
         <div id="gpx-err"></div>
         <div id="summary"></div>
+        <div id="library"></div>
         <details>
           <summary>Corriger ou saisir à la main</summary>
           <div class="grid">
@@ -369,9 +432,21 @@
           <option value="post">Post — 1080 × 1350</option>
           <option value="carre">Carré — 1080 × 1080</option>
           <option value="paysage">Paysage — 1920 × 1080</option>
+          <option value="a4">Impression A4 — 2480 × 3508 (300 dpi)</option>
+          <option value="a3">Impression A3 — 3508 × 4961 (300 dpi)</option>
         </select>
       </div>
       <button id="export" type="button">Exporter en PNG</button>
+      <button class="ghost" id="preview-play" type="button">Lire l’aperçu</button>
+      <div id="son" hidden>
+        <div class="rangee">
+          <button class="ghost" id="son-play" type="button">▶ Écouter</button>
+          <button class="ghost" id="son-pause" type="button">Pause</button>
+          <button class="ghost" id="son-stop" type="button">Stop</button>
+        </div>
+        <button class="ghost" id="son-wav" type="button">Exporter le son (WAV)</button>
+        <div id="son-state"></div>
+      </div>
       <button class="ghost" id="export-video" type="button">Vidéo — le tracé s’anime</button>
       <button class="ghost" id="export-seq" type="button">Séquence PNG — pour le montage</button>
       <div id="video-state"></div>
@@ -391,6 +466,36 @@
          Ou saisis les valeurs à la main.</p>
       <button class="ghost" id="load-example" type="button"
               style="width: auto; margin-top: 6px">Voir avec une sortie d’exemple</button>
+      <button class="ghost" id="load-examples" type="button"
+              style="width: auto; margin-top: 6px">Voir avec trois sorties — planches multiples</button>
+      <button class="ghost" id="load-weeks" type="button"
+              style="width: auto; margin-top: 6px">Voir avec huit semaines — tissage</button>
+      <button class="ghost" id="load-year" type="button"
+              style="width: auto; margin-top: 6px">Voir une année — Almanac</button>
+      <div class="projet" id="musee-panneau">
+        <button class="ghost" id="musee-creer" type="button">Créer une pièce de musée</button>
+        <input type="text" id="musee-titre" placeholder="Titre de la pièce">
+        <textarea id="musee-recit" rows="2" placeholder="Cartel — quelques lignes, de ta main"></textarea>
+        <div id="musee-suggestions"></div>
+        <div id="musee-liste"></div>
+        <div class="rangee">
+          <button class="ghost" id="musee-save" type="button">Sauvegarder la collection</button>
+          <label class="file"><input type="file" id="musee-open" accept=".json,application/json">
+            <span>Restaurer</span></label>
+        </div>
+        <div id="musee-state"></div>
+      </div>
+      <div class="projet">
+        <button class="ghost" id="hist-add" type="button">Ajouter ces sorties à l’historique</button>
+        <button class="ghost" id="hist-clear" type="button">Effacer l’historique</button>
+        <div id="hist-state"></div>
+      </div>
+      <div class="projet">
+        <button class="ghost" id="projet-save" type="button">Enregistrer le projet</button>
+        <label class="file"><input type="file" id="projet-open" accept=".json,application/json">
+          <span>Rouvrir un projet</span></label>
+        <div id="projet-state"></div>
+      </div>
     </div>
     <div id="sheet"><canvas id="canvas"></canvas></div>
     <div class="caption" id="stage-caption"></div>
@@ -402,7 +507,13 @@
 <script src="src/activity.js"></script>
 <script src="src/studio.js"></script>
 <script src="src/design.js"></script>
+<script src="src/alpage.js"></script>
 <script src="src/overlay.js"></script>
+<script src="src/library.js"></script>
+<script src="src/projet.js"></script>
+<script src="src/historique.js"></script>
+<script src="src/musee.js"></script>
+<script src="src/partition.js"></script>
 <script src="src/collections.js"></script>
 <script src="src/icu-web.js"></script>
 <script src="src/video.js"></script>
@@ -410,6 +521,23 @@
 <script src="src/share.js"></script>
 
 <!-- templates : ajoute les tiens ici -->
+<script src="src/templates/encre.js"></script>
+<script src="src/templates/strates.js"></script>
+<script src="src/templates/empreinte.js"></script>
+<script src="src/templates/atlas.js"></script>
+<script src="src/templates/medaillon.js"></script>
+<script src="src/templates/almanac.js"></script>
+<script src="src/templates/mots.js"></script>
+<script src="src/templates/ressenti.js"></script>
+<script src="src/templates/film.js"></script>
+<script src="src/templates/serie.js"></script>
+<script src="src/templates/metro.js"></script>
+<script src="src/templates/saisons.js"></script>
+<script src="src/templates/tissage.js"></script>
+<script src="src/templates/fresque.js"></script>
+<script src="src/templates/exploration.js"></script>
+<script src="src/templates/musee.js"></script>
+<script src="src/templates/partition.js"></script>
 <script src="src/templates/allumettes.js"></script>
 <script src="src/templates/pente.js"></script>
 <script src="src/templates/radiale.js"></script>

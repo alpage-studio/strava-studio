@@ -194,9 +194,321 @@ function testsCoherence() {
   ok('sw.js · le fichier de version est mis en cache',
      shell.includes('src/version.js'));
 
+  /* Un exemple listé dans app.js mais absent du disque donne un 404 une fois
+   * en ligne — et la règle *.gpx du .gitignore l'avait déjà fait une fois. */
+  const appSrc = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
+  const exemples = [...appSrc.matchAll(/'((?:exemple|sem)[a-z0-9-]*\.gpx)'/g)].map(m => m[1]);
+  const perdus = [...new Set(exemples)].filter(f => !fs.existsSync(path.join(ROOT, f)));
+  ok('les exemples cités existent sur le disque  (' + new Set(exemples).size + ')',
+     perdus.length === 0, 'absents : ' + perdus.join(', '));
+  const horsCache = [...new Set(exemples)].filter(f => !shell.includes(f));
+  ok('les exemples sont dans le cache hors ligne',
+     horsCache.length === 0, 'manquants : ' + horsCache.join(', '));
+
   const ver = fs.readFileSync(path.join(ROOT, 'src', 'version.js'), 'utf8');
   ok('version.js · numéro lisible',
      /var STUDIO_VERSION = '[\d.]+'/.test(ver));
+
+  /* UNE seule horloge. L'aperçu animé, l'export vidéo et la séquence PNG
+   * doivent parcourir la même chronologie ; la séquence recopiait autrefois
+   * la courbe de la vidéo à la main, avec le commentaire « même courbe que
+   * la vidéo » — la définition d'une divergence qui attend son heure. */
+  const app = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
+  const consommateurs = (app.match(/Studio\.chrono\(/g) || []).length;
+  ok('une seule horloge · les trois consommateurs passent par Studio.chrono  (' +
+     consommateurs + ')', consommateurs >= 3);
+  ok('app.js ne recopie plus la courbe d’animation',
+     !/1 - Math\.pow\(1 - /.test(app));
+  /* Une planche dont la durée dépend d'un réglage doit passer ce réglage à
+   * l'horloge. Sans ça, régler la partition sur vingt secondes donnait une
+   * vidéo de quatorze : l'aperçu et l'export se seraient arrêtés au milieu
+   * du morceau, ce que la chronologie unique est censée rendre impossible. */
+  const appels = app.split('\n').filter(l => /Studio\.chrono\(.+,/.test(l)).length;
+  ok('l’horloge reçoit les options du template  (' + appels + ' appels)', appels >= 3);
+
+  /* ---- le piège du `var` appelé trop tôt ----
+   *
+   * Il a mordu quatre fois en une séance : `alea`, `mesureUtilisee`,
+   * `FAMILLES`, puis `lundiDe`. Le mécanisme est toujours le même — une
+   * DÉCLARATION est remontée en haut de la fonction, son AFFECTATION non.
+   * Le template se charge sans erreur, se rend sans erreur au chargement du
+   * fichier, et explose seulement quand quelqu'un l'affiche.
+   *
+   * Ce contrôle relit chaque corps de `draw:` et signale toute valeur
+   * déclarée par `var` et déjà utilisée plus haut. Il ne remplace pas un
+   * rendu réel — il rend juste ce bogue-là impossible à réintroduire. */
+  (function () {
+    const dossier = path.join(ROOT, 'src', 'templates');
+    const soucis = [];
+    fs.readdirSync(dossier).filter(f => f.endsWith('.js')).forEach(function (f) {
+      const src = fs.readFileSync(path.join(dossier, f), 'utf8');
+      const iDraw = src.indexOf('draw: function');
+      if (iDraw < 0) return;
+      /* Les commentaires et les chaînes sont retirés d'abord, en gardant la
+       * longueur du texte pour que les positions restent valables. Sans ça,
+       * le mot « carte » d'un commentaire passait pour un appel de la
+       * variable `carte` — un contrôle qui crie au loup finit par être
+       * ignoré, ce qui est pire que pas de contrôle. */
+      const corps = src.slice(iDraw)
+        .replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' '))
+        .replace(/\/\/[^\n]*/g, c => c.replace(/[^\n]/g, ' '))
+        .replace(/'(?:[^'\\\n]|\\.)*'/g, c => c.replace(/[^\n]/g, ' '))
+        .replace(/"(?:[^"\\\n]|\\.)*"/g, c => c.replace(/[^\n]/g, ' '));
+      // les déclarations `var X = …` posées à l'indentation du corps de draw
+      const decls = [...corps.matchAll(/\n    var ([A-Za-z_$][\w$]*) = /g)];
+      decls.forEach(function (m) {
+        const nom = m[1], pos = m.index;
+        // un usage AVANT l'affectation : appel, ou lecture de propriété
+        const avant = corps.slice(0, pos);
+        const usage = new RegExp('[^\\w$.\'"]' + nom.replace(/\$/g, '\\$') + '\\s*[([.]');
+        if (usage.test(avant)) soucis.push(f + ' · ' + nom);
+      });
+    });
+    ok('aucun `var` de template n’est utilisé avant son affectation',
+       soucis.length === 0, soucis.join(', '));
+  }());
+
+  /* Le socle « Alpage ». Six planches en dépendent, et chacune de ces
+   * fonctions a une manière silencieuse de se tromper : un rééchantillonnage
+   * inégal raconte la vitesse au lieu de la forme, un champ de distance faux
+   * donne des anneaux plausibles mais décalés, une donnée absente comptée
+   * pour zéro creuse un trou qui n'existe pas. */
+  (function () {
+    const faux = {};
+    new Function('window', fs.readFileSync(path.join(ROOT, 'src', 'alpage.js'), 'utf8'))(faux);
+    const A = faux.Alpage;
+
+    /* --- projection : des MÈTRES, avec la correction en cosinus --- */
+    const vue = A.projette([
+      { lat: 46.5, lon: 6.5 }, { lat: 46.5, lon: 6.5 + 1 / 111.320 },   // +1 km est… presque
+      { lat: 46.5 + 1 / 110.540, lon: 6.5 }                              // +1 km nord
+    ]);
+    proche('alpage · un degré de latitude fait bien 110 540 m',
+           Math.abs(vue.pts[2].y - vue.pts[0].y), 1000, 2);
+    /* À 46,5°, un degré de longitude vaut cos(46,5) ≈ 0,688 degré de
+     * latitude. Sans cette correction, toute forme sortirait étirée. */
+    proche('alpage · la longitude est corrigée par le cosinus',
+           vue.pts[1].x - vue.pts[0].x, 1000 * Math.cos(46.5 * Math.PI / 180), 2);
+
+    /* --- rééchantillonnage : des pas ÉGAUX --- */
+    const inegal = [];
+    for (let i = 0; i < 40; i++) {
+      // des points très serrés puis très espacés : le cas d'une montée
+      const x = i < 20 ? i * 2 : 40 + (i - 20) * 60;
+      inegal.push({ x: x, y: 0 });
+    }
+    const egal = A.reechantillonne(inegal, 25);
+    const ecarts = [];
+    for (let i = 1; i < egal.length - 1; i++) {
+      ecarts.push(Math.hypot(egal[i].x - egal[i - 1].x, egal[i].y - egal[i - 1].y));
+    }
+    const pire = Math.max.apply(null, ecarts.map(function (e) { return Math.abs(e - 25); }));
+    ok('alpage · le rééchantillonnage donne des pas égaux  (écart max ' +
+       arrondi(pire) + ' m)', pire < 0.01);
+
+    /* --- champ de distance : la valeur est la bonne --- */
+    const boite = { x: -100, y: -100, w: 200, h: 200 };
+    const champ = A.champDistance([{ x: 0, y: 0 }, { x: 0, y: 0 }], boite, 160);
+    function distanceEn(px, py) {
+      const gx = Math.round((px - boite.x) / champ.pasX);
+      const gy = Math.round((py - boite.y) / champ.pasY);
+      return champ.d[gy * champ.R + gx] * champ.unite;
+    }
+    proche('alpage · champ de distance à 40 m d’un point', distanceEn(40, 0), 40, 3);
+    proche('alpage · champ de distance en diagonale', distanceEn(30, 40), 50, 4);
+
+    /* --- ligne de niveau : elle est bien à la bonne distance --- */
+    const segs = A.ligneDeNiveau(champ, 50);
+    ok('alpage · une ligne de niveau existe  (' + segs.length + ' segments)', segs.length > 20);
+    const rayons = segs.map(function (sg) { return Math.hypot(sg[0].x, sg[0].y); });
+    const ecart = Math.max.apply(null, rayons.map(function (r) { return Math.abs(r - 50); }));
+    ok('alpage · la ligne de niveau 50 m est un cercle de 50 m  (écart ' +
+       arrondi(ecart) + ' m)', ecart < 4);
+
+    /* --- série : les absences ne valent pas zéro --- */
+    const pts = [{ w: 100 }, { w: null }, { w: 200 }, { w: 5000 }, { w: 150 }];
+    for (let i = 0; i < 40; i++) pts.push({ w: 120 + (i % 5) });
+    const se = A.serie(pts, 'w');
+    ok('alpage · une mesure absente reprend la dernière connue, pas zéro',
+       se.valeurs[1] === se.valeurs[0]);
+    ok('alpage · une valeur aberrante ne s’écrase pas sur l’échelle  (hi=' +
+       Math.round(se.hi) + ' pour un pic à 5000)', se.hi < 1000);
+    ok('alpage · les valeurs restent dans 0..1',
+       se.valeurs.every(function (v) { return v >= 0 && v <= 1; }));
+
+    /* --- déterminisme --- */
+    const alea1 = A.graine({ largeur: 1234, hauteur: 567, pts: { length: 890 } });
+    const alea2 = A.graine({ largeur: 1234, hauteur: 567, pts: { length: 890 } });
+    let identique = true;
+    for (let i = 0; i < 200; i++) if (alea1(i, 3) !== alea2(i, 3)) identique = false;
+    ok('alpage · le bruit est reproductible à l’identique', identique);
+    const autre = A.graine({ largeur: 999, hauteur: 567, pts: { length: 890 } });
+    ok('alpage · deux sorties différentes ont deux matières différentes',
+       autre(7, 1) !== alea1(7, 1));
+
+    /* --- temps --- */
+    /* Les pièges de l'ISO 8601, ceux qui ne se voient qu'une fois par an. */
+    ok('alpage · 4 janvier 2026 est en semaine 1', A.semaineISO(new Date(2026, 0, 4)) === 1);
+    ok('alpage · 1er janvier 2027 est en semaine 53 de 2026',
+       A.semaineISO(new Date(2027, 0, 1)) === 53, String(A.semaineISO(new Date(2027, 0, 1))));
+    ok('alpage · 29 décembre 2025 est déjà en semaine 1',
+       A.semaineISO(new Date(2025, 11, 29)) === 1, String(A.semaineISO(new Date(2025, 11, 29))));
+    ok('alpage · le lundi d’un dimanche est six jours avant',
+       A.lundiDe(new Date(2026, 8, 13)).getDate() === 7);
+
+    const deb = new Date(2026, 0, 1), fin = new Date(2027, 0, 1);
+    proche('alpage · le 1er janvier est à 0 % de l’année',
+           A.positionDansPeriode(new Date(2026, 0, 1), deb, fin), 0, 0.002);
+    proche('alpage · le 1er juillet est à la moitié de l’année',
+           A.positionDansPeriode(new Date(2026, 6, 1), deb, fin), 0.4959, 0.01);
+    /* Deux sorties le même jour à 8 h et 18 h doivent être proches : c'est
+     * toute la différence entre « angle = position » et « angle = heure ». */
+    const m = A.positionDansPeriode(new Date(2026, 5, 10, 8), deb, fin);
+    const s2 = A.positionDansPeriode(new Date(2026, 5, 10, 18), deb, fin);
+    ok('alpage · l’heure ne pèse qu’une fraction de jour  (' +
+       arrondi((s2 - m) * 360) + '° d’écart)', (s2 - m) * 360 < 0.5);
+  }());
+
+  /* La partition promet d'être DÉTERMINISTE et de dire d'où vient sa
+   * pulsation. Les deux se vérifient sans ouvrir de contexte audio. */
+  (function () {
+    const faux = {};
+    new Function('window', 'DOMParser', fs.readFileSync(path.join(ROOT, 'src', 'activity.js'), 'utf8'))
+      (faux, function () {});
+    new Function('window', fs.readFileSync(path.join(ROOT, 'src', 'partition.js'), 'utf8'))(faux);
+
+    function sortie(avecCadence) {
+      const pts = [];
+      for (let i = 0; i < 300; i++) {
+        pts.push({
+          lat: 46.54 + i * 0.0002, lon: 6.35 + i * 0.0003,
+          ele: 680 + 300 * Math.sin(i / 40),
+          cad: avecCadence ? 70 + 20 * Math.sin(i / 30) : null,
+          t: new Date(Date.UTC(2026, 8, 6, 7, 0, i * 4)), d: 0
+        });
+      }
+      return faux.Activity.fromPoints({ name: 'Essai', type: 'ride' }, pts);
+    }
+
+    const empreinteP = function (p) {
+      return p.notes.map(function (n) {
+        return n.t.toFixed(5) + ':' + n.degre + ':' + n.force.toFixed(4);
+      }).join('|');
+    };
+
+    const a = sortie(true);
+    const p1 = faux.Partition.construire(a, { duree: 14, ambiance: 'nappe' });
+    const p2 = faux.Partition.construire(a, { duree: 14, ambiance: 'nappe' });
+    ok('partition · deux constructions donnent la même pièce  (' + p1.notes.length + ' notes)',
+       empreinteP(p1) === empreinteP(p2));
+    proche('partition · la durée demandée est tenue',
+           p1.notes[p1.notes.length - 1].t + p1.notes[p1.notes.length - 1].duree, 14, 0.01);
+    ok('partition · avec capteur, la pulsation est dite mesurée',
+       p1.source.pulsation === 'cadence');
+    ok('partition · sans capteur, la pulsation est annoncée conventionnelle',
+       faux.Partition.construire(sortie(false), { duree: 14 }).source.pulsation === 'convention');
+    /* Aucune note hors de la gamme : c'est ce qui garantit qu'aucune sortie,
+     * même en dents de scie, ne sorte une dissonance. */
+    const degres = p1.notes.map(function (n) { return n.degre; });
+    ok('partition · tous les degrés restent dans la gamme  (' +
+       Math.min.apply(null, degres) + '–' + Math.max.apply(null, degres) + ')',
+       Math.min.apply(null, degres) >= 0 && Math.max.apply(null, degres) < p1.echelle);
+    ok('partition · une durée aberrante est ramenée dans les bornes',
+       faux.Partition.construire(a, { duree: 900 }).duree === 20 &&
+       faux.Partition.construire(a, { duree: 1 }).duree === 10);
+    ok('partition · une sortie vide ne fabrique pas de notes',
+       faux.Partition.construire({ track: [] }, {}).vide === true);
+  }());
+
+  /* L'historique d'exploration promet trois choses vérifiables sans base de
+   * données : le sens ne compte pas, le bruit GPS est absorbé, une vraie
+   * variante est vue comme neuve. */
+  (function () {
+    const faux = {};
+    new Function('window', fs.readFileSync(path.join(ROOT, 'src', 'historique.js'), 'utf8'))(faux);
+    const Hi = faux.Historique;
+
+    const track = [];
+    for (let i = 0; i < 200; i++) {
+      track.push({ lat: 46.5460 + i * 0.00012, lon: 6.3500 + i * 0.00018, d: i * 20 });
+    }
+    const cases = Hi.cases(track);
+    const inverse = Hi.cases(track.slice().reverse().map(function (p, i) {
+      return { lat: p.lat, lon: p.lon, d: i * 20 };
+    }));
+    ok('exploration · le sens inverse donne les mêmes cases  (' + cases.length + ')',
+       cases.slice().sort().join() === inverse.slice().sort().join());
+
+    const set = Object.create(null);
+    cases.forEach(function (c) { set[c] = 1; });
+    function connuA(decalM) {
+      const d = decalM / 110540;
+      let n = 0;
+      track.forEach(function (p) { if (Hi.connue(set, p.lat + d, p.lon)) n++; });
+      return Math.round(100 * n / track.length);
+    }
+    ok('exploration · le bruit GPS (30 m) reste connu  (' + connuA(30) + ' %)', connuA(30) >= 80);
+    ok('exploration · une variante à 300 m est neuve  (' + connuA(300) + ' %)', connuA(300) <= 5);
+
+    /* Une trace échantillonnée grossièrement ne doit pas trouer la grille :
+     * sans interpolation entre deux points, une sortie à 30 km/h saute une
+     * case sur deux et « oublie » la moitié de ce qu'elle a parcouru. */
+    const grossier = [];
+    for (let i = 0; i < 20; i++) {
+      grossier.push({ lat: 46.5460 + i * 0.0012, lon: 6.3500 + i * 0.0018, d: i * 200 });
+    }
+    ok('exploration · les trous entre deux points sont comblés  (' +
+       Hi.cases(grossier).length + ' cases pour 20 points)',
+       Hi.cases(grossier).length > 60);
+  }());
+
+  /* Un projet doit se rouvrir À L'IDENTIQUE. Une composition à plusieurs se
+   * reprend des semaines plus tard : si l'aller-retour perd une sortie, une
+   * couleur ou une altitude, on le découvre le jour où c'est trop tard. */
+  (function () {
+    const faux = { STUDIO_VERSION: 'test' };
+    new Function('window', 'DOMParser', fs.readFileSync(path.join(ROOT, 'src', 'activity.js'), 'utf8'))
+      (faux, function () {});
+    new Function('window', fs.readFileSync(path.join(ROOT, 'src', 'projet.js'), 'utf8'))(faux);
+
+    const pts = [];
+    for (let i = 0; i < 60; i++) {
+      pts.push({ lat: 46.54 + i * 0.0004, lon: 6.35 + i * 0.0006,
+                 ele: 680 + i * 3.5, w: 180 + (i % 7) * 12, hr: 130 + (i % 5),
+                 t: new Date(Date.UTC(2026, 8, 6, 7, 0, i * 5)), d: 0 });
+    }
+    const act = faux.Activity.fromPoints({ name: 'Essai', type: 'ride' }, pts);
+    const json = JSON.stringify(faux.Projet.construire(
+      [{ couleur: '#ABCDEF', activity: act }], { tpl: 'fresque' }));
+    const relu = faux.Projet.lire(json);
+    const b = relu.sorties[0];
+
+    ok('projet · une sortie revient', relu.sorties.length === 1);
+    ok('projet · la couleur est conservée', b.couleur === '#ABCDEF');
+    ok('projet · le nom est conservé', b.activity.name === 'Essai');
+    ok('projet · la trace est complète  (' + b.activity.track.length + ')',
+       b.activity.track.length === 60);
+    proche('projet · la distance survit au tour', b.activity.distance_km, act.distance_km, 0.01);
+    proche('projet · le dénivelé survit au tour', b.activity.elev_gain_m, act.elev_gain_m, 1);
+    ok('projet · la puissance survit au tour',
+       b.activity.has_power && b.activity.power.max === act.power.max,
+       String(b.activity.power && b.activity.power.max));
+    ok('projet · un fichier étranger est refusé, pas à moitié lu', (function () {
+      try { faux.Projet.lire('{"format":99,"sorties":[]}'); return false; }
+      catch (e) { return /Format de projet inconnu/.test(e.message); }
+    }()));
+  }());
+
+  /* « Sans chiffres » promet qu'aucune statistique ne revient par la bande.
+   * Une promesse tenue par la discipline se casse au premier ajout distrait :
+   * on la vérifie sur le texte source. */
+  const mots = fs.readFileSync(path.join(ROOT, 'src', 'templates', 'mots.js'), 'utf8');
+  const corps = mots.slice(mots.indexOf('draw:'));
+  const chiffres = ['distance_km', 'duration_s', 'elev_gain_m', 'moving_s',
+                    'splits', 'profile', 'H.stat', 'H.field', 'H.bars', 'fmt.km']
+    .filter(n => corps.indexOf(n) >= 0);
+  ok('mots.js · aucune statistique ne peut revenir à l’export',
+     chiffres.length === 0, 'trouvé : ' + chiffres.join(', '));
 
   /* La clé d'API ne doit jamais entrer dans un fichier versionné. */
   const suspects = [];
@@ -215,6 +527,59 @@ function testsCoherence() {
   }(ROOT));
   ok('aucun identifiant en dur dans les fichiers du projet',
      suspects.length === 0, suspects.join(', '));
+}
+
+/* ================= 2 bis. BIBLIOTHÈQUE ================= */
+
+function chargeLibrary() {
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'library.js'), 'utf8');
+  const faux = {};
+  new Function('window', src)(faux);
+  return faux.Library;
+}
+
+function testsBibliotheque(L) {
+  titre('2 bis. BIBLIOTHÈQUE (plusieurs sorties)');
+
+  L.clear();
+  const a = L.add({ name: 'A', distance_km: 6 });
+  const b = L.add({ name: 'B', distance_km: 16 });
+  const c = L.add({ name: 'C', distance_km: 9 });
+
+  ok('les ajouts s’accumulent', L.count() === 3, 'compté ' + L.count());
+  ok('la première chargée devient la courante', L.currentId() === a.id);
+
+  /* Le bug qui rend deux images d’une même série illisibles ensemble :
+   * une couleur attribuée par POSITION se réattribue au réordonnancement. */
+  const couleurB = b.couleur;
+  L.move(b.id, -1);
+  ok('après déplacement, l’ordre a changé',
+     L.list().map(e => e.id).join(',') === [b.id, a.id, c.id].join(','),
+     L.list().map(e => e.id).join(','));
+  ok('la couleur suit la sortie, pas sa place',
+     L.get(b.id).couleur === couleurB);
+  ok('deux sorties n’ont pas la même couleur',
+     new Set(L.list().map(e => e.couleur)).size === 3);
+
+  L.remove(b.id);
+  ok('le retrait n’altère pas les couleurs restantes',
+     L.get(a.id).couleur === a.couleur && L.get(c.id).couleur === c.couleur);
+
+  L.clear();
+  ok('vider remet à zéro', L.count() === 0 && L.current() === null);
+
+  /* « Le Mont-sur-Lausanne Mountain Biking » tronqué à 18 puis rogné
+   * jusqu’au dernier espace donnait « Le… » : le nom disparaissait. */
+  const court = L.nomCourt({ name: 'Le Mont-sur-Lausanne Mountain Biking' }, 18);
+  ok('nomCourt · un nom long garde sa substance  (' + court + ')',
+     court.length >= 12 && /Mont/.test(court));
+  ok('nomCourt · le type d’activité est retiré  (' +
+     L.nomCourt({ name: 'Fribourg Road Cycling' }, 24) + ')',
+     L.nomCourt({ name: 'Fribourg Road Cycling' }, 24) === 'Fribourg');
+  ok('nomCourt · un nom qui n’est QUE le type ne disparaît pas',
+     L.nomCourt({ name: 'Ride' }, 24) === 'Sortie');
+  ok('nomCourt · sans nom, un libellé quand même',
+     L.nomCourt({}, 24) === 'Sortie');
 }
 
 /* ================= 3. SERVEUR ================= */
@@ -285,6 +650,7 @@ async function testsServeur() {
   console.log('Harnais de régression — ' + new Date().toISOString().slice(0, 16).replace('T', ' '));
   testsCalculs(chargeActivity());
   testsCoherence();
+  testsBibliotheque(chargeLibrary());
   await testsServeur();
 
   console.log('\n' + reussis + ' réussis · ' + echoues + ' échoués' +

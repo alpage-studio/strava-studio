@@ -1,6 +1,7 @@
 # Sorties de débogage et d'export
 tools/preview.png
 tools/frame*.png
+tools/planches-*.png
 tools/sequence-test.zip
 *.zip
 
@@ -9,9 +10,17 @@ tools/sequence-test.zip
 design/
 
 # Traces réelles : le premier point d'un GPX, c'est presque toujours ton
-# domicile. Seul l'exemple synthétique est versionné.
+# domicile. Seuls les exemples SYNTHÉTIQUES sont versionnés — ils sortent
+# de tools/make-exemples.js, aucune de leurs coordonnées n'a été parcourue
+# par quiconque. Sans ces exceptions, la règle *.gpx les écartait du dépôt
+# et les boutons d'exemple renvoyaient 404 une fois le site en ligne.
 *.gpx
 !exemple.gpx
+!exemple-boucle.gpx
+!exemple-aller.gpx
+!exemple-variante.gpx
+!exemple-ailleurs.gpx
+!sem-[0-9][0-9].gpx
 
 # Systèmes
 .DS_Store

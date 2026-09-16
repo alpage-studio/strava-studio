@@ -377,6 +377,45 @@
     });
   }
 
+  /* ---------- depuis des points bruts ----------
+   * Un projet rouvert apporte une trace et quelques agrégats, sans GPX ni
+   * API. Plutôt que de refabriquer du GPX pour le reparser — ce qui perdrait
+   * la puissance et la fréquence cardiaque au passage —, on entre ici.
+   *
+   * La distance cumulée est TOUJOURS recalculée : un fichier de projet peut
+   * avoir été écrit par une version plus ancienne, et une distance héritée
+   * qui ne correspond plus à la trace fausse tout ce qui en dépend. */
+  function fromPoints(meta, points) {
+    var pts = points.filter(function (p) { return isFinite(p.lat) && isFinite(p.lon); });
+    var cum = 0, prev = null;
+    pts.forEach(function (p) {
+      cum += prev ? haversine(prev, p) : 0;
+      p.d = cum;
+      prev = p;
+    });
+    if (!pts.length) throw new Error('Trace vide.');
+    var first = pts[0], last = pts[pts.length - 1];
+    var elapsed = (first.t && last.t) ? Math.round((last.t - first.t) / 1000) : null;
+    var el = elevation(pts);
+    return build({
+      name: meta.name || 'Sortie',
+      type: meta.type || '',
+      date: meta.date || first.t || null,
+      distance_m: cum || meta.distance_m,
+      duration_s: meta.duration_s || movingTime(pts) || elapsed,
+      elapsed_s: elapsed,
+      elev_gain_m: meta.elev_gain_m != null ? meta.elev_gain_m : el.gain,
+      elev_loss_m: el.loss, elev_min_m: el.min, elev_max_m: el.max,
+      hr_avg: avg(pts.map(function (p) { return p.hr; })),
+      hr_max: pts.reduce(function (m, p) { return p.hr != null && p.hr > m ? p.hr : m; }, 0) || null,
+      cadence_avg: avg(pts.map(function (p) { return p.cad; })),
+      splits: splits(pts),
+      track: pts,
+      route: project(pts),
+      profile: profile(pts)
+    });
+  }
+
   /* Recalcule les champs dérivés. Appelé après le parse ET après chaque
    * correction manuelle, pour que l'allure suive toujours la distance. */
   function build(a) {
@@ -575,6 +614,6 @@
 
   global.Activity = {
     parseGPX: parseGPX, fromStrava: fromStrava, fromIntervals: fromIntervals,
-    build: build, empty: empty
+    fromPoints: fromPoints, build: build, empty: empty
   };
 }(window));

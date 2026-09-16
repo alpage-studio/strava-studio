@@ -41,6 +41,10 @@
       fond: '#AFC0CE', fond2: '#8899A8', encre: '#101418', accent: '#1F4E6B',
       note: 'bleu délavé, lisible en plein soleil' },
 
+    { id: 'alpage', name: 'Alpage',
+      fond: '#F2EFE6', fond2: '#E4DFD2', encre: '#242820', accent: '#A54F37',
+      note: 'papier, encre et rouille — la palette de la collection' },
+
     { id: 'braise', name: 'Braise',
       fond: '#2B0F12', fond2: '#8C2F1E', encre: '#F7EDE4', accent: '#F2A65A',
       note: 'chaud et dense, pour les fins de journée' }
@@ -56,7 +60,29 @@
     'chiffres':       { papier: 'fond', encre: 'encre', accent: 'accent' },
     'pente':          { fond: 'fond', fond2: 'fond2', encre: 'encre' },
     'radiale':        { fond: 'fond', fond2: 'fond2', encre: 'encre', accent: 'accent' },
-    'allumettes':     { fond: 'fond', encre: 'encre', accent: 'accent' }
+    'allumettes':     { fond: 'fond', encre: 'encre', accent: 'accent' },
+    /* Les planches ajoutées ensuite. Une collection qui ne piloterait que la
+     * moitié du catalogue ne serait plus une signature : changer d'identité
+     * laisserait la série et le métro dans l'ancienne. */
+    'mots':           { fond: 'fond', encre: 'encre', accent: 'accent' },
+    'ressenti':       { fond: 'fond', encre: 'encre', accent: 'accent' },
+    'film':           { fond: 'fond', encre: 'encre', accent: 'accent' },
+    'serie':          { fond: 'fond', encre: 'encre' },
+    'metro':          { fond: 'fond', encre: 'encre' },
+    'saisons':        { fond: 'fond', encre: 'encre' },
+    'tissage':        { fond: 'fond', encre: 'encre', accent: 'accent' },
+    'fresque':        { fond: 'fond', encre: 'encre' },
+    'exploration':    { fond: 'fond', encre: 'encre', accent: 'accent' },
+    'partition':      { fond: 'fond', encre: 'encre', accent: 'accent' },
+    'musee':          { fond: 'fond', encre: 'encre', accent: 'accent' },
+    /* Les six planches Alpage. Elles nomment leur papier « papier » et non
+     * « fond » : le rôle de collection reste le même, seule la clé change. */
+    'encre':          { papier: 'fond', encre: 'encre' },
+    'strates':        { papierC: 'fond', encre: 'encre', accentC: 'accent' },
+    'empreinte':      { papier: 'fond', encre: 'encre', accentC: 'accent' },
+    'atlas':          { papier: 'fond', encre: 'encre', accentC: 'accent' },
+    'medaillon':      { accentC: 'accent' },
+    'almanac':        { papier: 'fond', encre: 'encre', accentC: 'accent' }
   };
 
   function get(id) {
