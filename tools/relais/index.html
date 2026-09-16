@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>alpage studio — nouvelle adresse</title>
+
+<!-- ============================================================
+     LE RELAIS.
+
+     Ce fichier n'appartient PAS au studio. Il est le contenu entier d'un
+     second dépôt, à créer sous l'ancien nom, dont le seul rôle est de
+     faire suivre.
+
+     POURQUOI IL EXISTE
+     GitHub redirige tout quand on renomme un dépôt — les issues, les
+     étoiles, les `git clone` — SAUF une chose, et c'est écrit noir sur
+     blanc dans leur documentation : « all existing information, with the
+     exception of project site URLs, is automatically redirected ».
+
+     Autrement dit : https://alpage-studio.github.io/strava-studio/ meurt
+     le jour du renommage. C'est l'adresse qui a été partagée. Un lien
+     partagé ne se reprend pas — il vit dans des messages, des favoris,
+     des captures d'écran. On le maintient donc en vie.
+
+     MODE D'EMPLOI
+       1. renommer le dépôt du studio (Settings → Repository name) ;
+       2. créer un dépôt public neuf portant l'ANCIEN nom ;
+       3. y déposer CE fichier, à la racine, sous le nom index.html ;
+       4. Settings → Pages → Source : Deploy from a branch → main / (root).
+
+     Le lien d'origine répond alors de nouveau, et amène ici.
+
+     POURQUOI UNE PAGE ET NON UNE REDIRECTION HTTP
+     Les pages statiques de GitHub ne servent pas de 301. Un `meta refresh`
+     est ce qu'on peut faire de mieux ; on y ajoute le lien en clair, pour
+     que quelqu'un qui bloque les redirections voie tout de même où aller,
+     et un `canonical` pour que les moteurs suivent.
+     ============================================================ -->
+
+<link rel="canonical" href="https://alpage-studio.github.io/">
+<meta http-equiv="refresh" content="0; url=https://alpage-studio.github.io/">
+
+<style>
+  :root { color-scheme: light; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center;
+    justify-content: center; padding: 24px;
+    background: #F7F5EF; color: #252820;
+    font: 400 15px/1.6 "Archivo", "Segoe UI", system-ui, sans-serif;
+  }
+  .carte { max-width: 34rem; text-align: center; }
+  h1 { font-size: 19px; font-weight: 600; letter-spacing: -.01em; margin: 0 0 10px; }
+  h1 .second { color: #62665C; font-weight: 400; }
+  p { margin: 0 0 14px; color: #62665C; font-size: 14px; }
+  a.aller {
+    display: inline-block; margin-top: 4px; padding: 11px 20px;
+    background: #A54F37; color: #FBF9F4; border-radius: 999px;
+    text-decoration: none; font-weight: 600; font-size: 14px;
+  }
+  a.aller:hover { filter: brightness(1.07); }
+  code { font-family: "IBM Plex Mono", ui-monospace, monospace; font-size: 13px; }
+</style>
+
+<div class="carte">
+  <h1>alpage <span class="second">studio</span></h1>
+  <p>Le studio a changé d’adresse. Tu devrais y être conduit tout de suite.</p>
+  <p><a class="aller" href="https://alpage-studio.github.io/">Ouvrir alpage studio</a></p>
+  <p>Si rien ne se passe : <code>https://alpage-studio.github.io/</code></p>
+</div>
+</html>
