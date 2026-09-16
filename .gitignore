@@ -2,8 +2,16 @@
 tools/preview.png
 tools/frame*.png
 tools/planches-*.png
-# aperçus régénérables : node tools/dev-server.js --debug puis la page d'aperçus
-apercus/
+# La galerie de revue EST publiée — mais en WebP, pas en PNG.
+#
+# Les rendus sortent du studio en PNG sans perte : douze mégaoctets pour
+# quarante-cinq planches. tools/vignettes.py en tire ce qui part en ligne :
+#   apercus/v/  vignettes de la grille, 560 px      ~0,6 Mo
+#   apercus/p/  planches entières, 1080 × 1920      ~2,9 Mo
+# L'écart est invisible à l'écran, et les PNG restent sur le disque pour
+# juger un grain de près. Ce qui ne se publie pas :
+apercus/*.png
+apercus/v1-reference/
 tools/sequence-test.zip
 *.zip
 

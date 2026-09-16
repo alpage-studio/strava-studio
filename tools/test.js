@@ -294,11 +294,62 @@ function testsCoherence() {
 
     const dossier = path.join(ROOT, 'apercus');
     if (!fs.existsSync(dossier)) { saute('galerie · vignettes', 'apercus/ non généré'); return; }
-    const absents = cles.filter(function (k) {
-      return !fs.existsSync(path.join(dossier, k + '.png'));
+
+    /* Les PNG sources ne sont PAS versionnés : sur un dépôt fraîchement
+     * cloné ils n'existent pas, et exiger leur présence ferait échouer un
+     * contrôle qui n'a rien constaté. On ne les vérifie que si la
+     * génération a tourné ici. */
+    const avecPng = cles.filter(function (k) {
+      return fs.existsSync(path.join(dossier, k + '.png'));
     });
-    ok('galerie · chaque entrée a son image  (' + cles.length + ')',
-       absents.length === 0, 'absentes : ' + absents.join(', '));
+    if (avecPng.length === 0) {
+      saute('galerie · planches sources', 'aucun PNG local (dépôt cloné)');
+    } else {
+      ok('galerie · chaque entrée a sa planche source  (' + cles.length + ')',
+         avecPng.length === cles.length,
+         'absentes : ' + (cles.length - avecPng.length));
+    }
+
+    /* CE QUI PART EN LIGNE : deux dossiers de WebP. v/ pour la grille,
+     * p/ pour le clic. C'est le seul contrôle qui porte sur des fichiers
+     * VERSIONNÉS — s'il passe, la galerie s'affiche depuis le dépôt, PNG
+     * locaux ou pas. */
+    [['v', 'vignettes', 2], ['p', 'planches', 5]].forEach(function (d) {
+      const dir = path.join(dossier, d[0]);
+      if (!fs.existsSync(dir)) {
+        saute('galerie · ' + d[1] + ' WebP', 'apercus/' + d[0] + '/ non généré');
+        return;
+      }
+      const manquantes = cles.filter(function (k) {
+        return !fs.existsSync(path.join(dir, k + '.webp'));
+      });
+      ok('galerie · chaque entrée a sa ' + d[1].slice(0, -1) + ' WebP  (' +
+         cles.length + ')',
+         manquantes.length === 0, 'absentes : ' + manquantes.join(', '));
+
+      /* Le poids, pas seulement la présence : une vignette de 400 Ko ne
+       * vaut pas mieux que la planche qu'elle remplace. */
+      let poids = 0;
+      cles.forEach(function (k) {
+        const f = path.join(dir, k + '.webp');
+        if (fs.existsSync(f)) poids += fs.statSync(f).size;
+      });
+      ok('galerie · les ' + d[1] + ' pèsent moins de ' + d[2] + ' Mo  (' +
+         (poids / 1048576).toFixed(2) + ' Mo)', poids < d[2] * 1048576);
+    });
+
+    /* La page ne doit pointer que sur des fichiers PUBLIÉS. photo-demo.png
+     * reste hors du dépôt : la page doit donc viser sa vignette, sinon le
+     * fond des surcouches est un 404 une fois en ligne. */
+    const pageGalerie = path.join(dossier, 'index.html');
+    if (fs.existsSync(pageGalerie)) {
+      const html = fs.readFileSync(pageGalerie, 'utf8');
+      ok('galerie · la page ne vise que des fichiers publiés',
+         html.indexOf('v/photo-demo.webp') > 0 &&
+         html.indexOf('.png') < 0);
+      ok('galerie · la grille ne déborde pas sous la largeur de colonne',
+         html.indexOf('minmax(min(var(--col), 100%), 1fr)') > 0);
+    }
 
     /* Les fichiers cités par le catalogue doivent exister, sinon la
      * génération échoue à mi-parcours sans le dire clairement. */

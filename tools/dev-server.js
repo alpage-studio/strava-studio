@@ -37,6 +37,7 @@ const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.gpx': 'application/gpx+xml',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
   '.json': 'application/json', '.txt': 'text/plain; charset=utf-8',
   '.woff2': 'font/woff2',
   '.webmanifest': 'application/manifest+json'
@@ -251,7 +252,12 @@ async function traite(req, res) {
   } catch (e) {
     res.writeHead(400); res.end('URL mal formée'); return;
   }
-  if (rel === '/') rel = '/index.html';
+  /* Un dossier se sert par son index, comme le fera l'hébergement une fois
+   * le site en ligne. Sans cette ligne, /apercus/ renvoyait 404 en local
+   * alors qu'il s'ouvre en ligne : le serveur de développement ne montrait
+   * donc PAS ce qui allait être publié, ce qui est exactement ce qu'on lui
+   * demande. */
+  if (rel.endsWith('/')) rel += 'index.html';
 
   const file = path.resolve(ROOT, '.' + path.posix.normalize(rel.replace(/\\/g, '/')));
   /* startsWith(ROOT) ne teste qu'un préfixe de texte : un dossier voisin

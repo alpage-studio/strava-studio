@@ -11,5 +11,5 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '2.7';
+var STUDIO_VERSION = '2.7.1';
 var STUDIO_DATE = '16.09.2026';

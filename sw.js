@@ -123,7 +123,12 @@ self.addEventListener('fetch', function (e) {
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  // l'API Strava et l'écriture d'aperçus ne se mettent jamais en cache
+  /* L'API Strava et l'écriture d'aperçus ne se mettent jamais en cache.
+   *
+   * La galerie de revue non plus : c'est une page annexe de quatorze
+   * mégaoctets. La mettre en cache remplirait le stockage hors ligne du
+   * studio avec des images qu'on regarde une fois. */
+  if (url.pathname.indexOf('/apercus/') >= 0) return;
   if (url.pathname.startsWith('/api/') ||
       url.pathname.startsWith('/__save') ||
       url.pathname.startsWith('/connect') ||

@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14141a">
+<title>Alpage — revue des compositions</title>
+<style>
+  :root {
+    --papier: #14141a; --encre: #e9e6dd; --mut: #8a8880;
+    --line: #2a2a33; --acc: #C8F04E;
+    --col: 150px;            /* largeur mini d'une colonne : deux par ligne sur un téléphone */
+    --marge: 14px;
+    --sbar: env(safe-area-inset-bottom, 0px);
+  }
+  @media (min-width: 720px) { :root { --col: 240px; --marge: 22px; } }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: 20px var(--marge) calc(60px + var(--sbar));
+    padding-left: max(var(--marge), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--marge), env(safe-area-inset-right, 0px));
+    background: var(--papier); color: var(--encre);
+    font: 14px/1.5 "Archivo", "Segoe UI", system-ui, sans-serif;
+  }
+  h1 { font-size: 19px; margin: 0 0 4px; letter-spacing: -.01em; }
+  @media (min-width: 720px) { h1 { font-size: 21px; } }
+  .sous { color: var(--mut); font-size: 13px; margin-bottom: 16px; max-width: 70ch; }
+  .sous .plus { display: none; }
+  .sous.ouvert .plus { display: inline; }
+  .sous button {
+    font: inherit; font-size: 13px; padding: 0; margin-left: 4px;
+    background: none; border: 0; color: var(--acc); cursor: pointer;
+  }
+
+  /* La barre est collante : sur un téléphone, la liste est longue et
+     revenir en haut pour changer de famille rend le filtre inutilisable.
+     Chaque rangée de puces défile horizontalement plutôt que de passer à
+     la ligne — sinon la barre mange la moitié de l'écran. */
+  .barre {
+    position: sticky; top: 0; z-index: 5;
+    margin: 0 calc(-1 * var(--marge)) 18px;
+    padding: 9px var(--marge) 9px;
+    padding-top: max(9px, env(safe-area-inset-top, 0px));
+    background: rgba(20,20,26,.95); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 7px;
+  }
+  @media (min-width: 720px) {
+    .barre { flex-direction: row; flex-wrap: wrap; gap: 14px; align-items: center; padding: 12px var(--marge); }
+  }
+  .groupe {
+    display: flex; gap: 6px; align-items: center;
+    overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    margin: 0 calc(-1 * var(--marge)); padding: 2px var(--marge);
+  }
+  .groupe::-webkit-scrollbar { display: none; }
+  @media (min-width: 720px) { .groupe { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; } }
+  .groupe > b {
+    font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--mut); font-weight: 600; flex: none;
+  }
+  button.f {
+    font: inherit; font-size: 12.5px; padding: 7px 13px; cursor: pointer;
+    background: none; color: var(--mut); white-space: nowrap; flex: none;
+    border: 1px solid var(--line); border-radius: 999px;
+    min-height: 34px;                       /* cible tactile */
+  }
+  button.f:hover { color: var(--encre); }
+  button.f.on { background: var(--acc); border-color: var(--acc); color: #14141a; font-weight: 600; }
+  .compte { color: var(--mut); font-size: 12px; flex: none; }
+  @media (min-width: 720px) { .compte { margin-left: auto; } }
+  /* Le réglage de taille ne sert à rien tant qu'on ne tient qu'une ou deux
+     colonnes : sur un téléphone il occupe une rangée pour ne rien changer. */
+  .taille { display: none; }
+  @media (min-width: 560px) { .taille { display: flex; } }
+
+  h2 {
+    font-size: 11.5px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--mut); font-weight: 600;
+    margin: 26px 0 11px; padding-bottom: 7px; border-bottom: 1px solid var(--line);
+  }
+  h2 em { font-style: normal; color: var(--encre); }
+
+  /* `min(var(--col), 100%)` est ce qui empêche la grille de déborder sur un
+     écran plus étroit que la colonne demandée : sans lui, un téléphone de
+     320 px pousse une colonne de 380 px hors de la page. */
+  .grille {
+    display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(min(var(--col), 100%), 1fr));
+  }
+  @media (min-width: 720px) { .grille { gap: 18px; } }
+  figure { margin: 0; }
+
+  /* Le damier montre l'alpha ; la photo montre ce que la surcouche donne
+     VRAIMENT. Le damier seul ne permet pas de juger une composition. */
+  .vignette {
+    display: block; position: relative; overflow: hidden;
+    border: 1px solid var(--line); border-radius: 3px;
+    background-color: #20202a;
+    background-image:
+      linear-gradient(45deg, #2b2b36 25%, transparent 25%, transparent 75%, #2b2b36 75%),
+      linear-gradient(45deg, #2b2b36 25%, transparent 25%, transparent 75%, #2b2b36 75%);
+    background-size: 18px 18px; background-position: 0 0, 9px 9px;
+  }
+  .vignette.photo { background: #333 url("v/photo-demo.webp") center/cover; }
+  /* La hauteur est réservée AVANT le chargement : sans elle, chaque image
+     qui arrive pousse la page et la revue devient impossible à lire au
+     pouce. C'est aussi pour cela que le catalogue porte les dimensions. */
+  .vignette img { display: block; width: 100%; height: auto; }
+  figcaption { font-size: 12px; color: var(--mut); margin-top: 6px; line-height: 1.4; }
+  figcaption b { color: var(--encre); font-weight: 600; display: block; }
+  figcaption .d { display: block; margin-top: 2px; }
+  .tag {
+    display: inline-block; font-size: 9.5px; letter-spacing: .07em; text-transform: uppercase;
+    border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px;
+    margin: 3px 4px 0 0; color: var(--mut);
+  }
+  .tag.expl { border-color: #5a5030; color: #b8a05a; }
+  a { color: inherit; text-decoration: none; }
+  a:hover .vignette { border-color: var(--acc); }
+  .vide { color: var(--mut); padding: 40px 0; }
+
+  /* Retour en haut : la page fait plusieurs écrans sur un téléphone. */
+  #haut {
+    position: fixed; right: max(12px, env(safe-area-inset-right, 0px));
+    bottom: calc(12px + var(--sbar));
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 1px solid var(--line); background: rgba(20,20,26,.92);
+    color: var(--encre); font-size: 17px; cursor: pointer; display: none;
+    backdrop-filter: blur(6px);
+  }
+  #haut.on { display: block; }
+  @media (min-width: 720px) { #haut { display: none !important; } }
+</style>
+
+<h1>Alpage — revue des compositions</h1>
+<div class="sous" id="sous">
+  Chaque famille garde ses compositions <b>Original</b> ; les <b>Explorations</b>
+  s’ajoutent à côté.<span class="plus"> Les parcours changent d’une vignette à
+  l’autre — boucle sinueuse, aller-retour, parcours ouvert, huit avec
+  croisements — parce qu’une planche qui tient sur un cercle peut s’effondrer
+  sur un aller-retour. Les surcouches sont montrées sur une photo de
+  démonstration synthétique. Toucher une vignette ouvre la planche entière,
+  en 1080 × 1920.</span><button id="dev"
+  type="button">en savoir plus</button>
+</div>
+
+<div class="barre">
+  <div class="groupe" id="familles"><b>Famille</b></div>
+  <div class="groupe" id="groupes"><b>Version</b></div>
+  <div class="groupe taille"><b>Taille</b>
+    <button class="f" data-col="150">Serré</button>
+    <button class="f on" data-col="240">Moyen</button>
+    <button class="f" data-col="400">Grand</button>
+  </div>
+  <div class="compte" id="compte"></div>
+</div>
+
+<div id="sortie"></div>
+<button id="haut" type="button" aria-label="Revenir en haut">↑</button>
+
+<script src="../apercus-catalogue.js"></script>
+<script>
+var C = window.Apercus.CATALOGUE;
+var etatF = null, etatG = null;
+
+function uniques(champ) {
+  var vus = [], out = [];
+  C.forEach(function (e) { if (vus.indexOf(e[champ]) < 0) { vus.push(e[champ]); out.push(e[champ]); } });
+  return out;
+}
+
+function bouton(txt, actif, onClic) {
+  var b = document.createElement('button');
+  b.className = 'f' + (actif ? ' on' : '');
+  b.textContent = txt;
+  b.addEventListener('click', onClic);
+  return b;
+}
+
+function barre() {
+  var bf = document.getElementById('familles');
+  var bg = document.getElementById('groupes');
+  [['Toutes', null]].concat(uniques('f').map(function (x) { return [x, x]; }))
+    .forEach(function (p) {
+      bf.appendChild(bouton(p[0], etatF === p[1], function () { etatF = p[1]; refait(); }));
+    });
+  [['Toutes', null]].concat(uniques('g').map(function (x) { return [x, x]; }))
+    .forEach(function (p) {
+      bg.appendChild(bouton(p[0], etatG === p[1], function () { etatG = p[1]; refait(); }));
+    });
+  document.querySelectorAll('[data-col]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('[data-col]').forEach(function (x) { x.classList.remove('on'); });
+      b.classList.add('on');
+      document.documentElement.style.setProperty('--col', b.dataset.col + 'px');
+    });
+  });
+  /* La puce allumee doit dire la VERITE : sous 720 px la feuille de style
+   * impose une colonne plus etroite, et marquer « Moyen » afficherait un
+   * reglage qui n'est pas celui en vigueur. */
+  var colEffective = parseInt(
+    getComputedStyle(document.documentElement).getPropertyValue('--col'), 10);
+  document.querySelectorAll('[data-col]').forEach(function (b) {
+    b.classList.toggle('on', parseInt(b.dataset.col, 10) === colEffective);
+  });
+
+  document.getElementById('dev').addEventListener('click', function () {
+    var s = document.getElementById('sous');
+    var ouvert = s.classList.toggle('ouvert');
+    this.textContent = ouvert ? 'réduire' : 'en savoir plus';
+  });
+  var haut = document.getElementById('haut');
+  haut.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
+  window.addEventListener('scroll', function () {
+    haut.classList.toggle('on', window.scrollY > 600);
+  }, { passive: true });
+}
+
+function refait() {
+  document.querySelectorAll('#familles .f, #groupes .f').forEach(function (b) { b.classList.remove('on'); });
+  var fs = document.querySelectorAll('#familles .f');
+  fs[[null].concat(uniques('f')).indexOf(etatF)].classList.add('on');
+  var gs = document.querySelectorAll('#groupes .f');
+  gs[[null].concat(uniques('g')).indexOf(etatG)].classList.add('on');
+  rend();
+  window.scrollTo({ top: 0 });
+}
+
+function rend() {
+  var sortie = document.getElementById('sortie');
+  sortie.innerHTML = '';
+  var liste = C.filter(function (e) {
+    return (!etatF || e.f === etatF) && (!etatG || e.g === etatG);
+  });
+  document.getElementById('compte').textContent =
+    liste.length + ' composition' + (liste.length > 1 ? 's' : '');
+  if (!liste.length) { sortie.innerHTML = '<div class="vide">Aucune composition.</div>'; return; }
+
+  /* Regroupement famille → version, dans l'ordre du catalogue : c'est lui
+   * qui décide de ce qu'on voit côte à côte. */
+  var sections = [];
+  liste.forEach(function (e) {
+    var cle = e.f + ' · ' + e.g;
+    var s = sections.filter(function (x) { return x.cle === cle; })[0];
+    if (!s) { s = { cle: cle, f: e.f, g: e.g, items: [] }; sections.push(s); }
+    s.items.push(e);
+  });
+
+  sections.forEach(function (s) {
+    var h = document.createElement('h2');
+    h.innerHTML = '<em>' + s.f + '</em> · ' + s.g;
+    sortie.appendChild(h);
+    var gr = document.createElement('div');
+    gr.className = 'grille';
+    s.items.forEach(function (e) {
+      var k = window.Apercus.cle(e);
+      var t = e.taille || [1080, 1920];
+      var f = document.createElement('figure');
+      /* width/height portent le RAPPORT, pas une taille d'affichage : le
+       * navigateur réserve la place avant même d'avoir l'image, et la page
+       * ne saute plus pendant le chargement.
+       *
+       * Deux résolutions, toutes deux en WebP : v/ pour la grille (une
+       * dizaine de kilooctets), p/ pour le clic (1080 × 1920). Les PNG
+       * sans perte restent sur le disque, hors du dépôt — douze mégaoctets
+       * publiés pour un écart invisible à l'écran, c'est le prix qu'on ne
+       * paie pas. Si la vignette manque, on affiche la planche plutôt
+       * qu'un trou. */
+      f.innerHTML =
+        '<a href="p/' + k + '.webp" target="_blank" rel="noopener">' +
+          '<span class="vignette' + (e.photo ? ' photo' : '') + '">' +
+            '<img loading="lazy" decoding="async" alt="' + e.n + '"' +
+              ' width="' + t[0] + '" height="' + t[1] + '"' +
+              ' src="v/' + k + '.webp"' +
+              ' onerror="this.onerror=null;this.src=\'p/' + k + '.webp\'">' +
+          '</span>' +
+        '</a>' +
+        '<figcaption><b>' + e.n + '</b>' +
+          '<span class="d">' + e.d + '</span>' +
+          (e.g === 'Exploration' ? '<span class="tag expl">exploration</span>' : '') +
+          (e.nb ? '<span class="tag">noir &amp; blanc</span>' : '') +
+          (e.photo ? '<span class="tag">surcouche</span>' : '') +
+          '<span class="tag">' + t.join(' × ') + '</span>' +
+        '</figcaption>';
+      gr.appendChild(f);
+    });
+    sortie.appendChild(gr);
+  });
+}
+
+barre();
+rend();
+</script>
+</html>
