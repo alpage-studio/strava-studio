@@ -11,8 +11,13 @@
  *   « est-ce que l'export garde l'alpha » — ces questions demandent un
  *   canvas, une mise en page et des événements.
  *
- *   Ce fichier ne part PAS avec le site : il n'est chargé par aucune page,
- *   il vit dans tools/ que le serveur refuse de servir. On le colle.
+ *   Ce fichier n'est chargé par aucune page : il ne s'exécute que si on le
+ *   lui demande. Le serveur de développement refuse de servir tools/, mais
+ *   l'hébergement statique, lui, publie tout le dépôt — on peut donc aussi
+ *   éprouver le SITE EN LIGNE, ce qui est le seul moyen de vérifier ce qui
+ *   y est réellement déployé :
+ *
+ *     fetch('tools/acceptation.js').then(r => r.text()).then(eval)
  *
  * CE QU'IL VÉRIFIE
  *   Le parcours complet tel qu'un utilisateur le fait : charger une sortie,
