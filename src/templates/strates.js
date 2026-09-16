@@ -36,9 +36,12 @@ Studio.template({
   multi: true,
 
   options: [
-    { key: 'finition', type: 'select', label: 'Finition', default: 'gravure',
-      choices: [['gravure', 'Gravure — reliefs en lignes'],
-                ['papier', 'Papier découpé — aplats']] },
+    { key: 'finition', type: 'select', label: 'Composition', default: 'gravure', reflow: true,
+      choices: [['gravure', 'Original · Gravure — reliefs en tiges'],
+                ['papier', 'Original · Papier découpé — aplats'],
+                ['massif', 'Exploration · Massif — couches rapprochées'],
+                ['continue', 'Exploration · Gravure continue — lignes déployées'],
+                ['horizons', 'Exploration · Horizons — bandes fines']] },
     { key: 'echelle', type: 'select', label: 'Échelles', default: 'comparer', reflow: true,
       choices: [['comparer', 'Comparer — échelles communes'],
                 ['composer', 'Composer — largeurs normalisées']] },
@@ -133,7 +136,13 @@ Studio.template({
     /* Le décalage : chaque couche monte d'un cran et glisse d'un cran vers
      * la droite. Le pas s'adapte au nombre de couches pour qu'AUCUNE ne
      * disparaisse derrière une autre, quel que soit le réglage. */
+    /* MASSIF rapproche fortement les plans pour former un ensemble ; HORIZONS
+     * les étale au contraire, comme une partition de paysages. Les deux
+     * jouent sur le même paramètre, avec des bornes différentes. */
+    var compo = o.finition;
     var force = (Number(o.espacement) || 50) / 100;
+    if (compo === 'massif') force = 0.02 + 0.13 * force;
+    else if (compo === 'horizons') force = 0.78 + 0.22 * force;
     var hauteurCouche = zone.h / (1 + (n - 1) * (0.42 + 0.38 * force));
     var pasY = (zone.h - hauteurCouche) / Math.max(1, n - 1);
     var pasX = Math.min(u(4), zone.w * 0.05) * force;
@@ -156,7 +165,7 @@ Studio.template({
      * En mode Comparer, une ligne de référence par couche montre d'où part
      * chaque silhouette : sans elle, les décalages de présentation se
      * confondraient avec du relief. */
-    if (comparer) {
+    if (comparer && compo !== 'massif') {
       ctx.save();
       ctx.setLineDash([u(0.4), u(0.7)]);
       ctx.strokeStyle = melange(encre, 0.18);
@@ -187,7 +196,72 @@ Studio.template({
       var pts = silhouette(c, base, larg, haut);
       if (!pts.length) return;
 
-      if (o.finition === 'papier') {
+      if (compo === 'massif') {
+        /* MASSIF — des aplats OPAQUES. La couche de devant masque proprement
+         * celle de derrière : c'est ce qui fait un massif plutôt qu'une
+         * superposition de graphiques translucides. Chaque silhouette garde
+         * sa crête visible, puisque les plans montent d'un cran. */
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(base.x, base.y);
+        pts.forEach(function (p) { ctx.lineTo(p.x, p.y); });
+        ctx.lineTo(base.x + larg, base.y);
+        ctx.closePath();
+        /* Trois ou quatre tons cohérents, pas n dégradés : au-delà, les
+         * plans cessent de se distinguer et l'ensemble redevient plat. */
+        var tons = [0.86, 0.70, 0.55, 0.41];
+        ctx.fillStyle = estAccent ? o.accentC
+          : melangeOpaque(encre, papier, tons[k % tons.length]);
+        ctx.fill();
+        ctx.strokeStyle = estAccent ? o.accentC : melangeOpaque(encre, papier, 0.96);
+        ctx.lineWidth = u(0.16);
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.restore();
+      } else if (compo === 'continue') {
+        /* GRAVURE CONTINUE — des lignes qui se déploient de la crête vers la
+         * base, au lieu de tiges verticales indépendantes. Chacune est une
+         * copie du profil, écrasée : elles se répondent donc au lieu de
+         * hachurer. Ce n'est PAS une représentation du terrain en trois
+         * dimensions — c'est un traitement graphique du profil, et le pied
+         * de planche le dit. */
+        var lignes = Math.max(6, Math.min(22, Math.round(13 * (0.6 + 0.8 * force))));
+        ctx.save();
+        ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+        for (var L = 0; L < lignes; L++) {
+          var f = L / (lignes - 1);
+          ctx.beginPath();
+          pts.forEach(function (p, idx) {
+            var y = base.y - (base.y - p.y) * (1 - f);
+            if (idx === 0) ctx.moveTo(p.x, y); else ctx.lineTo(p.x, y);
+          });
+          ctx.strokeStyle = estAccent ? melange(o.accentC, 0.45 + 0.55 * (1 - f))
+                                      : melange(encre, Math.min(1, (0.35 + densite) * (0.45 + 0.55 * (1 - f))));
+          ctx.lineWidth = Math.max(0.6, u(0.13));
+          ctx.stroke();
+        }
+        ctx.restore();
+      } else if (compo === 'horizons') {
+        /* HORIZONS — la crête seule, presque sans remplissage. Une partition
+         * de paysages : c'est le vide entre les bandes qui fait la planche. */
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(base.x, base.y);
+        pts.forEach(function (p) { ctx.lineTo(p.x, p.y); });
+        ctx.lineTo(base.x + larg, base.y);
+        ctx.closePath();
+        ctx.fillStyle = melange(encre, 0.045);
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        ctx.beginPath();
+        pts.forEach(function (p, i) { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+        ctx.strokeStyle = estAccent ? o.accentC : melange(encre, Math.min(1, densite + 0.22));
+        ctx.lineWidth = u(0.22);
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        ctx.restore();
+      } else if (compo === 'papier') {
         // aplat : le papier découpé, avec un liseré plus dense au sommet
         ctx.save();
         ctx.beginPath();
@@ -291,7 +365,10 @@ Studio.template({
       var axe = o.altitude === 'absolue'
         ? 'ALTITUDE ABSOLUE · ' + Math.round(vBas) + ' À ' + Math.round(vHaut) + ' M'
         : 'VARIATION DEPUIS LE DÉPART · ±' + Math.round(vHaut) + ' M';
-      H.text(lecture + ' · ' + axe, g.left, y,
+      var nature = compo === 'continue'
+        ? ' · TRAITEMENT GRAPHIQUE DES PROFILS, PAS UN RELIEF EN TROIS DIMENSIONS'
+        : compo === 'massif' ? ' · COMPOSITION DE PROFILS SUPERPOSÉS' : '';
+      H.text(lecture + ' · ' + axe + nature, g.left, y,
              H.t('label', { color: faint, maxWidth: g.width }));
 
       if (comparer) {
@@ -361,5 +438,20 @@ Studio.template({
       return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + k + ')';
     }
     function melange2(hex, k) { return melange(hex, k * 0.42); }
+
+    /* Un mélange OPAQUE de deux couleurs. Le massif ne peut pas utiliser
+     * l'alpha : une couche translucide laisse voir celle de derrière, et
+     * c'est exactement ce qu'on veut supprimer. On calcule donc la teinte
+     * intermédiaire et on la pose pleine. */
+    function melangeOpaque(a1, a2, k) {
+      var x = parseInt(String(a1).replace('#', ''), 16);
+      var y = parseInt(String(a2).replace('#', ''), 16);
+      if (!isFinite(x) || !isFinite(y)) return a1;
+      function c(v, dec) { return (v >> dec) & 255; }
+      var r = Math.round(c(y, 16) + (c(x, 16) - c(y, 16)) * k);
+      var v2 = Math.round(c(y, 8) + (c(x, 8) - c(y, 8)) * k);
+      var b = Math.round(c(y, 0) + (c(x, 0) - c(y, 0)) * k);
+      return 'rgb(' + r + ',' + v2 + ',' + b + ')';
+    }
   }
 });

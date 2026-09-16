@@ -180,6 +180,101 @@
     });
   }
 
+  /* ---------- lissage des DIRECTIONS ----------
+   *
+   * Lisser les positions (`lisse`) arrondit la forme mais laisse des cassures
+   * d'orientation : deux points voisins peuvent encore pointer dans des
+   * directions très différentes, et c'est l'orientation — pas la position —
+   * qui fabrique les normales, donc les bords du ruban.
+   *
+   * On reconstruit donc la polyligne en intégrant un ANGLE lissé, à pas
+   * constant. La courbe qui en sort a une tangente continue par
+   * construction : plus de facette, plus de pointe parasite. Le prix est une
+   * légère dérive de position sur les longues portions, invisible à côté du
+   * défaut qu'elle supprime.
+   */
+  function lisseDirections(pts, fenetre) {
+    if (pts.length < 4) return pts.slice();
+    var angles = [], longueurs = [];
+    for (var i = 1; i < pts.length; i++) {
+      var dx = pts[i].x - pts[i - 1].x, dy = pts[i].y - pts[i - 1].y;
+      longueurs.push(Math.hypot(dx, dy));
+      angles.push(Math.atan2(dy, dx));
+    }
+    /* Les angles se déroulent AVANT d'être moyennés : sans ça, un passage de
+     * +179° à −179° donne une moyenne de 0° et la courbe repart à l'envers. */
+    for (var k = 1; k < angles.length; k++) {
+      while (angles[k] - angles[k - 1] > Math.PI) angles[k] -= 2 * Math.PI;
+      while (angles[k] - angles[k - 1] < -Math.PI) angles[k] += 2 * Math.PI;
+    }
+    var lisses = [];
+    for (var j = 0; j < angles.length; j++) {
+      var a = Math.max(0, j - fenetre), b = Math.min(angles.length - 1, j + fenetre);
+      var s = 0, n = 0;
+      for (var m = a; m <= b; m++) { s += angles[m]; n++; }
+      lisses.push(s / n);
+    }
+    var out = [{ x: pts[0].x, y: pts[0].y }];
+    copie(out[0], pts[0]);
+    for (var q = 0; q < lisses.length; q++) {
+      var prec = out[out.length - 1];
+      var p = { x: prec.x + Math.cos(lisses[q]) * longueurs[q],
+                y: prec.y + Math.sin(lisses[q]) * longueurs[q] };
+      copie(p, pts[q + 1]);
+      out.push(p);
+    }
+    return out;
+  }
+
+  function copie(dest, src) {
+    dest.ele = src.ele; dest.w = src.w; dest.hr = src.hr; dest.cad = src.cad;
+    dest.t = src.t; dest.d = src.d; dest.i = src.i;
+    return dest;
+  }
+
+  /* ---------- rayon de courbure local ----------
+   *
+   * R ≈ ds / dθ. Sert à BORNER la demi-largeur d'un ruban : au-delà de R,
+   * le bord intérieur se replie et se croise, et le remplissage `nonzero`
+   * annule alors la petite boucle — c'est l'encoche blanche qu'on voyait
+   * le long du trait d'Encre. Ce n'est pas un défaut de rendu à masquer
+   * avec de la texture : c'est une impossibilité géométrique, et la seule
+   * réponse est de ne pas dépasser R.
+   */
+  function rayonsDeCourbure(pts, portee) {
+    portee = portee || 2;
+    var R = new Array(pts.length).fill(Infinity);
+    for (var i = portee; i < pts.length - portee; i++) {
+      var a = pts[i - portee], b = pts[i], c = pts[i + portee];
+      var a1 = Math.atan2(b.y - a.y, b.x - a.x);
+      var a2 = Math.atan2(c.y - b.y, c.x - b.x);
+      var dth = Math.abs(normaliseAngle(a2 - a1));
+      var ds = Math.hypot(b.x - a.x, b.y - a.y) + Math.hypot(c.x - b.x, c.y - b.y);
+      R[i] = dth > 1e-6 ? ds / dth : Infinity;
+    }
+    for (var k = 0; k < portee; k++) { R[k] = R[portee]; R[pts.length - 1 - k] = R[pts.length - 1 - portee]; }
+    return R;
+  }
+
+  /* Borne une série de demi-largeurs par le rayon de courbure, puis la
+   * relisse : borner point par point crée une marche, et une marche dans
+   * l'épaisseur se voit autant qu'une encoche. */
+  function borneParCourbure(demi, pts, marge) {
+    var R = rayonsDeCourbure(pts, 3);
+    var out = demi.map(function (w, i) {
+      return Math.min(w, R[i] * (marge == null ? 0.72 : marge));
+    });
+    // lissage large : l'épaisseur doit varier LENTEMENT, jamais par à-coups
+    var f = Math.max(2, Math.round(pts.length / 40));
+    var liss = [];
+    for (var i = 0; i < out.length; i++) {
+      var a = Math.max(0, i - f), b = Math.min(out.length - 1, i + f), s = 0, n = 0;
+      for (var j = a; j <= b; j++) { s += out[j]; n++; }
+      liss.push(s / n);
+    }
+    return liss;
+  }
+
   /* ---------- ruban à épaisseur variable ----------
    * Un côté à l'aller, l'autre au retour : un seul polygone fermé. Rempli en
    * `nonzero`, il traite les croisements de la trace tout seuls — un
@@ -508,6 +603,8 @@
     PALETTE: PALETTE,
     projette: projette, reechantillonne: reechantillonne, lisse: lisse,
     courbure: courbure, normales: normales, decale: decale, ruban: ruban,
+    lisseDirections: lisseDirections, rayonsDeCourbure: rayonsDeCourbure,
+    borneParCourbure: borneParCourbure,
     graine: graine, ondulation: ondulation,
     champDistance: champDistance, ligneDeNiveau: ligneDeNiveau,
     mesures: mesures, serie: serie, cadre: cadre,

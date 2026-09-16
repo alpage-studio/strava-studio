@@ -268,6 +268,100 @@ function testsCoherence() {
        soucis.length === 0, soucis.join(', '));
   }());
 
+  /* La galerie de revue. Le catalogue décrit ce qui existe ; la génération
+   * et la page le lisent tous les deux, donc ils ne peuvent pas diverger sur
+   * les LIBELLÉS. Reste à vérifier que chaque entrée a bien son image.
+   *
+   * Ce contrôle existe parce que le précédent ne contrôlait rien : il
+   * testait `img.complete && naturalWidth === 0`, et une image en chargement
+   * paresseux n'est pas `complete` — elle passait donc le test sans avoir
+   * été chargée. Les quarante-cinq vignettes étaient en 404 et le contrôle
+   * disait « aucune cassée ». */
+  (function () {
+    const cat = path.join(ROOT, 'apercus-catalogue.js');
+    if (!fs.existsSync(cat)) { saute('galerie · catalogue', 'absent'); return; }
+    const faux = { };
+    new Function('window', fs.readFileSync(cat, 'utf8'))(faux);
+    const A = faux.Apercus;
+
+    const cles = A.CATALOGUE.map(A.cle);
+    ok('galerie · les identifiants du catalogue sont uniques  (' + cles.length + ')',
+       new Set(cles).size === cles.length);
+    ok('galerie · chaque entrée nomme un template et un jeu de données',
+       A.CATALOGUE.every(function (e) { return e.t && e.f && e.g && e.n && e.j; }));
+    ok('galerie · chaque jeu de données est déclaré',
+       A.CATALOGUE.every(function (e) { return e.j === 'annee' || A.JEUX[e.j]; }));
+
+    const dossier = path.join(ROOT, 'apercus');
+    if (!fs.existsSync(dossier)) { saute('galerie · vignettes', 'apercus/ non généré'); return; }
+    const absents = cles.filter(function (k) {
+      return !fs.existsSync(path.join(dossier, k + '.png'));
+    });
+    ok('galerie · chaque entrée a son image  (' + cles.length + ')',
+       absents.length === 0, 'absentes : ' + absents.join(', '));
+
+    /* Les fichiers cités par le catalogue doivent exister, sinon la
+     * génération échoue à mi-parcours sans le dire clairement. */
+    const fichiers = [];
+    Object.keys(A.JEUX).forEach(function (j) {
+      (A.JEUX[j] || []).forEach(function (f) { if (fichiers.indexOf(f) < 0) fichiers.push(f); });
+    });
+    const perdus = fichiers.filter(function (f) { return !fs.existsSync(path.join(ROOT, f)); });
+    ok('galerie · les parcours de démonstration existent  (' + fichiers.length + ')',
+       perdus.length === 0, 'absents : ' + perdus.join(', '));
+  }());
+
+  /* Le rendu achromatique. Il ne peut pas être un filtre CSS — celui-ci ne
+   * suit pas dans toBlob — donc chaque couleur est convertie à la source.
+   * Ce qui doit tenir : toutes les syntaxes du studio, l'alpha préservé, et
+   * deux teintes distinctes qui ne se confondent pas. */
+  (function () {
+    const faux = {};
+    new Function('window', 'CanvasRenderingContext2D',
+      fs.readFileSync(path.join(ROOT, 'src', 'studio.js'), 'utf8'))
+      (faux, function () {});
+    const gris = faux.Studio.versGris;
+
+    ok('gris · #RRGGBB  (rouille → ' + gris('#A54F37') + ')',
+       gris('#A54F37') === 'rgb(96,96,96)', gris('#A54F37'));
+    ok('gris · #RGB court', gris('#fff') === 'rgb(255,255,255)', gris('#fff'));
+    ok('gris · rgb()', gris('rgb(36,40,32)') === 'rgb(39,39,39)', gris('rgb(36,40,32)'));
+    /* L'alpha DOIT survivre : la moitié des planches pose ses gris et ses
+     * voiles en rgba, et les aplatir à 1 remplirait toutes les surcouches. */
+    ok('gris · rgba() garde son alpha', gris('rgba(36,40,32,0.45)') === 'rgba(39,39,39,0.45)',
+       gris('rgba(36,40,32,0.45)'));
+    ok('gris · un dégradé n’est pas touché', gris({ objet: 1 }).objet === 1);
+    ok('gris · une syntaxe inconnue reste intacte', gris('currentColor') === 'currentColor');
+
+    /* Le papier crème DOIT devenir un gris neutre : du crème n'est pas du
+     * noir et blanc, et le laisser aurait vidé le réglage de son sens. */
+    const papier = gris('#F2EFE6');
+    const m = /rgb\((\d+),(\d+),(\d+)\)/.exec(papier);
+    ok('gris · le papier crème devient neutre  (' + papier + ')',
+       m && m[1] === m[2] && m[2] === m[3]);
+
+    /* Rouille et bleu ne doivent pas tomber sur le même gris, sinon deux
+     * sorties distinctes deviennent indiscernables en noir et blanc. */
+    const rouille = gris('#A54F37'), bleu = gris('#355E70');
+    ok('gris · rouille et bleu restent distincts  (' + rouille + ' / ' + bleu + ')',
+       rouille !== bleu);
+
+    /* Mais neuf niveaux d'écart ne SUFFISENT pas à distinguer deux sorties
+     * sur une planche multi-activités : la luminance rapproche le rouille et
+     * le bleu. D'où la rampe de gris régulière, qui les répartit. */
+    const rampe = faux.Studio.rampeDeGris(5);
+    ok('gris · la rampe multi-sorties est régulièrement espacée  (' +
+       rampe.join(' ') + ')',
+       rampe.length === 5 && new Set(rampe).size === 5);
+    const niveaux = rampe.map(function (c) { return parseInt(/\d+/.exec(c)[0], 10); });
+    let ecartMini = Infinity;
+    for (let i = 1; i < niveaux.length; i++) {
+      ecartMini = Math.min(ecartMini, Math.abs(niveaux[i] - niveaux[i - 1]));
+    }
+    ok('gris · deux sorties voisines gardent 25 niveaux d’écart  (' + ecartMini + ')',
+       ecartMini >= 25);
+  }());
+
   /* Le socle « Alpage ». Six planches en dépendent, et chacune de ces
    * fonctions a une manière silencieuse de se tromper : un rééchantillonnage
    * inégal raconte la vitesse au lieu de la forme, un champ de distance faux

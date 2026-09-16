@@ -398,6 +398,19 @@
         <label class="opt"><span>Minimaliste — tracé seul</span>
           <input type="checkbox" id="minimal">
         </label>
+        <!-- Rendu et support sont deux choix INDÉPENDANTS : une affiche
+             sombre peut être colorée, une affiche claire strictement en noir
+             et blanc. Les fusionner en un seul menu aurait fabriqué six
+             combinaisons dont quatre n'ont pas de nom. -->
+        <label class="opt"><span>Rendu</span>
+          <select id="rendu">
+            <option value="couleur">Couleur</option>
+            <option value="nb">Noir &amp; blanc</option>
+          </select>
+        </label>
+        <label class="opt" id="opt-photo-nb" hidden><span>Photo aussi en N&amp;B</span>
+          <input type="checkbox" id="photo-nb">
+        </label>
         <div id="opts"></div>
       </section>
 
@@ -472,6 +485,12 @@
               style="width: auto; margin-top: 6px">Voir avec huit semaines — tissage</button>
       <button class="ghost" id="load-year" type="button"
               style="width: auto; margin-top: 6px">Voir une année — Almanac</button>
+      <button class="ghost" id="load-formes" type="button"
+              style="width: auto; margin-top: 6px">Quatre formes de parcours — revue</button>
+      <button class="ghost" id="load-semaine" type="button"
+              style="width: auto; margin-top: 6px">Une semaine partagée — Atlas</button>
+      <button class="ghost" id="load-regions" type="button"
+              style="width: auto; margin-top: 6px">Deux régions éloignées — Archipel</button>
       <div class="projet" id="musee-panneau">
         <button class="ghost" id="musee-creer" type="button">Créer une pièce de musée</button>
         <input type="text" id="musee-titre" placeholder="Titre de la pièce">

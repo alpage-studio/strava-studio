@@ -2,32 +2,31 @@
  *
  * Le parcours au centre, et autour de lui une famille de contours qui
  * s'écartent régulièrement — entre empreinte digitale, anneau de croissance
- * et estampe. Derrière, un aplat simple, légèrement décalé, comme un second
- * passage d'impression mal calé.
+ * et estampe.
+ *
+ * ORIGINAL       Sceau · Triptyque · Collection
+ * EXPLORATIONS   Soleil · Îlots · Contre-empreinte · Sceau cerclé
  *
  * ── Ce que les contours SONT, et ce qu'ils ne sont pas ────────────────
  *
- * Ce sont des décalages parallèles de la trace. Rien de plus. Ils ne
- * décrivent AUCUNE altitude et la planche ne les appelle jamais des courbes
- * de niveau : la ressemblance est réelle et le malentendu serait facile.
- * L'anneau à 300 m dit « à trois cents mètres du parcours », pas « à trois
- * cents mètres d'altitude ».
+ * Ce sont des lignes de niveau d'un CHAMP DE DISTANCE au parcours. Rien de
+ * plus. Elles ne décrivent aucune altitude et la planche ne les appelle
+ * jamais des courbes de niveau : la ressemblance est réelle et le
+ * malentendu serait facile. L'anneau à 300 m dit « à trois cents mètres du
+ * parcours », pas « à trois cents mètres d'altitude ».
  *
  * ── Fermé, ouvert : deux familles différentes ────────────────────────
  *
- * Une boucle véritablement refermée produit des contours FERMÉS, dedans et
- * dehors. Un parcours ouvert produit des rubans OUVERTS, qui s'écartent de
- * part et d'autre. On ne referme jamais une trace ouverte pour faire un
- * plus joli sceau : l'aller-retour du lundi ne devient pas une boucle.
+ * Une boucle refermée produit des contours fermés, dedans et dehors. Un
+ * parcours ouvert produit des rubans ouverts. On ne referme jamais une trace
+ * ouverte pour faire un plus joli sceau.
  *
- * ── Le décalage se replie, et c'est voulu ────────────────────────────
+ * ── Le pied de planche a trois zones, pas une ────────────────────────
  *
- * Un décalage par les normales se croise dans les virages plus serrés que
- * le décalage lui-même. Nettoyer ces boucles demande un vrai offset de
- * polygone — dix fois le code. Rempli en `nonzero`, le repli se lit comme
- * une boucle d'encre : c'est exactement ce que fait un anneau de croissance
- * autour d'un nœud. On le garde, et on borne le décalage maximal pour qu'il
- * reste une signature et non une bouillie.
+ * Titre, métadonnées, mention. Elles étaient posées à la même hauteur et se
+ * chevauchaient dès que le texte s'allongeait — « TAILLES UNIFORMES » passait
+ * à travers « CE NE SONT PAS DES COURBES D'ALTITUDE ». Chacune a maintenant
+ * sa ligne, et la mention peut se taire.
  */
 Studio.template({
   id: 'empreinte',
@@ -39,23 +38,31 @@ Studio.template({
 
   options: [
     { key: 'composition', type: 'select', label: 'Composition', default: 'sceau', reflow: true,
-      choices: [['sceau', 'Sceau — une empreinte'],
-                ['triptyque', 'Triptyque — trois sorties'],
-                ['collection', 'Collection — jusqu’à sept']] },
-    { key: 'lignes', type: 'range', label: 'Nombre de lignes', default: 16, min: 3, max: 40, step: 1 },
-    { key: 'ecart', type: 'range', label: 'Écartement', default: 40, min: 10, max: 100, step: 2 },
+      choices: [['sceau', 'Original · Sceau'],
+                ['triptyque', 'Original · Triptyque'],
+                ['collection', 'Original · Collection'],
+                ['soleil', 'Exploration · Soleil — disque décentré'],
+                ['ilots', 'Exploration · Îlots — trois aplats'],
+                ['contre', 'Exploration · Contre-empreinte — contours seuls'],
+                ['cercle', 'Exploration · Sceau cerclé']] },
+    { key: 'lignes', type: 'range', label: 'Nombre de lignes', default: 13, min: 3, max: 40, step: 1 },
+    { key: 'ecart', type: 'range', label: 'Écartement', default: 55, min: 10, max: 100, step: 2 },
     { key: 'aplat', type: 'select', label: 'Aplat', default: 'hautgauche', reflow: true,
       choices: [['hautgauche', 'Décalé en haut à gauche'],
                 ['basdroite', 'Décalé en bas à droite'],
                 ['centre', 'Centré'],
                 ['aucun', 'Aucun aplat']] },
+    { key: 'tailleAplat', type: 'range', label: 'Taille de l’aplat', default: 100, min: 25, max: 160, step: 5 },
     { key: 'accentC', type: 'color', label: 'Aplat', default: '#A54F37' },
     /* --- avancé --- */
     { key: 'texte', type: 'toggle', label: 'Titre et date', default: true },
+    { key: 'mention', type: 'toggle', label: 'Mention « pas des courbes »', default: true },
+    { key: 'ordre', type: 'select', label: 'Ordre (série)', default: 'chrono',
+      choices: [['chrono', 'Chronologique'],
+                ['biblio', 'Ordre de la bibliothèque']] },
     { key: 'echelleCollection', type: 'select', label: 'Échelle (collection)', default: 'uniforme',
       choices: [['uniforme', 'Taille uniforme — composition'],
                 ['geo', 'Échelle géographique commune']] },
-    /* fond, voile, papier, encre : injectés depuis le socle Alpage */
     { key: 'titre', type: 'text', label: 'Titre', default: '' }
   /* fond · voile · papier · encre : les quatre réglages communs aux six
    * planches Alpage, déclarés une seule fois pour qu'aucune ne dérive. */
@@ -64,35 +71,49 @@ Studio.template({
   inert: function (a, vals) {
     var morts = [];
     if (!vals) return morts;
+    var multi = ['triptyque', 'collection', 'ilots'].indexOf(vals.composition) >= 0;
     if (vals.composition !== 'collection') morts.push('echelleCollection');
-    if (vals.aplat === 'aucun') morts.push('accentC');
+    if (!multi) morts.push('ordre');
+    // Contre-empreinte n'a pas d'aplat, par définition
+    if (vals.composition === 'contre') morts.push('aplat', 'accentC', 'tailleAplat');
+    else if (vals.aplat === 'aucun') morts.push('accentC', 'tailleAplat');
+    // Îlots pose ses trois teintes lui-même
+    if (vals.composition === 'ilots') morts.push('accentC', 'aplat');
     return morts;
   },
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
-    /* Papier ou surcouche : c'est la MÊME planche. Le socle pose le fond,
-     * le voile éventuel, et rend l'encre à utiliser. */
     var socle = Alpage.socle(H, o);
     var encre = socle.encre;
-    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || o.papierC || '#F2EFE6');
+    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || '#F2EFE6');
+    if (!socle.transparent) H.grain(0.012);
     var faint = melange(encre, 0.45);
 
-
     var g = H.grid({ cols: 6, margin: u(8) });
+    var compo = o.composition;
+    var estMulti = ['triptyque', 'collection', 'ilots'].indexOf(compo) >= 0;
 
     /* ---------- les sujets ---------- */
     var biblio = (s.library || []).filter(function (e) {
       return e.activity && e.activity.track && e.activity.track.length > 8;
     });
-    var sujets;
-    if (o.composition === 'sceau' || !biblio.length) {
-      sujets = [{ activity: a, couleur: o.accentC }];
-    } else if (o.composition === 'triptyque') {
-      sujets = biblio.slice(0, 3);
-    } else {
-      sujets = biblio.slice(0, 7);
+    if (o.ordre === 'chrono' && biblio.length > 1) {
+      /* Chronologique par défaut : une collection d'estampes se lit dans le
+       * temps, et la première version sortait 18 août, 26 août, 2 sept,
+       * 8 sept, 14 juil… L'ordre de la bibliothèque reste accessible — c'est
+       * lui qui permet de composer à la main. */
+      biblio = biblio.slice().sort(function (x, y) {
+        var dx = x.activity.date ? x.activity.date.getTime() : 0;
+        var dy = y.activity.date ? y.activity.date.getTime() : 0;
+        return dx - dy;
+      });
     }
+
+    var sujets;
+    if (!estMulti || !biblio.length) sujets = [{ activity: a }];
+    else if (compo === 'triptyque' || compo === 'ilots') sujets = biblio.slice(0, 3);
+    else sujets = biblio.slice(0, 7);
     sujets = sujets.filter(function (e) { return e.activity && (e.activity.track || []).length > 8; });
 
     if (!sujets.length) {
@@ -103,127 +124,127 @@ Studio.template({
       return;
     }
 
-    /* ---------- préparation : une fois, avant l'animation ----------
-     * La géométrie de TOUS les contours est calculée d'emblée. Pendant
-     * l'animation on n'en révèle qu'une partie : si on la recalculait au
-     * fil de la révélation, chaque image redessinerait des contours
-     * légèrement différents et l'ensemble tremblerait. */
+    /* La géométrie est calculée EN ENTIER avant toute révélation : la
+     * recalculer au fil de l'animation ferait trembler les contours. */
     var prepares = sujets.map(preparer);
-    /* Semé avant tout dessin : `var` est hoisté, son affectation non. */
-    var alea = Alpage.graine(prepares[0].vue);
+
+    /* ---------- le pied, réservé AVANT de dimensionner le dessin ---------- */
+    var hPied = o.texte ? (o.mention ? u(15) : u(11)) : u(2);
+    var zone = { x: g.left, y: g.top + u(2), w: g.width, h: g.height - hPied };
 
     /* ---------- disposition ---------- */
-    var titreH = o.texte ? u(14) : u(2);
-    var zone = { x: g.left, y: g.top + u(2), w: g.width, h: g.height - titreH };
+    if (compo === 'ilots') poseIlots(zone);
+    else if (estMulti) poseGrille(zone);
+    else poseSceau(prepares[0], zone, 1);
 
-    if (o.composition === 'sceau') {
-      poseSceau(prepares[0], zone, 1);
-    } else {
+    legende();
+
+    /* ================= préparation ================= */
+
+    function preparer(e) {
+      var vue = Alpage.projette(e.activity.track);
+      var pas = Math.max(2, vue.etendue / 520);
+      /* Lissage des DIRECTIONS avant tout contour : rééchantillonner rend la
+       * polyligne linéaire par morceaux, et les angles vifs des sommets
+       * d'origine se voient dans les anneaux. */
+      var pts = Alpage.reechantillonne(vue.pts, pas);
+      var fen = Math.max(3, Math.round(pts.length / 60));
+      pts = Alpage.lisseDirections(Alpage.lisse(pts, fen), fen);
+      var fermee = pts.length > 8 &&
+        Math.hypot(pts[0].x - pts[pts.length - 1].x, pts[0].y - pts[pts.length - 1].y) < vue.etendue * 0.02;
+      return { entree: e, activity: e.activity, vue: vue, pts: pts, fermee: fermee };
+    }
+
+    /* ================= dispositions ================= */
+
+    function poseGrille(boite) {
       var n = prepares.length;
       var cols = n <= 1 ? 1 : n <= 4 ? 2 : 3;
-      if (o.composition === 'triptyque') cols = (w > h) ? 3 : 1;
+      if (compo === 'triptyque') cols = (w > h) ? 3 : 1;
       var rows = Math.ceil(n / cols);
-      var cw = zone.w / cols, chh = zone.h / rows;
+      var cw = boite.w / cols, chh = boite.h / rows;
       var reste = n % cols;
       var decale = reste ? (cols - reste) * cw / 2 : 0;
       var derniere = Math.floor((n - 1) / cols);
-      /* Échelle géographique commune : la plus grande étendue fixe le
-       * rapport, et chaque sceau garde SA taille dans ce rapport. En
-       * uniforme, chacun remplit sa case — plus beau, non comparable, et
-       * le pied de planche le dit. */
       var etendueMax = Math.max.apply(null, prepares.map(function (p) { return p.vue.etendue; })) || 1;
       prepares.forEach(function (p, i) {
         var rangee = Math.floor(i / cols);
-        var cx = zone.x + (i % cols) * cw + (rangee === derniere ? decale : 0);
-        var cy = zone.y + rangee * chh;
-        var facteur = o.echelleCollection === 'geo' && o.composition === 'collection'
+        var cx = boite.x + (i % cols) * cw + (rangee === derniere ? decale : 0);
+        var cy = boite.y + rangee * chh;
+        var facteur = (o.echelleCollection === 'geo' && compo === 'collection')
           ? Math.max(0.28, Math.sqrt(p.vue.etendue / etendueMax)) : 1;
         poseSceau(p, { x: cx + u(1), y: cy + u(1), w: cw - u(2), h: chh - u(7) }, facteur, i);
       });
     }
 
-    legende();
-
-    /* ================= préparation d'un sujet ================= */
-
-    function preparer(e) {
-      var vue = Alpage.projette(e.activity.track);
-      var pas = Math.max(3, vue.etendue / 420);
-      /* Deux passes de lissage large AVANT tout décalage. Rééchantillonner
-       * une trace rend la polyligne linéaire par morceaux : les sommets
-       * d'origine restent des angles vifs, et un décalage par les normales
-       * y produit des croisements en éventail — seize anneaux deviennent
-       * alors une hachure. Ce qui suit doit être une courbe, pas un polygone. */
-      var pts = Alpage.reechantillonne(vue.pts, pas);
-      var fen = Math.max(3, Math.round(pts.length / 55));
-      pts = Alpage.lisse(Alpage.lisse(pts, fen), fen);
-      /* Fermée ? Le critère est géométrique : le dernier point revient-il
-       * au premier, à 2 % de l'étendue près. Une réponse « oui » change la
-       * famille de contours, donc on ne la devine pas au nom du fichier. */
-      var fermee = pts.length > 8 &&
-        Math.hypot(pts[0].x - pts[pts.length - 1].x, pts[0].y - pts[pts.length - 1].y) < vue.etendue * 0.02;
-      /* La couleur de bibliothèque n'entre PAS ici : sept aplats arc-en-ciel
-       * contrediraient la règle des deux accents au plus, et transformeraient
-       * une collection d'estampes en nuancier. */
-      return { entree: e, activity: e.activity, vue: vue, pts: pts, fermee: fermee };
+    /* ÎLOTS — trois empreintes, trois aplats, une asymétrie tenue.
+     * Ni grille régulière, ni tailles identiques : les positions et les
+     * échelles sont posées à la main, en fractions de la zone. C'est une
+     * COMPOSITION, et les tailles ne comparent rien — la mention le dit. */
+    function poseIlots(boite) {
+      var TEINTES = ['#A54F37', '#C99A32', '#355E70'];
+      var PLACES = (w > h * 1.15)
+        ? [[0.20, 0.44, 1.00], [0.53, 0.26, 0.76], [0.81, 0.66, 0.90]]
+        : [[0.34, 0.20, 1.00], [0.68, 0.49, 0.78], [0.33, 0.78, 0.88]];
+      var cote = Math.min(boite.w, boite.h) * (w > h * 1.15 ? 0.56 : 0.54);
+      prepares.slice(0, 3).forEach(function (p, i) {
+        var pl = PLACES[i];
+        var c = cote * pl[2];
+        poseSceau(p, { x: boite.x + boite.w * pl[0] - c / 2,
+                       y: boite.y + boite.h * pl[1] - c / 2, w: c, h: c }, 1, null,
+                  { teinte: TEINTES[i], aplat: i === 1 ? 'basdroite' : 'hautgauche' });
+      });
     }
 
     /* ================= un sceau ================= */
 
-    function poseSceau(p, boite, facteur, index) {
+    function poseSceau(p, boite, facteur, index, forcage) {
+      forcage = forcage || {};
       var cote = Math.min(boite.w, boite.h) * facteur;
       var sousBoite = { x: boite.x + (boite.w - cote) / 2, y: boite.y + (boite.h - cote) / 2,
                         w: cote, h: cote };
-      var cadre = Alpage.cadre(p.vue, sousBoite, { marge: cote * 0.2 });
+      var cadre = Alpage.cadre(p.vue, sousBoite, { marge: cote * (compo === 'cercle' ? 0.27 : 0.2) });
       var P = p.pts.map(cadre.point);
-      var N = Alpage.normales(P);
 
-      var nb = Math.max(3, Math.round(o.lignes));
-
-      /* La taille de la FORME, pas celle de la case : un aller-retour occupe
-       * un dixième de son cadre, et un aplat calé sur le cadre l'aurait
-       * englouti. On mesure le rayon réellement occupé par le parcours. */
+      /* La taille de la FORME, pas celle de la case. */
       var cx = 0, cy = 0;
       P.forEach(function (q) { cx += q.x; cy += q.y; });
       cx /= P.length; cy /= P.length;
-      var rayon = 0;
-      P.forEach(function (q) { rayon = Math.max(rayon, Math.hypot(q.x - cx, q.y - cy)); });
+      var rayon = 0, demiL = 0, demiH = 0;
+      P.forEach(function (q) {
+        rayon = Math.max(rayon, Math.hypot(q.x - cx, q.y - cy));
+        demiL = Math.max(demiL, Math.abs(q.x - cx));
+        demiH = Math.max(demiH, Math.abs(q.y - cy));
+      });
       rayon = Math.max(rayon, cote * 0.04);
 
-      /* L'écartement total de la famille, en fraction du rayon de la forme.
-       * C'est ce qui fait la signature : une couronne large se lit comme un
-       * anneau de croissance, une couronne étroite comme un simple halo. */
+      /* Contre-empreinte : moins de lignes, chacune plus présente. */
+      var nb = Math.max(3, Math.round(compo === 'contre'
+        ? Math.max(12, Math.min(18, o.lignes)) : o.lignes));
       var ecartMax = rayon * 0.85 * (Number(o.ecart) || 40) / 100;
       var pasAnneau = ecartMax / nb;
-
-      /* Densité bornée par le format : sous un anneau tous les 1,4 px,
-       * l'impression et l'export produisent du moiré. On réduit alors le
-       * NOMBRE d'anneaux plutôt que de les serrer davantage. */
       var mini = Math.max(1.4, u(0.18));
       if (pasAnneau < mini) { pasAnneau = mini; nb = Math.max(3, Math.floor(ecartMax / pasAnneau)); }
 
-      /* 1. l'aplat, DERRIÈRE, décalé — un second passage d'impression mal
-       *    calé. Il est calé sur la forme et reste plus petit que la
-       *    couronne : c'est le sceau qu'on regarde, pas la pastille. */
-      if (o.aplat !== 'aucun') {
-        /* Le rayon de l'aplat suit la MOYENNE GÉOMÉTRIQUE des deux demi-
-         * dimensions de la forme, pas son rayon maximal. Sur un parcours
-         * allongé — un aller-retour, une vallée — le rayon maximal vaut la
-         * demi-longueur : le disque couvrait alors toute la planche et
-         * avalait la couronne. La moyenne géométrique donne un disque à la
-         * mesure de la tache d'encre, ce que fait un vrai tampon. */
-        var demiL = 0, demiH = 0;
-        P.forEach(function (q) {
-          demiL = Math.max(demiL, Math.abs(q.x - cx));
-          demiH = Math.max(demiH, Math.abs(q.y - cy));
-        });
-        var rAplat = Math.sqrt(Math.max(1, demiL) * Math.max(1, demiH)) * 1.1 + ecartMax * 0.3;
-        rAplat = Math.max(rayon * 0.24, Math.min(rayon * 0.86, rAplat));
-        var dec = (rAplat + ecartMax) * 0.2;
-        var dx = o.aplat === 'hautgauche' ? -dec : o.aplat === 'basdroite' ? dec : 0;
-        var dy = o.aplat === 'hautgauche' ? -dec * 0.8 : o.aplat === 'basdroite' ? dec * 0.8 : 0;
+      /* --- 1. l'aplat, derrière --- */
+      var aplat = forcage.aplat || o.aplat;
+      if (compo !== 'contre' && aplat !== 'aucun') {
+        /* Rayon sur la MOYENNE GÉOMÉTRIQUE des demi-dimensions : sur un
+         * parcours allongé, le rayon maximal vaut la demi-longueur et le
+         * disque avalait toute la planche.
+         *
+         * « Soleil » le réduit encore et le décale davantage : il doit
+         * ponctuer le dessin, pas le dominer. */
+        var estSoleil = compo === 'soleil';
+        var base = Math.sqrt(Math.max(1, demiL) * Math.max(1, demiH));
+        var rAplat = (estSoleil ? base * 0.58 : base * 1.1 + ecartMax * 0.3)
+                     * (Number(o.tailleAplat) || 100) / 100;
+        rAplat = Math.max(rayon * (estSoleil ? 0.13 : 0.24), Math.min(rayon * 0.92, rAplat));
+        var dec = (rAplat + ecartMax) * (estSoleil ? 0.9 : 0.2);
+        var dx = aplat === 'hautgauche' ? -dec : aplat === 'basdroite' ? dec : 0;
+        var dy = aplat === 'hautgauche' ? -dec * 0.8 : aplat === 'basdroite' ? dec * 0.8 : 0;
         ctx.save();
-        ctx.fillStyle = o.accentC;
+        ctx.fillStyle = forcage.teinte || o.accentC;
         ctx.globalAlpha = 0.92;
         ctx.beginPath();
         ctx.arc(cx + dx, cy + dy, rAplat, 0, Math.PI * 2);
@@ -231,18 +252,12 @@ Studio.template({
         ctx.restore();
       }
 
-      /* 2. les contours, par CHAMP DE DISTANCE.
-       *
-       * On calcule une fois la distance au parcours sur une grille, puis on
-       * en extrait les lignes de niveau. Les anneaux fusionnent alors d'eux-
-       * mêmes là où la place manque, s'arrondissent aux extrémités et
-       * contournent proprement un parcours qui se recoupe. Le décalage par
-       * les normales, essayé d'abord, s'effondrait sur toute forme allongée :
-       * les anneaux intérieurs s'empilaient en hachure et chaque extrémité
-       * ouvrait un éventail de traits.
-       *
-       * Aucun espace intérieur n'est comblé : s'il n'y a pas la place pour un
-       * anneau, le champ n'en produit pas, et c'est la bonne réponse. */
+      /* --- 2. les contours, par champ de distance ---
+       * Les anneaux fusionnent d'eux-mêmes là où la place manque,
+       * s'arrondissent aux extrémités et contournent proprement un parcours
+       * qui se recoupe. Un décalage par les normales, essayé d'abord,
+       * s'effondrait sur toute forme allongée. Aucun espace intérieur n'est
+       * comblé : s'il n'y a pas la place, le champ n'en produit pas. */
       var marge = ecartMax * 1.15;
       var bx = Infinity, by = Infinity, bX = -Infinity, bY = -Infinity;
       P.forEach(function (q) {
@@ -251,11 +266,13 @@ Studio.template({
       });
       var boiteChamp = { x: bx - marge, y: by - marge,
                          w: (bX - bx) + 2 * marge, h: (bY - by) + 2 * marge };
-      // une grille carrée : sur une boîte très allongée, la résolution suit
-      var res = Math.max(90, Math.min(230, Math.round(140 * Math.sqrt(cote / 400))));
+      var res = Math.max(110, Math.min(260, Math.round(170 * Math.sqrt(cote / 400))));
       var champ = Alpage.champDistance(P, boiteChamp, res);
 
       var revelation = H.progressCount(nb + 1);
+      /* Un peu plus épais qu'au premier jet : à 0,45 % du rayon les anneaux
+       * se confondaient en un halo hachuré au lieu de se compter. */
+      var epais = compo === 'contre' ? rayon * 0.011 : rayon * 0.0062;
       ctx.save();
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       for (var k = nb; k >= 1; k--) {
@@ -266,55 +283,111 @@ Studio.template({
           ctx.moveTo(segs[t2][0].x, segs[t2][0].y);
           ctx.lineTo(segs[t2][1].x, segs[t2][1].y);
         }
-        ctx.strokeStyle = melange(encre, 0.26 + 0.5 * (1 - k / nb));
-        ctx.lineWidth = Math.max(0.6, rayon * 0.0045);
+        ctx.strokeStyle = melange(encre, compo === 'contre'
+          ? 0.42 + 0.42 * (1 - k / nb) : 0.26 + 0.5 * (1 - k / nb));
+        ctx.lineWidth = Math.max(0.6, epais);
         ctx.stroke();
       }
       ctx.restore();
 
-      /* 3. la géométrie principale, plus appuyée que ses satellites */
+      /* --- 3. la géométrie principale --- */
       ctx.save();
       ctx.beginPath();
       P.forEach(function (q, i) { if (i === 0) ctx.moveTo(q.x, q.y); else ctx.lineTo(q.x, q.y); });
       if (p.fermee) ctx.closePath();
       ctx.strokeStyle = encre;
-      ctx.lineWidth = Math.max(1.2, rayon * 0.014);
+      ctx.lineWidth = Math.max(1.2, rayon * (compo === 'contre' ? 0.020 : 0.014));
       ctx.lineJoin = ctx.lineCap = 'round';
       ctx.stroke();
       ctx.restore();
 
-      /* 4. la date, sous le sceau, en collection */
-      if (o.composition !== 'sceau' && o.texte && index != null) {
+      /* --- 4. le cercle du « sceau cerclé » ---
+       * Il RASSEMBLE l'empreinte sans la déformer : c'est un cadre posé
+       * autour, pas une déformation du parcours. */
+      if (compo === 'cercle') {
+        var rc = Math.max(rayon + ecartMax * 1.2, cote * 0.40);
+        ctx.save();
+        ctx.beginPath(); ctx.arc(cx, cy, rc, 0, Math.PI * 2);
+        ctx.strokeStyle = melange(encre, 0.55);
+        ctx.lineWidth = Math.max(1, rayon * 0.010);
+        ctx.stroke();
+        ctx.beginPath(); ctx.arc(cx, cy, rc * 1.045, 0, Math.PI * 2);
+        ctx.strokeStyle = melange(encre, 0.22);
+        ctx.lineWidth = Math.max(0.6, rayon * 0.005);
+        ctx.stroke();
+        ctx.restore();
+        if (o.texte) texteEnArc(cx, cy, rc * 1.13, p.activity);
+      }
+
+      /* --- 5. la date, sous chaque pièce d'une série --- */
+      if (estMulti && o.texte && index != null) {
         H.text(courte(p.activity.date), boite.x + boite.w / 2, boite.y + boite.h + u(4.5),
                H.t('label', { color: faint, align: 'center', maxWidth: boite.w }));
       }
     }
 
+    /* Le nom sur un arc court. Au-delà d'une longueur, il repasse sous le
+     * cercle : un titre long étiré sur un arc devient illisible bien avant
+     * d'en faire le tour. */
+    function texteEnArc(cx, cy, r, act) {
+      var str = (String(o.titre || '').trim() || act.name || 'Sortie').toUpperCase();
+      var style = H.t('label', { size: 1.9, color: encre });
+      var larg = H.measureWith(str, style, style.size);
+      if (larg > Math.PI * 0.62 * r) {
+        H.text(str, cx, cy + r + u(4),
+               H.t('label', { color: encre, align: 'center', maxWidth: g.width }));
+        return;
+      }
+      ctx.save();
+      ctx.fillStyle = encre;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      ctx.font = '600 ' + style.size + 'px ' + H.FONT;
+      var total = larg / r, depart = -Math.PI / 2 - total / 2, pos = 0;
+      for (var i = 0; i < str.length; i++) {
+        var c = str[i], lc = ctx.measureText(c).width;
+        var ang = depart + (pos + lc / 2) / r;
+        ctx.save();
+        ctx.translate(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r);
+        ctx.rotate(ang + Math.PI / 2);
+        ctx.fillText(c, 0, 0);
+        ctx.restore();
+        pos += lc;
+      }
+      ctx.restore();
+    }
 
-    /* ================= texte ================= */
-
+    /* ================= pied de planche =================
+     * Trois lignes, trois hauteurs. Elles partageaient la même avant, et se
+     * traversaient dès que l'une s'allongeait. */
     function legende() {
       if (!o.texte) return;
-      var y = g.bottom;
+      var yMention = g.bottom;
+      var yMeta = o.mention ? yMention - u(4.2) : yMention;
+      var yTitre = yMeta - u(5.4);
+
       var titre = String(o.titre || '').trim() ||
-        (o.composition === 'sceau' ? (a.name || 'Sortie')
-          : o.composition === 'triptyque' ? 'Triptyque' : 'Collection');
-      H.text(titre, g.left, y - u(5.4), H.t('title', { size: 3.4, color: encre, maxWidth: g.w(4) }));
+        (estMulti ? (compo === 'ilots' ? 'Îlots' : compo === 'triptyque' ? 'Triptyque' : 'Collection')
+                  : (a.name || 'Sortie'));
+      H.text(titre, g.left, yTitre, H.t('title', { size: 3.4, color: encre, maxWidth: g.w(4) }));
 
       var bouts = [];
-      if (o.composition === 'sceau') {
+      if (!estMulti) {
         if (a.date) bouts.push(courte(a.date).toUpperCase());
         if (a.distance_km != null) bouts.push(H.fmt.km(a.distance_km, 1) + ' KM');
         bouts.push(prepares[0].fermee ? 'BOUCLE FERMÉE' : 'PARCOURS OUVERT');
       } else {
         bouts.push(prepares.length + (prepares.length > 1 ? ' EMPREINTES' : ' EMPREINTE'));
-        bouts.push(o.echelleCollection === 'geo' && o.composition === 'collection'
-          ? 'ÉCHELLE GÉOGRAPHIQUE COMMUNE' : 'TAILLES UNIFORMES — NON COMPARABLES');
+        if (compo === 'ilots') bouts.push('TAILLES DE COMPOSITION — SANS COMPARAISON');
+        else bouts.push(o.echelleCollection === 'geo' && compo === 'collection'
+          ? 'ÉCHELLE GÉOGRAPHIQUE COMMUNE' : 'TAILLES UNIFORMES');
       }
-      H.text(bouts.join('   ·   '), g.left, y,
+      H.text(bouts.join('   ·   '), g.left, yMeta,
              H.t('label', { color: faint, maxWidth: g.width }));
-      H.text('LIGNES DÉCALÉES DU PARCOURS — CE NE SONT PAS DES COURBES D’ALTITUDE',
-             g.right, y, H.t('label', { color: melange(encre, 0.3), align: 'right', maxWidth: g.w(3) }));
+
+      if (o.mention) {
+        H.text('LIGNES DÉCALÉES DU PARCOURS — CE NE SONT PAS DES COURBES D’ALTITUDE',
+               g.left, yMention, H.t('label', { color: melange(encre, 0.3), maxWidth: g.width }));
+      }
     }
 
     function courte(d) {
@@ -326,5 +399,6 @@ Studio.template({
       var v = parseInt(String(hex).replace('#', ''), 16);
       return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + k + ')';
     }
+    void papier;
   }
 });

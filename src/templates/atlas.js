@@ -40,8 +40,11 @@ Studio.template({
   options: [
     { key: 'semaine', type: 'range', label: 'Semaine (0 = la dernière)', default: 0, min: -52, max: 0, step: 1, reflow: true },
     { key: 'composition', type: 'select', label: 'Composition', default: 'complete', reflow: true,
-      choices: [['complete', 'Complète — carte, profils, jours'],
-                ['epuree', 'Épurée — carte et jours']] },
+      choices: [['complete', 'Original · Complète — carte, profils, jours'],
+                ['epuree', 'Original · Épurée — carte et jours'],
+                ['territoire', 'Exploration · Territoire — la carte domine'],
+                ['carnet', 'Exploration · Carnet — carte et fiches'],
+                ['archipel', 'Exploration · Archipel — un médaillon par région']] },
     { key: 'couleurs', type: 'select', label: 'Couleurs', default: 'encre',
       choices: [['encre', 'Encre commune, une sortie en accent'],
                 ['activite', 'Une couleur par sortie — avec légende']] },
@@ -123,11 +126,26 @@ Studio.template({
      * hauteur, et la carte prend ce qui reste. Le premier jet posait la
      * carte d'abord puis empilait le reste : les totaux venaient alors
      * s'écrire par-dessus les lettres des sept jours. */
-    var complete = o.composition === 'complete' && avecGPS.some(function (e) { return (e.activity.profile || []).length > 3; });
+    var compo = o.composition;
+    var estTerritoire = compo === 'territoire';
+    var estCarnet = compo === 'carnet';
+    var estArchipel = compo === 'archipel';
+    /* TERRITOIRE donne les deux tiers à la carte et supprime les profils ;
+     * CARNET remplace les profils par des fiches ; ARCHIPEL force un
+     * médaillon par groupe géographique, même quand ils sont proches. */
+    var complete = compo === 'complete' &&
+      avecGPS.some(function (e) { return (e.activity.profile || []).length > 3; });
     var rJour = Math.min(g.width / 7 * 0.34, u(5));
-    var hTotaux = u(12);                    // filet + trois chiffres + mention
+    /* Le pied est un BLOC réservé, dimensionné sur son contenu réel : filet,
+     * trois chiffres à leur corps, puis la mention. La première version
+     * réservait douze unités pour un bloc qui en demande seize, et les
+     * grands chiffres sortaient par le bas de la zone sûre. */
+    var corpsChiffre = Math.min(5.4, Math.max(3.4, (paysageOuEtroit() ? 4.0 : 5.4)));
+    var hTotaux = u(6) + u(corpsChiffre) + u(5);
     var hJours  = rJour * 2 + u(13);        // disques + lettres + note
-    var hProfils = complete ? u(20) : 0;
+    var hProfils = complete ? u(20) : (estCarnet ? u(26) : 0);
+
+    function paysageOuEtroit() { return w > h * 1.25; }
 
     /* En PAYSAGE, on ne comprime pas : on RECOMPOSE. La carte prend la
      * moitié gauche sur toute la hauteur, le reste s'empile à droite. Garder
@@ -153,8 +171,14 @@ Studio.template({
           h: (basProfils - hProfils - u(3)) - (g.top + u(13)) };
 
     /* ---------- la carte ---------- */
-    var groupes = regroupe(avecGPS);
+    if (estTerritoire) {
+      /* Deux tiers de l'affiche pour la carte : c'est la définition de cette
+       * vision. On lui rend l'espace des profils, qui n'existent pas ici. */
+      carte.h = Math.max(carte.h, (basProfils - (g.top + u(13))) * 0.98);
+    }
+    var groupes = regroupe(avecGPS, estArchipel);
     dessineCarte(carte, groupes);
+    if (estCarnet) fiches(basProfils - hProfils + u(2), basProfils - u(2));
 
     /* ---------- les profils ---------- */
     if (complete) profils(basProfils - hProfils, basProfils - u(4), colD, largD);
@@ -170,7 +194,7 @@ Studio.template({
     /* Regroupement par proximité : deux sorties dont les cadres se touchent
      * (à une tolérance près) vont dans le même médaillon. Le critère est
      * géographique, pas le nom ni le jour. */
-    function regroupe(list) {
+    function regroupe(list, force) {
       var vues = list.map(function (e) {
         var v = Alpage.projetteAbs ? null : null;
         return { entree: e, vue: Alpage.projette(e.activity.track) };
@@ -207,8 +231,18 @@ Studio.template({
 
       /* Tolérance : trois fois l'étendue du groupe, au moins 8 km. Deux
        * sorties de la même vallée se regroupent, deux week-ends à trois
-       * cents kilomètres non. */
+       * cents kilomètres non.
+       *
+       * En ARCHIPEL, la tolérance se resserre à un kilomètre : on veut voir
+       * les LIEUX séparément, même proches. C'est un choix de composition,
+       * et chaque médaillon porte son échelle — ils ne se comparent donc
+       * pas entre eux, et le pied de planche le dit. */
       function proches(gr, it) {
+        if (force) {
+          var tolA = 0.009;                        // ~1 km
+          return !(it.laMin > gr.laMax + tolA || it.laMax < gr.laMin - tolA ||
+                   it.loMin > gr.loMax + tolA * 1.4 || it.loMax < gr.loMin - tolA * 1.4);
+        }
         var etendue = Math.max(gr.laMax - gr.laMin, (gr.loMax - gr.loMin) * 0.7, 0.03);
         var tol = Math.max(0.072, etendue * 3);   // 0,072° ≈ 8 km
         return !(it.laMin > gr.laMax + tol || it.laMax < gr.laMin - tol ||
@@ -222,15 +256,18 @@ Studio.template({
                H.t('title', { color: faint, maxWidth: boite.w }));
         return;
       }
-      var n = Math.min(groupes.length, 3);
-      var cols = n === 1 ? 1 : 2;
+      var n = Math.min(groupes.length, estArchipel ? 6 : 3);
+      var cols = n === 1 ? 1 : (n <= 4 ? 2 : 3);
       var rows = Math.ceil(n / cols);
       var cw = boite.w / cols, chh = boite.h / rows;
 
       groupes.slice(0, n).forEach(function (gr, k) {
         var cx = boite.x + (k % cols) * cw + cw / 2;
         var cy = boite.y + Math.floor(k / cols) * chh + chh / 2;
-        var rayon = Math.min(cw, chh) * (n === 1 ? 0.46 : 0.40);
+        /* Les rayons sont ÉQUILIBRÉS, pas proportionnels : chaque médaillon
+         * a sa propre échelle, donc leurs tailles ne comparent rien. Les
+         * faire varier aurait suggéré une comparaison qui n'existe pas. */
+        var rayon = Math.min(cw, chh) * (n === 1 ? 0.46 : n <= 4 ? 0.40 : 0.34);
         medaillon(gr, cx, cy, rayon, n > 1 ? k : -1);
       });
 
@@ -343,6 +380,54 @@ Studio.template({
              H.t('label', { color: faint, maxWidth: colW }));
     }
 
+    /* ================= les fiches du carnet =================
+     * Trois à cinq fiches : jour, mini-profil, une mesure. C'est une page de
+     * carnet éditorial, pas un tableau — d'où la limite à UNE mesure par
+     * fiche : deux, et la fiche redevient une ligne de tableur. */
+    function fiches(y0, y1) {
+      var list = semaine.slice(0, 5);
+      if (!list.length) return;
+      var larg = g.width / list.length;
+      var haut = y1 - y0;
+      list.forEach(function (e, i) {
+        var x = g.left + i * larg;
+        var a2 = e.activity;
+        ctx.save();
+        ctx.strokeStyle = hair; ctx.lineWidth = u(0.07);
+        ctx.beginPath();
+        ctx.moveTo(x, y0); ctx.lineTo(x, y1);
+        ctx.stroke();
+        ctx.restore();
+
+        var jour = a2.date
+          ? a2.date.toLocaleDateString('fr-CH', { weekday: 'short' }).toUpperCase() : '—';
+        H.text(jour, x + u(2), y0 + u(3.4), H.t('label', { color: faint }));
+
+        // le mini-profil, s'il existe
+        var prof = a2.profile || [];
+        if (prof.length > 3) {
+          var pb = { x: x + u(2), y: y0 + u(6), w: larg - u(4), h: haut * 0.40 };
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(pb.x, pb.y + pb.h);
+          prof.forEach(function (q) { ctx.lineTo(pb.x + q.x * pb.w, pb.y + pb.h - q.y * pb.h); });
+          ctx.lineTo(pb.x + pb.w, pb.y + pb.h);
+          ctx.closePath();
+          ctx.fillStyle = melange(encre, 0.12);
+          ctx.fill();
+          ctx.strokeStyle = couleurDe(e, i);
+          ctx.lineWidth = u(0.16);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        H.text(Library.nomCourt(a2, 16), x + u(2), y1 - u(5),
+               H.t('label', { color: melange(encre, 0.75), maxWidth: larg - u(4) }));
+        H.text(H.fmt.km(a2.distance_km, 1) + ' km', x + u(2), y1 - u(0.6),
+               H.t('title', { size: 3.0, color: encre, maxWidth: larg - u(4) }));
+      });
+    }
+
     /* ================= les sept jours ================= */
 
     function ligneDesJours(y, list, colX, colW) {
@@ -387,19 +472,24 @@ Studio.template({
     /* ================= totaux ================= */
 
     function totaux(y, colX, colW) {
-      H.rule(colX, y - u(8.4), colX + colW, { color: hair });
+      H.rule(colX, y - u(5) - u(corpsChiffre) - u(2.4), colX + colW, { color: hair });
       var km = semaine.reduce(function (t, e) { return t + (e.activity.distance_km || 0); }, 0);
       var sec = semaine.reduce(function (t, e) { return t + (e.activity.duration_s || 0); }, 0);
       var dp = semaine.reduce(function (t, e) { return t + (e.activity.elev_gain_m || 0); }, 0);
       [['distance', H.fmt.km(km, 0) + ' km'],
        ['en mouvement', H.fmt.duration(sec)],
        ['dénivelé', Math.round(dp) + ' m']].forEach(function (c, i) {
+        /* Largeur de colonne ET corps s'adaptent au format : « 2 807 m » à
+         * 5,4 unités dans un tiers de colonne paysage débordait sur le
+         * voisin. `maxWidth` rétrécit, mais rétrécir de moitié se voit. */
         H.field(c[0], c[1], colX + i * (colW / 3), y - u(5), {
-          color: encre, labelColor: faint, size: 5.4, maxWidth: colW / 3 - u(2)
+          color: encre, labelColor: faint, size: corpsChiffre,
+          maxWidth: colW / 3 - u(3)
         });
       });
 
       var mentions = [semaine.length + (semaine.length > 1 ? ' sorties' : ' sortie')];
+      if (estArchipel) mentions.push('chaque médaillon a son échelle — ils ne se comparent pas');
       if (sansGPS.length) mentions.push(sansGPS.length + ' sans GPS — comptées, hors carte');
       if (sansDate) mentions.push(sansDate + ' sans date — hors semaine');
       H.text(mentions.join('   ·   ').toUpperCase(), colX, y,
@@ -410,6 +500,16 @@ Studio.template({
 
     function couleurDe(e, i) {
       if (o.couleurs === 'activite') return e.couleur || encre;
+      /* TERRITOIRE veut des traits DISTINCTS : sur une carte qui occupe les
+       * deux tiers de la page, cinq traces de la meme encre se lisent comme
+       * un seul gribouillis. On etage donc les densites plutot que
+       * d introduire cinq teintes, ce qui tiendrait mal en noir et blanc. */
+      if (estTerritoire) {
+        var n2 = Math.max(1, avecGPS.length - 1);
+        var acc2 = Math.round(o.accent);
+        if (acc2 > 0 && acc2 - 1 === i) return o.accentC;
+        return melange(encre, 0.42 + 0.48 * (i / n2));
+      }
       var acc = Math.round(o.accent);
       return (acc > 0 && acc - 1 === i) ? o.accentC : melange(encre, 0.8);
     }

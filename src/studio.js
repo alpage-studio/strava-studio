@@ -86,6 +86,89 @@
     return !!tpl.transparent(o);
   }
 
+  /* ---------- rendu achromatique ----------
+   *
+   * « Noir & blanc » ne peut pas être un filtre CSS sur l'aperçu : le filtre
+   * ne suit pas dans `toBlob`, et l'export sortirait en couleur. Il ne peut
+   * pas non plus être un `filter: grayscale()` sur le contexte canvas — tous
+   * les moteurs ne le gèrent pas, et il s'appliquerait aussi aux photos qu'on
+   * veut parfois garder en couleur.
+   *
+   * On convertit donc CHAQUE couleur à la source, au moment où un template
+   * la pose. Trois conséquences voulues :
+   *   · le papier crème devient un gris neutre — du crème n'est pas du noir
+   *     et blanc, et le laisser aurait vidé le réglage de son sens ;
+   *   · les exports PNG, vidéo et séquence sont achromatiques par
+   *     construction, sans code supplémentaire ;
+   *   · les couleurs d'origine ne sont jamais écrasées : on les traduit à
+   *     l'affichage, donc revenir en couleur les restitue exactement.
+   *
+   * La luminance suit Rec. 709. Une conversion naïve (moyenne des trois
+   * canaux) rendrait le rouille et le bleu au même gris : deux sorties
+   * distinctes deviendraient indiscernables. Les templates multi-sorties
+   * gardent en plus leurs formes et leurs styles de trait, qui ne dépendent
+   * pas de la couleur.
+   */
+  function versGris(couleur) {
+    if (couleur == null) return couleur;
+    if (typeof couleur !== 'string') return couleur;   // dégradé, motif : intact
+    var c = couleur.trim();
+
+    var r, v, b, alpha = 1;
+    var hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(c);
+    if (hex) {
+      var t = hex[1];
+      if (t.length === 3) t = t[0] + t[0] + t[1] + t[1] + t[2] + t[2];
+      var n = parseInt(t, 16);
+      r = (n >> 16) & 255; v = (n >> 8) & 255; b = n & 255;
+    } else {
+      var m = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*(?:,\s*([\d.]+)\s*)?\)$/i.exec(c);
+      if (!m) return couleur;                          // mot-clé, autre syntaxe : intact
+      r = parseFloat(m[1]); v = parseFloat(m[2]); b = parseFloat(m[3]);
+      if (m[4] !== undefined) alpha = parseFloat(m[4]);
+    }
+    var y = Math.round(0.2126 * r + 0.7152 * v + 0.0722 * b);
+    return alpha >= 1 ? 'rgb(' + y + ',' + y + ',' + y + ')'
+                      : 'rgba(' + y + ',' + y + ',' + y + ',' + alpha + ')';
+  }
+
+  /* Les couleurs d'identité des planches multi-sorties ne peuvent PAS passer
+   * par la luminance : le rouille tombe à 96 et le bleu à 87, soit neuf
+   * niveaux d'écart — deux sorties deviennent indiscernables. On leur
+   * substitue donc une rampe régulière, qui garde l'ordre d'arrivée et
+   * étale les valeurs sur la plage lisible (35 à 205 : le noir pur et le
+   * blanc pur disparaîtraient sur le papier comme sur l'encre).
+   *
+   * La bibliothèque elle-même n'est pas touchée : on traduit à l'affichage,
+   * donc revenir en couleur restitue exactement les teintes choisies. */
+  function rampeDeGris(n) {
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var v = n <= 1 ? 120 : Math.round(35 + (205 - 35) * (i / (n - 1)));
+      out.push('rgb(' + v + ',' + v + ',' + v + ')');
+    }
+    return out;
+  }
+
+  /* On intercepte les DEUX propriétés de couleur du contexte. Tout passe par
+   * elles — remplissages, traits, textes — donc aucun template n'a à savoir
+   * que le mode existe, y compris ceux écrits plus tard. */
+  function installeAchromatique(ctx) {
+    if (ctx.__gris) return;
+    ctx.__gris = true;
+    ['fillStyle', 'strokeStyle'].forEach(function (prop) {
+      var desc = Object.getOwnPropertyDescriptor(
+        Object.getPrototypeOf(ctx), prop) ||
+        Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype, prop);
+      if (!desc || !desc.set) return;
+      Object.defineProperty(ctx, prop, {
+        configurable: true,
+        get: function () { return desc.get.call(ctx); },
+        set: function (v) { desc.set.call(ctx, state.achromatique ? versGris(v) : v); }
+      });
+    });
+  }
+
   /* ---------- formatage ---------- */
 
   var fmt = {
@@ -165,6 +248,13 @@
         var dw = img.width * r, dh = img.height * r;
         ctx.save();
         ctx.beginPath(); ctx.rect(box.x, box.y, box.w, box.h); ctx.clip();
+        /* Une image ne passe pas par fillStyle : le mode achromatique doit
+         * la traiter explicitement, et seulement si l'utilisateur l'a
+         * demandé — une affiche en noir et blanc sur une photo couleur est
+         * une composition courante, pas une incohérence. */
+        if (state.achromatique && state.photoGris && 'filter' in ctx) {
+          ctx.filter = 'grayscale(1)';
+        }
         ctx.drawImage(img, box.x + (box.w - dw) / 2, box.y + (box.h - dh) / 2, dw, dh);
         ctx.restore();
         return true;
@@ -349,10 +439,17 @@
 
   /* progress : fraction de la géométrie révélée (animation)
    * textFade : opacité du texte — les deux valent 1 en rendu normal */
-  var state = { photo: null, progress: 1, textFade: 1, library: [], historique: null, musee: [] };
+  var state = { photo: null, progress: 1, textFade: 1, library: [], historique: null, musee: [], achromatique: false, photoGris: false };
 
   function setPhoto(img) { state.photo = img; }
   function setMinimal(v) { state.minimal = !!v; }
+  /* Couleur ou noir & blanc, pour TOUT le studio : aperçu comme exports.
+   * `photoGris` décide à part si une photo de fond suit — on veut parfois
+   * une affiche achromatique sur une photo restée en couleur. */
+  function setAchromatique(v, photo) {
+    state.achromatique = !!v;
+    state.photoGris = !!photo;
+  }
   /* Les sorties chargées, dans l'ordre choisi. Les templates simples
    * l'ignorent ; ceux qui déclarent multi: true la lisent dans s.library. */
   function setLibrary(entrees) { state.library = entrees || []; }
@@ -378,6 +475,7 @@
       canvas.width = w; canvas.height = h;
     }
     var ctx = canvas.getContext('2d');
+    installeAchromatique(ctx);
     ctx.clearRect(0, 0, w, h);
 
     var o = {};
@@ -394,7 +492,20 @@
        * compte — c'est ce qui fait que tout template s'anime gratuitement —
        * mais une planche qui raconte une chronologie (le film) a besoin de
        * savoir OÙ l'on en est, pas seulement d'être tronquée. */
-      tpl.draw({ ctx: ctx, w: w, h: h, a: activity, o: o, H: H, library: state.library,
+      /* En noir et blanc, la bibliothèque passe par la rampe : les teintes
+       * d'origine restent intactes dans Library, on ne traduit que ce que
+       * le template reçoit. */
+      var biblio = state.library;
+      if (state.achromatique && biblio.length) {
+        var rampe = rampeDeGris(biblio.length);
+        biblio = biblio.map(function (e, i) {
+          var copie = {};
+          Object.keys(e).forEach(function (k) { copie[k] = e[k]; });
+          copie.couleur = rampe[i];
+          return copie;
+        });
+      }
+      tpl.draw({ ctx: ctx, w: w, h: h, a: activity, o: o, H: H, library: biblio,
                  historique: state.historique, musee: state.musee,
                  progress: state.progress, fade: state.textFade });
     } catch (e) {
@@ -441,6 +552,7 @@
     estTransparent: estTransparent,
     render: render, exportPNG: exportPNG, setPhoto: setPhoto, setMinimal: setMinimal,
     setLibrary: setLibrary, setHistorique: setHistorique, setMusee: setMusee,
+    setAchromatique: setAchromatique, versGris: versGris, rampeDeGris: rampeDeGris,
     setProgress: setProgress, fmt: fmt
   };
 }(window));

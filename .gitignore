@@ -23,6 +23,15 @@ design/
 !exemple-variante.gpx
 !exemple-ailleurs.gpx
 !sem-[0-9][0-9].gpx
+# les parcours de revue artistique : boucle sinueuse, aller-retour, ouvert,
+# croisements, une semaine partagée et deux régions éloignées
+!demo-*.gpx
+!sem-lun.gpx
+!sem-mar.gpx
+!sem-jeu.gpx
+!sem-ven.gpx
+!sem-dim.gpx
+!loin-*.gpx
 
 # Systèmes
 .DS_Store

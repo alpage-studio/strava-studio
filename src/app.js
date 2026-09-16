@@ -36,7 +36,8 @@
     try {
       localStorage.setItem('strava-studio', JSON.stringify({
         tpl: $('#tpl').value, size: $('#size').value, opts: optionValues,
-        collection: $('#collection').value, minimal: $('#minimal').checked
+        collection: $('#collection').value, minimal: $('#minimal').checked,
+        rendu: $('#rendu').value, photoNb: $('#photo-nb').checked
       }));
     } catch (e) { /* mode privé : tant pis */ }
   }
@@ -140,6 +141,10 @@
     var size = SIZES[$('#size').value];
     var tplId = $('#tpl').value;
     Studio.setMinimal($('#minimal').checked);
+    /* Le rendu achromatique est posé AVANT le rendu, dans le moteur : un
+     * filtre CSS sur l'aperçu ne suivrait pas dans toBlob et l'export
+     * sortirait en couleur. */
+    Studio.setAchromatique($('#rendu').value === 'nb', $('#photo-nb').checked);
     current = Studio.render(canvas, tplId, effective(), resolvedOptions(tplId), size);
     /* L'échelle prenait la largeur TOTALE du panneau et retirait 24 px à sa
      * hauteur : en paysage l'image touchait les bords, en story la légende
@@ -544,6 +549,29 @@
   /* Huit sorties sur huit semaines — dont une semaine entièrement vide et une
    * sortie sans altitude. C'est le jeu qui montre ce que le tissage promet :
    * trois absences différentes, trois dessins différents. */
+  /* Trois jeux de revue artistique. Ils existent parce qu'on ne peut pas
+   * juger un DESSIN sur les données qui servent à éprouver des CALCULS :
+   * les premiers exemples étaient des polygones à huit sommets, sur
+   * lesquels un trait de plume paraît cassé même quand la géométrie est
+   * parfaite — et où un vrai défaut de raccord se confond avec un sommet. */
+  $('#load-formes').addEventListener('click', function () {
+    chargeExemples($('#load-formes'),
+      ['demo-boucle.gpx', 'demo-aller.gpx', 'demo-ouvert.gpx', 'demo-croisements.gpx'],
+      'Formes');
+  });
+  /* Cinq sorties, deux sports, et deux portions réellement partagées : sans
+   * elles, l'Atlas ressemble à cinq cartes posées côte à côte. */
+  $('#load-semaine').addEventListener('click', function () {
+    chargeExemples($('#load-semaine'),
+      ['sem-lun.gpx', 'sem-mar.gpx', 'sem-jeu.gpx', 'sem-ven.gpx', 'sem-dim.gpx'],
+      'Semaine');
+  });
+  $('#load-regions').addEventListener('click', function () {
+    chargeExemples($('#load-regions'),
+      ['sem-lun.gpx', 'sem-jeu.gpx', 'loin-a.gpx', 'loin-b.gpx'],
+      'Régions');
+  });
+
   $('#load-weeks').addEventListener('click', function () {
     chargeExemples($('#load-weeks'), [
       'sem-01.gpx', 'sem-02.gpx', 'sem-03.gpx', 'sem-04.gpx',
@@ -799,6 +827,7 @@
       Projet.exporter(Library.list(), {
         tpl: $('#tpl').value, size: $('#size').value,
         collection: $('#collection').value, minimal: $('#minimal').checked,
+        rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
         opts: optionValues
       }, 'projet-' + slug() + '.json');
       note.textContent = Library.count() + ' sorties enregistrées.';
@@ -821,6 +850,9 @@
     if (p.reglages.size && SIZES[p.reglages.size]) $('#size').value = p.reglages.size;
     if (p.reglages.collection) $('#collection').value = p.reglages.collection;
     if (p.reglages.minimal != null) $('#minimal').checked = !!p.reglages.minimal;
+    if (p.reglages.rendu) $('#rendu').value = p.reglages.rendu;
+    if (p.reglages.photoNb != null) $('#photo-nb').checked = !!p.reglages.photoNb;
+    $('#opt-photo-nb').hidden = $('#rendu').value !== 'nb';
     overrides = {};
     chargee = Library.count() > 0;
     apresChangement();
@@ -909,6 +941,16 @@
   });
 
   /* ---------- export vidéo ---------- */
+  /* Rendu couleur / noir & blanc. Le réglage « photo aussi » ne s'affiche
+   * qu'en noir et blanc : ailleurs il ne ferait rien. */
+  function majRendu() {
+    var nb = $('#rendu').value === 'nb';
+    $('#opt-photo-nb').hidden = !nb;
+    draw();
+  }
+  $('#rendu').addEventListener('change', majRendu);
+  $('#photo-nb').addEventListener('change', draw);
+
   /* ---------- aperçu animé ----------
    * Il rejoue EXACTEMENT la chronologie de l'export : même durée, même
    * courbe, même fondu, parce qu'il appelle le même Studio.chrono(). Voir
@@ -1311,6 +1353,9 @@
   if (saved.tpl && Studio.get(saved.tpl).id === saved.tpl) $('#tpl').value = saved.tpl;
   if (saved.size && SIZES[saved.size]) $('#size').value = saved.size;
   if (saved.minimal) $('#minimal').checked = true;
+  if (saved.rendu) $('#rendu').value = saved.rendu;
+  if (saved.photoNb) $('#photo-nb').checked = true;
+  $('#opt-photo-nb').hidden = $('#rendu').value !== 'nb';
 
   syncBibliotheque();
   buildOptions();

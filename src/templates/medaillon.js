@@ -265,13 +265,10 @@ Studio.template({
         { day: '2-digit', month: '2-digit', year: 'numeric' })]);
       if (a.distance_km != null) champs.push(['distance', H.fmt.km(a.distance_km, 1) + ' km']);
       if (a.elev_gain_m != null) champs.push(['dénivelé', Math.round(a.elev_gain_m) + ' m']);
-      /* L'échelle n'est donnée que si elle a un sens : elle suppose que la
-       * projection est localement conforme, ce qui est vrai sur quelques
-       * dizaines de kilomètres et faux sur un continent. */
-      var metresParPixel = 1 / k;
-      if (metresParPixel < 400) {
-        champs.push(['échelle', '1 cm ≈ ' + Math.round(metresParPixel * 37.8) + ' m']);
-      }
+      /* Pas de « 1 cm ≈ … » : la taille physique du tirage n'est pas fixée,
+       * et l'affirmation serait fausse dès qu'on imprime autrement. Une
+       * BARRE graphique, elle, reste juste quelle que soit la taille — c'est
+       * la raison pour laquelle les cartes en portent une. */
       champs.slice(0, 4).forEach(function (c, i) {
         H.field(c[0], c[1], g.left + i * (g.width / Math.min(4, champs.length)), y - u(6.6), {
           color: encre, labelColor: faint, size: 3.6,
@@ -279,8 +276,32 @@ Studio.template({
         });
       });
 
-      H.text('TRACÉ SEUL — AUCUNE SOURCE DE TERRAIN N’EST CONFIGURÉE · GRATICULE ET ÉCHELLE CALCULÉS DEPUIS LES COORDONNÉES',
-             g.left, y, H.t('label', { color: melange(encre, 0.34), maxWidth: g.width }));
+      /* Sur l'image : deux mots. Le détail de configuration appartient à
+       * l'interface, pas à l'affiche — « aucune source de terrain n'est
+       * configurée » est une phrase de logiciel, et elle traversait toute
+       * la largeur du tirage. */
+      H.text('TRACÉ SEUL', g.left, y, H.t('label', { color: melange(encre, 0.4) }));
+
+      /* La barre d'échelle, à droite du cartouche. */
+      var metresParPixel = 1 / k;
+      var cible = metresParPixel * g.width * 0.22;
+      var rond = [100, 200, 500, 1000, 2000, 5000, 10000, 20000]
+        .filter(function (v) { return v >= cible; })[0] || 20000;
+      var lp = rond / metresParPixel;
+      if (lp < g.width * 0.45) {
+        ctx.save();
+        ctx.strokeStyle = melange(encre, 0.45);
+        ctx.lineWidth = u(0.11);
+        var bx = g.right - lp, by = y - u(1.2);
+        ctx.beginPath();
+        ctx.moveTo(bx, by); ctx.lineTo(g.right, by);
+        ctx.moveTo(bx, by - u(0.7)); ctx.lineTo(bx, by + u(0.7));
+        ctx.moveTo(g.right, by - u(0.7)); ctx.lineTo(g.right, by + u(0.7));
+        ctx.stroke();
+        ctx.restore();
+        H.text(rond >= 1000 ? (rond / 1000) + ' KM' : rond + ' M',
+               g.right, y + u(2.6), H.t('label', { color: faint, align: 'right' }));
+      }
     }
 
     function melange(hex, kk) {

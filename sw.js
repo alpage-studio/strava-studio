@@ -36,6 +36,11 @@ const SHELL = [
   './exemple-ailleurs.gpx',
   './exemple-variante.gpx',
   './exemple-annee.json',
+  // les parcours de revue artistique : quatre formes, une semaine partagée,
+  // deux régions éloignées
+  './demo-boucle.gpx', './demo-aller.gpx', './demo-ouvert.gpx', './demo-croisements.gpx',
+  './sem-lun.gpx', './sem-mar.gpx', './sem-jeu.gpx', './sem-ven.gpx', './sem-dim.gpx',
+  './loin-a.gpx', './loin-b.gpx',
   './sem-01.gpx', './sem-02.gpx', './sem-03.gpx', './sem-04.gpx',
   './sem-05.gpx', './sem-06.gpx', './sem-07.gpx', './sem-08.gpx',
   './src/version.js',

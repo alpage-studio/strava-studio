@@ -1,33 +1,36 @@
 /* « Encre » — le geste du terrain.
  *
- * Le parcours comme un trait de plume : une seule forme, posée hors centre,
- * qui occupe la page. Le titre est petit — c'est la forme qui porte
- * l'affiche, pas le texte.
+ * Le parcours comme un trait de plume : une seule forme qui occupe la page.
+ * Le titre est petit — c'est la forme qui porte l'affiche, pas le texte.
  *
- * Trois interprétations du même geste :
- *   · Trait   — un ruban plein, d'épaisseur modulée
- *   · Fibres  — cinq à onze filaments qui suivent le parcours
- *   · Réserve — le parcours en papier clair, réservé dans une bande d'encre
+ * ORIGINAL       Trait · Fibres · Réserve
+ * EXPLORATIONS   Fil · Courant · Pinceau
  *
- * ── Deux décisions techniques portent le rendu ────────────────────────
+ * ── Les trois défauts corrigés, et pourquoi ils existaient ────────────
  *
- * 1. RÉÉCHANTILLONNER PAR DISTANCE avant tout. Un GPS enregistre au temps :
- *    une montée à 6 km/h pose cinq fois plus de points qu'une descente à 50.
- *    Moduler l'épaisseur « par point » raconterait donc la vitesse, sans
- *    qu'on puisse le deviner en regardant. Après rééchantillonnage, un
- *    centimètre de papier vaut toujours le même nombre de mètres.
+ * 1. LES ENCOCHES BLANCHES le long du ruban n'étaient pas un défaut de
+ *    rendu : elles sont géométriquement inévitables. Quand la demi-largeur
+ *    dépasse le rayon de courbure local, le bord intérieur se replie et se
+ *    croise ; la petite boucle a la winding opposée et `nonzero` l'annule.
+ *    La seule réponse est de BORNER la demi-largeur par le rayon de
+ *    courbure. La masquer avec de la texture aurait laissé le trou dessous.
  *
- * 2. LE RUBAN EST UN POLYGONE, pas un trait. Un côté à l'aller, l'autre au
- *    retour, rempli en `nonzero`. Les croisements se remplissent alors tout
- *    seuls — ce que fait une plume qui repasse sur son trait. L'alternative
- *    (un `stroke` par segment, à épaisseur variable) laisse un raccord
- *    visible à chaque virage, et c'est exactement là que l'œil regarde.
+ * 2. LE CHAPELET — cet aspect bosselé sur toute la longueur — venait d'une
+ *    épaisseur qui variait trop vite : la courbure brute module point par
+ *    point, et la « matière » ajoutait une ondulation de période courte. Un
+ *    geste de plume ne change pas d'épaisseur tous les vingt mètres. Les
+ *    deux sont désormais lissés sur des fenêtres longues.
+ *
+ * 3. LES POINTES PARASITES venaient des normales, calculées sur une
+ *    polyligne dont la DIRECTION restait discontinue même après lissage des
+ *    positions. On lisse maintenant les directions elles-mêmes, ce qui donne
+ *    une tangente continue par construction.
  *
  * ── Honnêteté ────────────────────────────────────────────────────────
- * Par défaut l'épaisseur suit la COURBURE : c'est un effet de style, et la
- * planche l'écrit. En mode « épaisseur par mesure », elle suit une mesure
- * réellement présente dans le fichier, et une légende dit laquelle, avec
- * ses bornes. Aucune trace ouverte n'est refermée.
+ * Par défaut l'épaisseur suit la COURBURE : effet de style, et la planche
+ * l'écrit. En « épaisseur par mesure », elle suit une mesure réellement
+ * présente, et la légende dit laquelle avec ses bornes. Aucune trace ouverte
+ * n'est refermée.
  */
 Studio.template({
   id: 'encre',
@@ -38,12 +41,15 @@ Studio.template({
   transparent: function (o) { return o.fond === 'transparent'; },
 
   options: [
-    { key: 'interpretation', type: 'select', label: 'Interprétation', default: 'trait', reflow: true,
-      choices: [['trait', 'Trait — un ruban plein'],
-                ['fibres', 'Fibres — des filaments'],
-                ['reserve', 'Réserve — le parcours en clair']] },
+    { key: 'interpretation', type: 'select', label: 'Composition', default: 'trait', reflow: true,
+      choices: [['trait', 'Original · Trait — ruban plein'],
+                ['fibres', 'Original · Fibres — filaments'],
+                ['reserve', 'Original · Réserve — parcours en clair'],
+                ['fil', 'Exploration · Fil — un seul trait net'],
+                ['courant', 'Exploration · Courant — lignes qui s’ouvrent'],
+                ['pinceau', 'Exploration · Pinceau — le geste']] },
     { key: 'epaisseur', type: 'range', label: 'Épaisseur', default: 40, min: 8, max: 100, step: 2 },
-    { key: 'matiere', type: 'range', label: 'Matière', default: 30, min: 0, max: 100, step: 5 },
+    { key: 'matiere', type: 'range', label: 'Matière', default: 24, min: 0, max: 100, step: 4 },
     { key: 'source', type: 'select', label: 'Épaisseur par', default: 'courbure', reflow: true,
       choices: [['courbure', 'Courbure — un choix de style'],
                 ['ele', 'Altitude — mesurée'],
@@ -56,32 +62,28 @@ Studio.template({
                 ['diagonale', 'Diagonale — rotation artistique'],
                 ['remplir', 'Au mieux du format']] },
     /* --- avancé --- */
-    { key: 'fibres', type: 'range', label: 'Nombre de fibres', default: 7, min: 5, max: 11, step: 2 },
-    /* fond, voile, papier, encre : injectés depuis le socle Alpage */
+    { key: 'fibres', type: 'range', label: 'Nombre de lignes', default: 7, min: 5, max: 11, step: 2 },
     { key: 'titre', type: 'text', label: 'Titre', default: '' },
     { key: 'grain', type: 'toggle', label: 'Grain du papier', default: true }
   /* fond · voile · papier · encre : les quatre réglages communs aux six
    * planches Alpage, déclarés une seule fois pour qu'aucune ne dérive. */
   ].concat(Alpage.optionsFond()),
 
-  /* Une mesure absente du fichier ne doit pas rester proposée : le réglage
-   * ne ferait rien et rien ne le dirait. */
   inert: function (a, vals) {
     var morts = [];
     if (!vals) return morts;
-    if (vals.interpretation !== 'fibres') morts.push('fibres');
+    if (vals.interpretation !== 'fibres' && vals.interpretation !== 'courant') morts.push('fibres');
+    // « Fil » est par définition un trait net d'épaisseur constante
+    if (vals.interpretation === 'fil') morts.push('matiere', 'source', 'epaisseur');
     return morts;
   },
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
-    /* Papier ou surcouche : c'est la MÊME planche. Le socle pose le fond,
-     * le voile éventuel, et rend l'encre à utiliser. */
     var socle = Alpage.socle(H, o);
     var encre = socle.encre;
-    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || o.papierC || '#F2EFE6');
-
-
+    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || '#F2EFE6');
+    if (!socle.transparent && o.grain) H.grain(0.012);
 
     var vue = Alpage.projette(a.track);
     var g = H.grid({ cols: 6, margin: u(9) });
@@ -95,128 +97,197 @@ Studio.template({
       return;
     }
 
-    /* ---------- préparation de la géométrie ---------- */
-    /* Un pas d'échantillonnage proportionnel à l'étendue : 700 points quelle
-     * que soit la taille de la sortie, donc un coût de rendu constant et une
-     * matière d'aspect identique sur 6 km comme sur 160. */
-    var pas = Math.max(2, vue.etendue / 700);
-    var brut = Alpage.reechantillonne(vue.pts, pas);
-    var pts = Alpage.lisse(brut, 2);
-    /* Une boucle refermée sur elle-même doit l'être aussi à l'encre : sinon
-     * le ruban laisse une encoche blanche là où ses deux bouts se touchent,
-     * et l'œil la lit comme une coupure volontaire. On ne referme QUE ce qui
-     * revient réellement à son point de départ — une trace ouverte reste
-     * ouverte, c'est la règle. */
+    var mode = o.interpretation;
+    var estFin = mode === 'fil';
+
+    /* ---------- géométrie ----------
+     * Le pas d'échantillonnage se choisit en PIXELS de rendu, pas en mètres
+     * de terrain : c'est la finesse à l'écran qui décide si une courbe est
+     * lisse ou facettée. Un pas géographique donnait un trait facetté sur une
+     * sortie courte et une bouillie de points sur une longue. */
+    var cotePx = Math.min(g.width, g.height);
+    var cible = Math.max(260, Math.min(1400, Math.round(cotePx / 1.6)));
+    var pas = Math.max(1, vue.etendue / cible);
+    var pts = Alpage.reechantillonne(vue.pts, pas);
+    /* Lisser les DIRECTIONS, pas seulement les positions : ce sont elles qui
+     * fabriquent les normales, donc les bords du ruban. */
+    var fen = Math.max(2, Math.round(pts.length / 140));
+    pts = Alpage.lisseDirections(Alpage.lisse(pts, fen), fen);
+
+    /* Une boucle refermée doit l'être aussi à l'encre, sinon le ruban laisse
+     * une encoche là où ses deux bouts se touchent. On ne referme QUE ce qui
+     * revient réellement à son départ — une trace ouverte reste ouverte. */
     var bouclee = Math.hypot(pts[0].x - pts[pts.length - 1].x,
                              pts[0].y - pts[pts.length - 1].y) < vue.etendue * 0.02;
-    if (bouclee) pts.push(pts[0], pts[1]);
-    var vue2 = { pts: pts, largeur: vue.largeur, hauteur: vue.hauteur,
-                 minX: vue.minX, maxX: vue.maxX, minY: vue.minY, maxY: vue.maxY };
+    /* Sur une boucle, on PROLONGE la trace de quelques points au-delà de son
+     * départ. Le ruban se recouvre alors à la couture et `nonzero` ne voit
+     * qu'une seule forme. Fermer le chemin (`closePath`) ne suffisait pas :
+     * les deux bords du ruban ont chacun leur extrémité, et elles ne se
+     * rejoignent pas au même endroit — d'où l'encoche visible à trois
+     * heures sur la première version. */
+    var recouvreN = 0;
+    if (bouclee) {
+      recouvreN = Math.min(14, Math.floor(pts.length * 0.02));
+      for (var rc = 1; rc <= recouvreN; rc++) pts.push(pts[rc]);
+    }
+
+    var vue2 = bornes(pts);
 
     /* ---------- orientation ---------- */
-    /* Le nord en haut par défaut. Une rotation est un choix, jamais un
-     * étirement : on tourne les coordonnées, on ne déforme pas le parcours,
-     * et la planche le dit en pied. */
     var angle = 0;
     if (o.orientation === 'diagonale') angle = -Math.PI / 9;
     else if (o.orientation === 'remplir') angle = angleOptimal(pts, w > h);
     if (angle) { pts = tourne(pts, angle); vue2 = bornes(pts); }
 
-    /* ---------- où poser la forme ---------- */
-    /* 70 % de la surface utile, décalée vers l'angle le plus vide de la
-     * trace : c'est CETTE trace qui décide où se met le titre. */
+    /* ---------- cadrage ----------
+     * La forme occupe ~70 % de la surface utile et se décale LÉGÈREMENT vers
+     * l'angle le plus vide de la trace, pour libérer la place du titre. Le
+     * premier jet décalait de 13 % dans les deux axes, ce qui repoussait le
+     * dessin dans un coin et laissait la moitié de la page vide. */
     var coin = coinLePlusVide(pts, vue2);
-    var zone = { x: g.left, y: g.top + u(4), w: g.width, h: g.height - u(14) };
+    var haut = g.top + u(11), bas = g.bottom - u(9);
+    var zone = { x: g.left, y: haut, w: g.width, h: bas - haut };
     var cadre = Alpage.cadre(vue2, zone, {
-      marge: u(2), echelle: 0.995,
-      ancreX: -coin.x * 0.13, ancreY: -coin.y * 0.13
+      marge: u(1.5),
+      echelle: estFin ? 0.90 : 0.94,
+      ancreX: -coin.x * 0.07, ancreY: -coin.y * 0.07
     });
 
-    /* ---------- l'épaisseur ---------- */
-    /* Ces deux-là sont posés AVANT tout dessin. `var` est hoisté, mais son
-     * affectation ne l'est pas : déclarés plus bas, `alea` valait undefined
-     * au moment où le ruban s'en servait, et le `= null` de `mesureUtilisee`
-     * effaçait après coup la mesure que la légende devait nommer. */
+    var P = pts.map(cadre.point);
+    var N = Alpage.normales(P);
     var alea = Alpage.graine(vue);
     var mesureUtilisee = null;
     var ep = epaisseurs(pts);
-    var base = u(o.epaisseur / 22);          // demi-largeur maximale, en pixels
+    var base = u(o.epaisseur / 22);
 
-    /* TOUT le dessin se fait en espace-page, jamais en mètres.
-     * Le premier jet construisait le ruban sur les coordonnées projetées
-     * (des mètres) avec des demi-largeurs en pixels, puis projetait le
-     * résultat : les vingt pixels d'épaisseur devenaient vingt MÈTRES, soit
-     * un cheveu sur une sortie de soixante kilomètres. Le trait était bien
-     * là — invisible. On projette donc les points d'abord, on épaissit
-     * ensuite. */
-    var P = pts.map(cadre.point);
-    var N = Alpage.normales(P);
+    var reveles = H.progressCount(P.length);
 
-    /* ---------- dessin ---------- */
-    var reveles = H.progressCount(pts.length);
-    if (o.interpretation === 'fibres') dessineFibres();
-    else if (o.interpretation === 'reserve') dessineReserve();
-    else dessineTrait();
+    if (mode === 'fibres') dessineFibres(2.6, 0.30);
+    else if (mode === 'courant') dessineFibres(5.6, 0.14);
+    else if (mode === 'reserve') dessineReserve();
+    else if (mode === 'fil') dessineFil();
+    else if (mode === 'pinceau') dessineRuban(1.25, 0.55);
+    else dessineRuban(0.78, 0.22);
 
-    /* ---------- texte ---------- */
     legende(coin);
 
-    /* ================= les trois interprétations ================= */
+    /* ================= compositions ================= */
 
-    /* 1. TRAIT — un ruban plein. */
-    function dessineTrait() {
+    /* TRAIT et PINCEAU — un ruban plein.
+     * `ampleur` règle combien l'épaisseur varie, `plancher` son minimum.
+     * Pinceau ouvre beaucoup plus : c'est un geste, pas un trait technique. */
+    function dessineRuban(ampleur, plancher) {
       var n = Math.max(2, reveles);
       var vus = P.slice(0, n);
       var demi = ep.slice(0, n).map(function (v, i) {
-        return base * (0.22 + 0.78 * v) * matiere(i);
+        return base * (plancher + ampleur * v) * matiere(i);
       });
+      /* Le borne-fou : au-delà du rayon de courbure, le bord intérieur se
+       * croise et `nonzero` perce un trou. */
+      demi = Alpage.borneParCourbure(demi, vus, 0.70);
       remplit(Alpage.ruban(vus, demi), encre);
       frontDEncre(vus);
     }
 
-    /* 2. FIBRES — des filaments parallèles, d'écart progressif. */
-    function dessineFibres() {
+    /* FIL — un seul trait net, sans texture ni modulation.
+     * L'épaisseur est fixe et petite : environ 3 px pour 1080 de large. */
+    function dessineFil() {
+      var n = Math.max(2, reveles);
+      ctx.save();
+      ctx.beginPath();
+      for (var i = 0; i < n; i++) {
+        if (i === 0) ctx.moveTo(P[i].x, P[i].y); else ctx.lineTo(P[i].x, P[i].y);
+      }
+      if (bouclee && n >= P.length) ctx.closePath();
+      ctx.strokeStyle = encre;
+      ctx.lineWidth = Math.max(1.6, w / 340);
+      ctx.lineJoin = ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    /* FIBRES et COURANT — des lignes qui accompagnent le parcours.
+     * `ouverture` règle l'amplitude du faisceau. Courant respire beaucoup
+     * plus largement : ce sont des resserrements et des ouvertures, pas une
+     * vibration. Dans les virages serrés, le décalage est RÉDUIT par le
+     * rayon de courbure plutôt que de former des nœuds. */
+    function dessineFibres(ouverture, epaisseurTrait) {
       var nb = Math.max(5, Math.min(11, Math.round(o.fibres) | 1));
       var fin = Math.max(2, reveles);
+      var periodeBoucle = P.length - (bouclee ? recouvreN : 0) || 1;
+      var phase = alea(3, 9) * 6.283;
+      /* La limite de décalage est LISSÉE avant d'être appliquée. Bornée
+       * point par point, elle passe brutalement de 100 px à 20 px sur un
+       * virage et la fibre fait un saut en ligne droite — les traits
+       * parasites qu'on voyait en travers du faisceau. */
+      var R = Alpage.rayonsDeCourbure(P, 5);
+      var fR = Math.max(3, Math.round(P.length / 45));
+      var lim = [];
+      for (var q = 0; q < R.length; q++) {
+        var a2 = Math.max(0, q - fR), b2 = Math.min(R.length - 1, q + fR), mn = Infinity;
+        // le MINIMUM de la fenêtre, puis lissé : on anticipe le virage
+        for (var r2 = a2; r2 <= b2; r2++) mn = Math.min(mn, R[r2]);
+        lim.push(mn);
+      }
+      var limL = [];
+      for (var q2 = 0; q2 < lim.length; q2++) {
+        var a3 = Math.max(0, q2 - fR), b3 = Math.min(lim.length - 1, q2 + fR), su = 0, nn = 0;
+        for (var r3 = a3; r3 <= b3; r3++) { su += Math.min(lim[r3], 1e6); nn++; }
+        limL.push(su / nn);
+      }
       ctx.save();
       ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       for (var f = 0; f < nb; f++) {
-        var t = nb === 1 ? 0 : (f / (nb - 1)) * 2 - 1;      // -1 .. 1
+        var t = nb === 1 ? 0 : (f / (nb - 1)) * 2 - 1;
         ctx.beginPath();
         for (var i = 0; i < fin; i++) {
-          /* L'écart s'ouvre et se referme le long du parcours : un faisceau
-           * à écart constant se lit comme un tuyau, pas comme des fibres. */
-          var ouverture = 0.35 + 0.65 * ep[i];
-          var d = t * base * 4.4 * ouverture + Alpage.ondulation(alea, i + f * 997, 34, f) * base * 0.5;
+          /* Une ondulation LENTE, semée par la géométrie : l'écart s'ouvre
+           * et se referme sur de longues portions.
+           *
+           * Sur une BOUCLE elle doit être périodique, sinon le faisceau
+           * arrive à la couture avec une ouverture différente de celle qu'il
+           * avait au départ, et le décrochement se voit. Une somme de
+           * sinusoïdes en fraction de tour se referme sur elle-même par
+           * construction. */
+          var souffle;
+          if (bouclee) {
+            var tb = i / periodeBoucle;
+            souffle = 0.55 + 0.45 * (0.5 + 0.5 * (
+              Math.sin(tb * Math.PI * 2 * 3 + phase) * 0.62 +
+              Math.sin(tb * Math.PI * 2 * 7 + phase * 1.7) * 0.38));
+          } else {
+            souffle = 0.55 + 0.45 * (0.5 + 0.5 * Alpage.ondulation(alea, i, 190, 7));
+          }
+          var d = t * base * ouverture * souffle;
+          var plafond = limL[i] * 0.80;
+          if (Math.abs(d) > plafond) d = (d < 0 ? -1 : 1) * plafond;
           var X = P[i].x + N[i].x * d, Y = P[i].y + N[i].y * d;
           if (i === 0) ctx.moveTo(X, Y); else ctx.lineTo(X, Y);
         }
-        // la fibre centrale porte le trait, les extérieures s'estompent
-        ctx.globalAlpha = 0.34 + 0.66 * (1 - Math.abs(t));
-        ctx.lineWidth = Math.max(0.8, base * (0.1 + 0.16 * (1 - Math.abs(t))));
+        // la ligne centrale reste le parcours : elle porte le trait
+        var centre = 1 - Math.abs(t);
+        ctx.globalAlpha = 0.32 + 0.68 * centre;
+        ctx.lineWidth = Math.max(0.9, base * epaisseurTrait * (0.45 + 0.75 * centre));
         ctx.strokeStyle = encre;
         ctx.stroke();
       }
       ctx.restore();
     }
 
-    /* 3. RÉSERVE — l'encre autour, le parcours en papier.
-     * Deux passes : la bande large en encre, la trace étroite en papier par
-     * dessus. `destination-out` aurait aussi marché mais perce le fond et
-     * casse l'export transparent ; repeindre en couleur de papier reste
-     * lisible dans tous les cas. */
+    /* RÉSERVE — l'encre autour, le parcours en papier. */
     function dessineReserve() {
       var n = Math.max(2, reveles);
       var vus = P.slice(0, n);
-      remplit(Alpage.ruban(vus, ep.slice(0, n).map(function (v, i) {
+      var large = Alpage.borneParCourbure(ep.slice(0, n).map(function (v, i) {
         return base * (1.6 + 1.6 * v) * matiere(i);
-      })), encre);
-      remplit(Alpage.ruban(vus, ep.slice(0, n).map(function (v, i) {
+      }), vus, 0.70);
+      remplit(Alpage.ruban(vus, large), encre);
+      var etroit = Alpage.borneParCourbure(ep.slice(0, n).map(function (v, i) {
         return base * (0.30 + 0.66 * v) * matiere(i);
-      })), papier);
+      }), vus, 0.70);
+      remplit(Alpage.ruban(vus, etroit), papier);
     }
 
-    /* Le polygone arrive DÉJÀ en pixels : on ne reprojette plus rien ici. */
     function remplit(poly, couleur) {
       ctx.save();
       ctx.beginPath();
@@ -229,62 +300,58 @@ Studio.template({
       ctx.restore();
     }
 
-    /* Le front d'encre : une pointe qui accompagne le dessin pendant
-     * l'animation et disparaît à l'arrivée. Aucun scintillement — c'est une
-     * fonction de la progression, pas du temps. */
     function frontDEncre(vus) {
       if (s.progress >= 1 || vus.length < 3) return;
       var p = vus[vus.length - 1];
       ctx.save();
-      ctx.fillStyle = encre;
-      ctx.globalAlpha = 0.9;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, base * 0.9, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      ctx.fillStyle = encre; ctx.globalAlpha = 0.9;
+      ctx.beginPath(); ctx.arc(p.x, p.y, base * 0.7, 0, Math.PI * 2);
+      ctx.fill(); ctx.restore();
     }
 
     /* ================= l'épaisseur ================= */
 
     function epaisseurs(list) {
-      if (o.source === 'egale') return list.map(function () { return 0.55; });
+      if (o.source === 'egale' || estFin) return list.map(function () { return 0.55; });
       if (o.source === 'courbure') {
-        /* La courbure, lissée deux fois : brute, elle donne un trait qui
-         * clignote point par point. */
-        var c = Alpage.courbure(list, 4);
-        var out = [];
-        for (var i = 0; i < c.length; i++) {
-          var a0 = Math.max(0, i - 6), b0 = Math.min(c.length - 1, i + 6), sum = 0, n = 0;
-          for (var j = a0; j <= b0; j++) { sum += c[j]; n++; }
-          out.push(Math.min(1, Math.pow(sum / n, 0.55) * 1.7));
-        }
-        return out;
+        /* Lissée LARGEMENT : la courbure brute module point par point et
+         * c'est elle qui donnait le chapelet. */
+        var c = Alpage.courbure(list, 6);
+        return moyenneGlissante(c, Math.max(4, Math.round(list.length / 26)))
+          .map(function (v) { return Math.min(1, Math.pow(v, 0.5) * 2.1); });
       }
       var s2 = Alpage.serie(list, o.source);
       if (!s2) return list.map(function () { return 0.55; });
       mesureUtilisee = s2;
-      return s2.valeurs;
+      // même lissage : une mesure brute donne le même chapelet
+      return moyenneGlissante(s2.valeurs, Math.max(3, Math.round(list.length / 30)));
     }
 
-    /* La matière : une ondulation lente de l'épaisseur, comme une plume qui
-     * se recharge. À zéro, le trait est parfaitement régulier. */
+    function moyenneGlissante(serie, f) {
+      var out = [];
+      for (var i = 0; i < serie.length; i++) {
+        var a0 = Math.max(0, i - f), b0 = Math.min(serie.length - 1, i + f), su = 0, n = 0;
+        for (var j = a0; j <= b0; j++) { su += serie[j]; n++; }
+        out.push(su / n);
+      }
+      return out;
+    }
+
+    /* La matière : une ondulation TRÈS lente, comme une plume qui se
+     * recharge. Période longue et amplitude modeste — l'ancienne version
+     * ondulait quatre fois plus vite et fabriquait le chapelet. */
     function matiere(i) {
       var f = (Number(o.matiere) || 0) / 100;
-      if (!f) return 1;
-      return 1 + f * 0.45 * Alpage.ondulation(alea, i, 55, 1);
+      if (!f || estFin) return 1;
+      return 1 + f * 0.30 * Alpage.ondulation(alea, i, 230, 1);
     }
 
     /* ================= composition ================= */
 
-    /* Le coin le plus vide de la trace, sur une grille 2×2 : c'est là que le
-     * titre ira, et c'est aussi la direction dans laquelle on décale la
-     * forme pour lui faire de la place. */
     function coinLePlusVide(list, v) {
       var cx = (v.minX + v.maxX) / 2, cy = (v.minY + v.maxY) / 2;
       var q = [0, 0, 0, 0];
-      list.forEach(function (p) {
-        q[(p.x < cx ? 0 : 1) + (p.y < cy ? 0 : 2)]++;
-      });
+      list.forEach(function (p) { q[(p.x < cx ? 0 : 1) + (p.y < cy ? 0 : 2)]++; });
       var min = 0;
       for (var i = 1; i < 4; i++) if (q[i] < q[min]) min = i;
       return { x: (min % 2) ? 1 : -1, y: (min >= 2) ? 1 : -1, indice: min };
@@ -294,29 +361,24 @@ Studio.template({
       var enBas = coin.y > 0;
       var y = enBas ? g.bottom : g.top + u(4.4);
       var titre = String(o.titre || '').trim() || a.name || 'Sortie';
-      var xg = g.left;
+      H.text(titre, g.left, y, H.t('title', { size: 3.2, color: encre, maxWidth: g.w(3) }));
 
-      H.text(titre, xg, y, H.t('title', { size: 3.2, color: encre, maxWidth: g.w(3) }));
-
-      /* La provenance de l'épaisseur, en petit. C'est la ligne qui sépare un
-       * graphique d'une décoration : on doit pouvoir savoir si le trait
-       * mesure quelque chose ou s'il fait joli. */
       var note;
-      if (o.source === 'courbure') note = 'ÉPAISSEUR : COURBURE DU PARCOURS — EFFET DE STYLE';
+      if (estFin) note = 'TRAIT NET — ÉPAISSEUR CONSTANTE';
+      else if (o.source === 'courbure') note = 'ÉPAISSEUR : COURBURE DU PARCOURS — EFFET DE STYLE';
       else if (o.source === 'egale') note = 'ÉPAISSEUR CONSTANTE';
       else if (mesureUtilisee) {
         var lib = { ele: 'ALTITUDE', w: 'PUISSANCE', hr: 'FRÉQUENCE CARDIAQUE', cad: 'CADENCE' }[o.source];
         var unite = { ele: ' M', w: ' W', hr: ' BPM', cad: ' TR/MIN' }[o.source];
         note = 'ÉPAISSEUR : ' + lib + ' · ' + Math.round(mesureUtilisee.lo) + unite +
-               ' → ' + Math.round(mesureUtilisee.hi) + unite +
-               (mesureUtilisee.manquantes ? ' · ' + mesureUtilisee.manquantes + ' POINTS SANS MESURE' : '');
+               ' → ' + Math.round(mesureUtilisee.hi) + unite;
       } else {
         note = 'MESURE ABSENTE DE CE FICHIER — ÉPAISSEUR CONSTANTE';
       }
-      H.text(note, xg, y + u(4.4), H.t('label', { color: melange(encre, 0.5), maxWidth: g.width }));
+      H.text(note, g.left, y + u(4.4), H.t('label', { color: melange(encre, 0.5), maxWidth: g.width }));
       if (angle) {
-        H.text('ORIENTATION MODIFIÉE — LE PARCOURS EST TOURNÉ, PAS DÉFORMÉ',
-               xg, y + u(7.6), H.t('label', { color: melange(encre, 0.34), maxWidth: g.width }));
+        H.text('PARCOURS TOURNÉ, NON DÉFORMÉ', g.right, y + u(4.4),
+               H.t('label', { color: melange(encre, 0.32), align: 'right' }));
       }
     }
 
@@ -341,14 +403,12 @@ Studio.template({
                largeur: maxX - minX, hauteur: maxY - minY };
     }
 
-    /* L'angle qui fait le mieux tenir la trace dans le format. Balayage à
-     * 5° : exact suffisant, et surtout déterministe. */
     function angleOptimal(list, paysage) {
       var best = 0, meilleur = -Infinity;
       for (var deg = -45; deg <= 45; deg += 5) {
         var r = bornes(tourne(list, deg * Math.PI / 180));
         var ratio = paysage ? r.largeur / (r.hauteur || 1) : r.hauteur / (r.largeur || 1);
-        var aire = Math.min(ratio, 2.4);      // au-delà, ça devient un fil
+        var aire = Math.min(ratio, 2.4);
         if (aire > meilleur) { meilleur = aire; best = deg * Math.PI / 180; }
       }
       return best;
