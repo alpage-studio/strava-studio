@@ -330,15 +330,90 @@
     letter-spacing: .1em; text-transform: uppercase;
   }
 
-  /* Fenêtre étroite : la colonne de 330 px ne laisserait plus rien à
-     l'aperçu. On empile au lieu de déborder. */
+  /* ---------- téléphone ----------
+     La coquille d'application — hauteur fixe, rien ne défile sauf une
+     fente intérieure — ne tient pas sur un téléphone. Mesuré sur un écran
+     de 390 × 844 : les réglages recevaient 439 px, dont le socle d'export
+     en prenait 237 ; il restait UNE FENÊTRE DE 202 PIXELS pour faire
+     défiler vingt et une sections. C'est cela qui rendait tout « trop
+     grand » : les contrôles avaient leur taille normale, c'est la lucarne
+     qui était minuscule.
+
+     Ici la page défile comme une page, l'aperçu reste collé sous l'entête,
+     et le socle se pose au bas de l'écran là où est le pouce. */
   @media (max-width: 900px) {
+    html, body { height: auto; }
+    body { overflow: visible; min-height: 100%; }
+    header { position: sticky; top: 0; z-index: 7; }
     main { flex-direction: column; }
-    aside {
-      width: 100%; max-height: 52vh;
-      border-right: 0; border-bottom: 1px solid var(--line);
+
+    /* L'aperçu passe AU-DESSUS des réglages et y reste : on juge une
+       planche en touchant un réglage, pas en faisant l'aller-retour. */
+    #stage {
+      order: -1; flex: none;
+      position: sticky; top: calc(52px + env(safe-area-inset-top));
+      height: 42vh; min-height: 200px; padding: 10px; z-index: 3;
+      border-bottom: 1px solid var(--line);
     }
-    #stage { min-height: 42vh; padding: 12px; }
+
+    /* Tant qu'aucune sortie n'est chargée, la scène ne montre pas une
+       planche : elle porte tout le panneau d'accueil — mille pixels de
+       boutons dans une fenêtre de trois cent vingt, dont sept cents
+       invisibles ET hors d'atteinte, puisque la scène ne défile pas.
+       Dans cet état, elle cesse d'être une fenêtre collée en haut. */
+    body.vide #stage {
+      position: static; height: auto; min-height: 0;
+      overflow: visible; padding: 16px 13px 10px;
+    }
+    body.vide #empty { max-width: none; }
+
+    aside {
+      width: 100%; max-height: none; flex: none;
+      border-right: 0; border-bottom: 0;
+    }
+    .scroll {
+      overflow: visible; flex: none;
+      /* le socle est fixé au bas de l'écran : sans cette réserve, il
+         recouvre les derniers réglages de la colonne */
+      padding: 2px 14px calc(124px + env(safe-area-inset-bottom));
+    }
+
+    /* Plus serré, à contenu égal : deux fois plus de lignes visibles. */
+    section { padding: 11px 0; }
+    section > h2 { margin-bottom: 8px; }
+    .opt { padding: 4px 0; }
+    button { padding: 9px 12px; }
+    button.ghost { margin-top: 5px; padding: 7px 10px; }
+
+    /* iOS agrandit la page dès qu'on touche un champ dont le texte fait
+       moins de 16 px — et n'y revient jamais tout seul. Un champ un peu
+       plus grand coûte moins cher qu'une page restée zoomée. */
+    input[type=text], input[type=number], select, textarea { font-size: 16px; }
+
+    /* Le socle : une rangée pour exporter, une pour le reste. Les libellés
+       passent en forme courte dans app.js — le texte n'est pas du style. */
+    /* Une grille, pas un enroulement : en flex, les trois boutons
+       secondaires se glissaient dans les quelques pour cent qui restaient
+       à droite d'« Exporter » au lieu de passer à la ligne. Ici chacun a
+       sa case, donc deux rangées exactement, quelle que soit la largeur. */
+    .dock {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 7;
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 6px; align-items: center;
+      padding: 8px 13px calc(8px + env(safe-area-inset-bottom));
+    }
+    .dock .row { grid-column: 1 / 3; margin: 0; }
+    #export { grid-column: 3; width: auto; }
+    #preview-play { grid-column: 1; }
+    #export-video { grid-column: 2; }
+    #export-seq { grid-column: 3; }
+    #preview-play, #export-video, #export-seq {
+      width: auto; margin-top: 0; padding: 7px 6px; font-size: 12px;
+      min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    #son, #video-state { grid-column: 1 / -1; }
+    #video-state { margin-top: 0; }
+
     header .sub { display: none; }
   }
 </style>

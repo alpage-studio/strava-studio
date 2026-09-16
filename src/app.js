@@ -176,6 +176,23 @@
     majBoutons();
   }
 
+  /* Sur un téléphone, les trois actions secondaires tiennent sur une seule
+   * rangée : « Vidéo — le tracé s'anime » n'y entre pas. On garde le mot
+   * qui désigne l'action et on laisse tomber ce qui l'explique — l'écran
+   * n'a pas la place d'expliquer, et le bouton reste le même. */
+  var ETROIT = window.matchMedia('(max-width: 900px)');
+  var enLecture = false;                 // drapeau declare AVANT sa premiere lecture
+  function libelle(long, court) { return ETROIT.matches ? court : long; }
+  function majLibelles() {
+    if (enLecture) return;               // une lecture en cours a son propre libellé
+    $('#preview-play').textContent = libelle('Lire l\u2019aper\u00e7u', 'Aper\u00e7u');
+    $('#export-video').textContent = libelle('Vid\u00e9o \u2014 le trac\u00e9 s\u2019anime', 'Vid\u00e9o');
+    $('#export-seq').textContent = libelle('S\u00e9quence PNG \u2014 pour le montage', 'S\u00e9quence');
+    $('#export').textContent = libelle('Exporter en PNG', 'Exporter');
+  }
+  ETROIT.addEventListener('change', majLibelles);
+  majLibelles();
+
   function majBoutons() {
     var bloque = !chargee || exportEnCours;
     ['#export', '#export-video', '#export-seq', '#preview-play'].forEach(function (sel) {
@@ -961,7 +978,8 @@
     if (!lecture) return;
     cancelAnimationFrame(lecture);
     lecture = null;
-    $('#preview-play').textContent = 'Lire l’aperçu';
+    enLecture = false;
+    $('#preview-play').textContent = libelle('Lire l’aperçu', 'Aperçu');
     Studio.setProgress(1, 1);
     draw();
   }
@@ -970,7 +988,8 @@
     if (!chargee) return;
     var horloge = Studio.chrono($('#tpl').value, resolvedOptions($('#tpl').value));
     var t0 = performance.now();
-    $('#preview-play').textContent = 'Arrêter l’aperçu';
+    enLecture = true;
+    $('#preview-play').textContent = libelle('Arrêter l’aperçu', 'Arrêter');
     (function image(now) {
       var k = (now - t0) / horloge.duree;
       if (k >= 1) return arreteLecture();
