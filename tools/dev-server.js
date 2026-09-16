@@ -1,5 +1,6 @@
 /* Serveur local : sert le dossier, expose l'API Strava et accepte
- * POST /__save (corps = dataURL) pour écrire tools/preview.png.
+ * POST /__save (corps = dataURL) pour écrire tools/preview.png, ou
+ * apercus/<nom>.png avec ?nom= (--debug uniquement).
  *
  *   node tools/dev-server.js [port]
  *
@@ -108,8 +109,28 @@ async function traite(req, res) {
     req.on('end', () => {
       try {
         const b64 = morceaux.join('').replace(/^data:[^;]+;base64,/, '');
-        fs.writeFileSync(path.join(__dirname, 'preview.png'), Buffer.from(b64, 'base64'));
-        res.writeHead(200); res.end('preview.png');
+        /* Un nom est accepté, mais RECONSTRUIT : on ne garde que des
+         * minuscules, des chiffres et des tirets, et la destination est
+         * toujours apercus/. Reprendre le nom reçu — même « nettoyé »
+         * par un remplacement de « .. » — laisse passer « ....//» et écrit
+         * où l'on veut. Reconstruire ne laisse rien passer du tout. */
+        const brut = u.searchParams.get('nom') || '';
+        const nom = brut.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 60);
+        let dest, rendu;
+        if (nom) {
+          /* À la RACINE, pas dans tools/ : le serveur refuse de servir
+           * tools/ (durcissement de sécurité), et des aperçus qu'on ne peut
+           * pas ouvrir dans le navigateur ne servent à rien. */
+          const dossier = path.join(__dirname, '..', 'apercus');
+          if (!fs.existsSync(dossier)) fs.mkdirSync(dossier);
+          dest = path.join(dossier, nom + '.png');
+          rendu = 'apercus/' + nom + '.png';
+        } else {
+          dest = path.join(__dirname, 'preview.png');
+          rendu = 'preview.png';
+        }
+        fs.writeFileSync(dest, Buffer.from(b64, 'base64'));
+        res.writeHead(200); res.end(rendu);
       } catch (e) { res.writeHead(400); res.end('corps invalide'); }
     });
     return;

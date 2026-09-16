@@ -120,6 +120,7 @@ Studio.template({
 
 
     var g = H.grid({ cols: 6, margin: u(7) });
+    var encombrement = 0;   // marques qui se chevauchent — dit en légende
 
     var toutes = (s.library || []).filter(function (e) {
       return e.activity && e.activity.date instanceof Date && !isNaN(e.activity.date);
@@ -139,7 +140,7 @@ Studio.template({
 
     /* ---------- disposition ---------- */
     var multi = o.echelleTemps === 'annees' && periodes.length > 1;
-    var basLegende = g.bottom - u(13);
+    var basLegende = g.bottom - u(14.5);
 
     if (multi) {
       /* Le triptyque : même langage graphique, mêmes échelles, trois
@@ -158,11 +159,41 @@ Studio.template({
         systeme(p, cx, cy, R, echelles, i / n, 1 / n, true);
       });
     } else {
+      /* ---------- où vont les mémoires épinglées ----------
+       *
+       * Elles décident de toute la composition, et le premier jet ne les
+       * plaçait nulle part : il les écrivait aux marges de la PAGE, à une
+       * hauteur fixe, en supposant qu'une story laisse toujours de la place
+       * à côté du cercle. En paysage leurs filets traversaient le champ de
+       * part en part ; en carré les libellés s'écrivaient carrément DANS la
+       * constellation, par-dessus les mois et les orbites.
+       *
+       * On leur réserve donc une zone d'abord, et le système prend ce qui
+       * reste : une COLONNE à droite quand la page est large, une BANDE en
+       * haut sinon. Les filets deviennent courts et ne coupent plus rien. */
+      /* Colonne ou bande : le critère est le RAPPORT de la page, et la bande
+       * est dimensionnée sur ce qu'elle doit contenir. Le premier jet posait
+       * une bande de 23 unités pour trois mémoires qui en demandent 51 : en
+       * carré et en 4:5 les deux dernières s'écrivaient par-dessus les mois
+       * et les orbites. Seule la story 9:16 a la hauteur pour une bande. */
+      var epingles = o.remarquables !== 'aucune';
+      var enColonne = epingles && (w / h) > 0.72;
+      var colAnnot = enColonne ? g.width * 0.29 : 0;
+      var hBande = u(9) + 3 * u(13) + u(3);
+      var bandeHaut = (epingles && !enColonne) ? hBande : u(4);
+
+      var zone = { x: g.left, y: g.top + bandeHaut,
+                   w: g.width - colAnnot, h: basLegende - (g.top + bandeHaut) };
+      var marge = { enColonne: enColonne,
+                    x: enColonne ? g.right - colAnnot + u(3) : g.left,
+                    largeur: enColonne ? colAnnot - u(3) : g.width,
+                    y: enColonne ? zone.y + u(4) : g.top + u(4),
+                    droite: g.right };
+
       var p0 = periodes[periodes.length - 1];
       var ech = echellesCommunes([p0]);
-      var R = Math.min(g.width * 0.46, (basLegende - g.top - u(4)) * 0.46);
-      systeme(p0, g.left + g.width / 2, g.top + u(4) + (basLegende - g.top - u(4)) / 2,
-              R, ech, 0, 1, false);
+      var R = Math.min(zone.w * 0.46, zone.h * 0.46);
+      systeme(p0, zone.x + zone.w / 2, zone.y + zone.h / 2, R, ech, 0, 1, false, marge);
     }
 
     legende();
@@ -229,7 +260,7 @@ Studio.template({
 
     /* ================= un système ================= */
 
-    function systeme(p, cx, cy, R, ech, phase, part, compact) {
+    function systeme(p, cx, cy, R, ech, phase, part, compact, marge) {
       var rNoyau = R * 0.30;
       var membres = p.membres;
       var duree = p.fin - p.debut;
@@ -285,19 +316,18 @@ Studio.template({
       });
 
       /* --- les remarquables, à la périphérie --- */
-      if (o.remarquables !== 'aucune' && !compact && seuil >= 0.98) {
-        remarquables(astres, cx, cy, R);
+      if (o.remarquables !== 'aucune' && !compact && seuil >= 0.98 && marge) {
+        remarquables(astres, cx, cy, R, marge);
       }
 
       /* --- le noyau --- */
       noyau(p, cx, cy, rNoyau, compact);
 
       /* --- l'encombrement, dit et non corrigé --- */
-      var serres = compte(astres);
-      if (serres > 0 && !compact) {
-        H.text(serres + ' MARQUES SE CHEVAUCHENT — RÉDUIS LA PÉRIODE OU FILTRE PAR SPORT',
-               cx, cy + R + u(7), H.t('label', { color: melange(encre, 0.4), align: 'center' }));
-      }
+      /* L'encombrement est REMONTÉ à la légende. Écrit sous le cercle, il
+       * tombait sur le filet du bloc de bas de page dès que le système
+       * occupait toute la hauteur. */
+      if (!compact) encombrement = compte(astres);
     }
 
     /* Combien de marques en recouvrent une autre. On COMPTE, on ne déplace
@@ -447,7 +477,7 @@ Studio.template({
     /* Jusqu'à trois, choisies par une RÈGLE que l'utilisateur pose. Un filet
      * fin les relie à leur étiquette en marge — l'annotation à la main d'une
      * planche d'observatoire, pas une infobulle. */
-    function remarquables(astres, cx, cy, R) {
+    function remarquables(astres, cx, cy, R, marge) {
       var quoi = o.remarquables;
       var tri = astres.slice().filter(function (as) {
         return valeur(as.activity, quoi) != null;
@@ -455,10 +485,16 @@ Studio.template({
         return valeur(b.activity, quoi) - valeur(a.activity, quoi);
       }).slice(0, 3);
 
+      var pas = u(13);
       tri.forEach(function (as, i) {
-        var droite = Math.cos(as.ang) >= 0;
-        var xMarge = droite ? g.right : g.left;
-        var yMarge = g.top + u(16) + i * u(13);
+        /* En COLONNE, tout part vers la droite : le filet sort de l'astre,
+         * contourne le cercle et rejoint sa ligne. En BANDE, l'étiquette se
+         * range du côté où se trouve l'astre, au-dessus du système. */
+        var droite = marge.enColonne || Math.cos(as.ang) >= 0;
+        var xTexte = marge.enColonne ? marge.x : (droite ? marge.droite : marge.x);
+        var xFilet = marge.enColonne ? marge.x - u(1.5) : xTexte;
+        var yMarge = marge.y + u(9) + i * pas;
+        var al = marge.enColonne ? 'left' : (droite ? 'right' : 'left');
 
         ctx.save();
         ctx.strokeStyle = melange(encre, 0.3);
@@ -466,9 +502,13 @@ Studio.template({
         ctx.beginPath();
         ctx.moveTo(as.x + Math.cos(as.ang) * (as.rayon + u(0.8)),
                    as.y + Math.sin(as.ang) * (as.rayon + u(0.8)));
-        var coude = droite ? xMarge - u(16) : xMarge + u(16);
+        /* Le coude passe au-delà du cercle avant de rejoindre la marge :
+         * sans lui, le filet retraverse le champ en diagonale. */
+        var coude = marge.enColonne
+          ? Math.max(cx + R + u(3), xFilet - u(6))
+          : (droite ? xFilet - u(14) : xFilet + u(14));
         ctx.lineTo(coude, yMarge - u(1.2));
-        ctx.lineTo(xMarge, yMarge - u(1.2));
+        ctx.lineTo(xFilet, yMarge - u(1.2));
         ctx.stroke();
         ctx.restore();
 
@@ -479,14 +519,14 @@ Studio.template({
         ctx.beginPath(); ctx.arc(as.x, as.y, as.rayon * 2.4 + u(0.7), 0, Math.PI * 2);
         ctx.stroke(); ctx.restore();
 
-        var al = droite ? 'right' : 'left';
+        var largeur = marge.enColonne ? marge.largeur : u(38);
         H.text(as.activity.date.toLocaleDateString('fr-CH', { day: '2-digit', month: 'short' }).toUpperCase(),
-               xMarge, yMarge - u(3.4), H.t('label', { color: accent, align: al }));
-        H.text(Library.nomCourt(as.activity, 22), xMarge, yMarge + u(1),
-               H.t('title', { size: 2.9, color: encre, align: al, maxWidth: u(34) }));
+               xTexte, yMarge - u(3.4), H.t('label', { color: accent, align: al }));
+        H.text(Library.nomCourt(as.activity, 22), xTexte, yMarge + u(1),
+               H.t('title', { size: 2.9, color: encre, align: al, maxWidth: largeur }));
         H.text(H.fmt.km(as.activity.distance_km, 1) + ' km' +
                (as.activity.elev_gain_m != null ? ' · ' + Math.round(as.activity.elev_gain_m) + ' m' : ''),
-               xMarge, yMarge + u(5), H.t('label', { color: faint, align: al }));
+               xTexte, yMarge + u(5), H.t('label', { color: faint, align: al, maxWidth: largeur }));
       });
     }
 
@@ -494,7 +534,7 @@ Studio.template({
 
     function legende() {
       var y = g.bottom;
-      H.rule(g.left, y - u(10), g.right, { color: hair });
+      H.rule(g.left, y - u(11.5), g.right, { color: hair });
 
       /* Les familles présentes SEULEMENT : une légende qui liste le ski
        * quand il n'y a que du vélo occupe de la place pour rien. */
@@ -504,18 +544,19 @@ Studio.template({
       Object.keys(FAMILLES).forEach(function (cle) {
         if (!presentes[cle]) return;
         var f = FAMILLES[cle];
-        var faux = { x: x + u(1.4), y: y - u(6.6), ang: 0, rayon: u(0.85),
+        var faux = { x: x + u(1.4), y: y - u(7.8), ang: 0, rayon: u(0.85),
                      famille: cle, absente: false, nulle: false };
         marque(faux, true);
-        H.text(f.nom, x + u(4.2), y - u(6), H.t('label', { color: faint, maxWidth: u(26) }));
+        H.text(f.nom, x + u(4.2), y - u(7.2), H.t('label', { color: faint, maxWidth: u(26) }));
         x += u(30);
       });
 
       var regle = 'ANGLE : POSITION DANS LA PÉRIODE · RAYON : ' + nomMesure(o.orbite).toUpperCase() +
                   ' (ÉCHELLE LINÉAIRE) · SURFACE : ' + nomMesure(o.taille).toUpperCase();
-      H.text(regle, g.left, y - u(2), H.t('label', { color: melange(encre, 0.42), maxWidth: g.width }));
-      H.text('CERCLE POINTILLÉ = MESURE NON RENSEIGNÉE · LES VIDES SONT DES VIDES RÉELS',
-             g.left, y + u(2.2), H.t('label', { color: melange(encre, 0.3), maxWidth: g.width }));
+      H.text(regle, g.left, y - u(3), H.t('label', { color: melange(encre, 0.42), maxWidth: g.width }));
+      H.text('CERCLE POINTILLÉ = MESURE NON RENSEIGNÉE · LES VIDES SONT DES VIDES RÉELS' +
+             (encombrement ? ' · ' + encombrement + ' MARQUES SE CHEVAUCHENT — RÉDUIS LA PÉRIODE OU FILTRE PAR SPORT' : ''),
+             g.left, y + u(0.6), H.t('label', { color: melange(encre, 0.3), maxWidth: g.width }));
     }
 
     function nomMesure(q) {

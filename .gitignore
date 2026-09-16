@@ -2,6 +2,8 @@
 tools/preview.png
 tools/frame*.png
 tools/planches-*.png
+# aperçus régénérables : node tools/dev-server.js --debug puis la page d'aperçus
+apercus/
 tools/sequence-test.zip
 *.zip
 
