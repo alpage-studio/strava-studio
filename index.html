@@ -27,7 +27,11 @@
                            injection de style ne vaut pas une injection de
                            script ; la retirer demanderait de réécrire la
                            mise en page, pour un gain sans rapport.
-       frame-ancestors     personne ne met le studio dans une iframe. -->
+     `frame-ancestors` n'y figure PAS : un navigateur l'ignore quand la
+     politique arrive par <meta>, et se contente de le dire en console à
+     chaque chargement. Empêcher qu'on mette le studio dans une iframe
+     demande un en-tête HTTP, que l'hébergement statique ne permet pas
+     d'envoyer. Une directive inerte donne l'illusion d'une protection. -->
 <meta http-equiv="Content-Security-Policy" content="
   default-src 'self';
   script-src 'self';
@@ -39,8 +43,7 @@
   form-action 'none';
   frame-src 'none';
   object-src 'none';
-  base-uri 'self';
-  frame-ancestors 'none'">
+  base-uri 'self'">
 <link rel="icon" href="assets/icon-192.png">
 <!-- iOS ignore le manifeste pour l'icône et le mode plein écran : il lui faut
      ses propres balises -->

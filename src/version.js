@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.2';
+var STUDIO_VERSION = '3.2.1';
 var STUDIO_DATE = '16.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,9 @@ var STUDIO_DATE = '16.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.2.1', d: '17.09.2026', points: [
+    'Une directive de sécurité qui ne servait à rien est retirée : un navigateur ignore `frame-ancestors` quand la politique vient d’une balise, et le dit à chaque chargement.'
+  ] },
   { v: '3.2', d: '17.09.2026', points: [
     'Une marque : un seul geste qui monte, redescend et revient — le croisement fait le A, le trajet fait le chemin.',
     'Charbon sur papier, la même dans l’entête et sur l’écran d’accueil.',

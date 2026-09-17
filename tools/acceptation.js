@@ -47,6 +47,24 @@
   var $ = function (s) { return document.querySelector(s); };
   var attends = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
+  /* ATTENDRE UNE CONDITION, PAS UNE DURÉE.
+   *
+   * Les premières versions dormaient 2 600 ms après avoir cliqué « charger ».
+   * C'était large en local et trop court en ligne : quatre GPX sur le réseau
+   * prennent plus de temps que quatre GPX sur la machine. Le test rapportait
+   * alors « 0 sortie chargée » sur un site qui fonctionnait parfaitement —
+   * un échec qui ne parlait que de ma patience.
+   *
+   * Un contrôle qui dépend de la latence ne contrôle pas ce qu'il prétend. */
+  async function jusqua(condition, limite) {
+    var t0 = Date.now();
+    while (Date.now() - t0 < (limite || 15000)) {
+      try { if (condition()) return true; } catch (e) { /* pas encore prêt */ }
+      await attends(120);
+    }
+    return false;
+  }
+
   function ok(nom, condition, detail) {
     resultats.push({ cas: nom, verdict: condition ? 'ok' : 'ÉCHEC',
                      detail: condition ? '' : (detail || '') });
@@ -62,15 +80,18 @@
   }
 
   // ---------- 1. l'accueil ----------
-  ok('accueil · une planche est montrée avant tout réglage',
-     $('#accueil-planche') && encre($('#accueil-planche')) > 200);
+  var planche = await jusqua(function () {
+    return $('#accueil-planche') && encre($('#accueil-planche')) > 200;
+  }, 8000);
+  ok('accueil · une planche est montrée avant tout réglage', planche);
   ok('accueil · aucune sortie n’est inventée dans la bibliothèque',
      Library.count() === 0 && document.body.classList.contains('vide'));
 
   // ---------- 2. charger ----------
   $('#load-formes').click();
-  await attends(2600);
-  ok('chargement · quatre parcours de démonstration', Library.count() === 4,
+  var charge = await jusqua(function () { return Library.count() === 4; });
+  await attends(400);                       // le temps du premier rendu
+  ok('chargement · quatre parcours de démonstration', charge,
      Library.count() + ' chargés');
   ok('chargement · la scène dessine', encre($('#canvas')) > 200);
 
