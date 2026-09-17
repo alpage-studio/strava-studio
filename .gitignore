@@ -63,3 +63,6 @@ node_modules/
 # Le script d acceptation, copie a la racine le temps de le lancer depuis
 # le navigateur (le serveur refuse de servir tools/). Il ne se publie pas.
 acceptation-run.js
+
+# essais de marque, le temps de les regarder
+logos-essai.html

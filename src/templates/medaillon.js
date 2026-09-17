@@ -70,14 +70,14 @@ Studio.template({
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
     var nocturne = o.palette === 'nocturne';
-    var papier = nocturne ? '#191B18' : '#F2EFE6';
+    var papier = nocturne ? '#191B18' : Alpage.PALETTE.papier;
     /* L'encre suit la palette — sauf en surcouche, où il n'y a plus de
      * papier derrière elle. Le charbon de « Minéral », conçu pour un papier
      * crème, disparaît sur une photo de montagne : on passe donc à la crème,
      * qui tient sur presque toutes les images. Ce n'est qu'un DÉFAUT — la
      * palette Nocturne reste choisissable et garde la main. */
     var enSurcouche = o.fond === 'transparent';
-    var encre = nocturne ? '#E8E4D9' : (enSurcouche ? '#F2EFE6' : '#242820');
+    var encre = nocturne ? '#E8E4D9' : (enSurcouche ? Alpage.PALETTE.papier : Alpage.PALETTE.encre);
     var accent = o.accentC;
     var faint = melange(encre, 0.42), hair = melange(encre, 0.16);
 
@@ -316,9 +316,7 @@ Studio.template({
       }
     }
 
-    function melange(hex, kk) {
-      var v = parseInt(String(hex).replace('#', ''), 16);
-      return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + kk + ')';
-    }
+    /* délègue à Alpage : une seule définition pour tout le studio */
+    function melange(hex, kk) { return Alpage.melange(hex, kk); }
   }
 });

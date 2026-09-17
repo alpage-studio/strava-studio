@@ -86,7 +86,7 @@ Studio.template({
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
     var socle = Alpage.socle(H, o);
     var encre = socle.encre;
-    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || '#F2EFE6');
+    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || Alpage.PALETTE.papier);
     if (!socle.transparent) H.grain(0.012);
     var faint = melange(encre, 0.45);
 
@@ -182,7 +182,7 @@ Studio.template({
      * échelles sont posées à la main, en fractions de la zone. C'est une
      * COMPOSITION, et les tailles ne comparent rien — la mention le dit. */
     function poseIlots(boite) {
-      var TEINTES = ['#A54F37', '#C99A32', '#355E70'];
+      var TEINTES = [Alpage.PALETTE.rouille, '#C99A32', '#355E70'];
       var PLACES = (w > h * 1.15)
         ? [[0.20, 0.44, 1.00], [0.53, 0.26, 0.76], [0.81, 0.66, 0.90]]
         : [[0.34, 0.20, 1.00], [0.68, 0.49, 0.78], [0.33, 0.78, 0.88]];
@@ -409,10 +409,8 @@ Studio.template({
       return d.toLocaleDateString('fr-CH', { day: 'numeric', month: 'short', year: 'numeric' });
     }
 
-    function melange(hex, k) {
-      var v = parseInt(String(hex).replace('#', ''), 16);
-      return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + k + ')';
-    }
+    /* délègue à Alpage : une seule définition pour tout le studio */
+    function melange(hex, k) { return Alpage.melange(hex, k); }
     void papier;
   }
 });

@@ -91,7 +91,7 @@ Studio.template({
      * le voile éventuel, et rend l'encre à utiliser. */
     var socle = Alpage.socle(H, o);
     var encre = socle.encre;
-    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || '#F2EFE6');
+    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || Alpage.PALETTE.papier);
     var accent = o.accentC;
     var faint = melange(encre, 0.42), hair = melange(encre, 0.13);
     var ampleurSymboles = Math.max(0.5, (Number(o.symboles) || 100) / 100);
@@ -102,7 +102,7 @@ Studio.template({
      * redoubler : la planche se lit entièrement en noir et blanc, ce qui la
      * rend imprimable et lisible sans distinguer les teintes. */
     var FAMILLES = {
-      route:  { forme: 'plein',   nom: 'vélo de route', teinte: '#A54F37' },
+      route:  { forme: 'plein',   nom: 'vélo de route', teinte: Alpage.PALETTE.rouille },
       vtt:    { forme: 'anneau',  nom: 'vtt',           teinte: '#355E70' },
       course: { forme: 'point',   nom: 'course à pied', teinte: '#C99A32' },
       marche: { forme: 'ouvert',  nom: 'randonnée',     teinte: '#6B7A5A' },
@@ -628,9 +628,7 @@ Studio.template({
 
     function pad(n) { return n < 10 ? '0' + n : String(n); }
 
-    function melange(hex, k) {
-      var v = parseInt(String(hex).replace('#', ''), 16);
-      return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + k + ')';
-    }
+    /* délègue à Alpage : une seule définition pour tout le studio */
+    function melange(hex, k) { return Alpage.melange(hex, k); }
   }
 });

@@ -31,9 +31,6 @@
   var chargee = false;              // une vraie sortie a-t-elle été fournie ?
   var exportEnCours = false;        // un export occupe le canvas
 
-  /* La page statique est traduite AVANT que quoi que ce soit de dynamique
-   * ne soit construit : autrement le parcours des nœuds de texte retomberait
-   * sur des libellés déjà traduits et n'en reconnaîtrait plus la clé. */
   /* ---------- papier ou sombre ----------
    * Le papier est l'accueil : l'interface ressemble alors à ce qu'elle
    * fabrique. Le sombre reste à un doigt, parce qu'une planche nocturne se
@@ -58,6 +55,9 @@
     });
   }());
 
+  /* La page statique est traduite AVANT que quoi que ce soit de dynamique
+   * ne soit construit : autrement le parcours des nœuds de texte retomberait
+   * sur des libellés déjà traduits et n'en reconnaîtrait plus la clé. */
   I18N.appliquer(document.body);
   $('#langue').value = I18N.langue();
   $('#langue').addEventListener('change', function () { I18N.setLangue(this.value); });
@@ -288,7 +288,19 @@
    * rangée : « Vidéo — le tracé s'anime » n'y entre pas. On garde le mot
    * qui désigne l'action et on laisse tomber ce qui l'explique — l'écran
    * n'a pas la place d'expliquer, et le bouton reste le même. */
-  var ETROIT = window.matchMedia('(max-width: 900px)');
+  /* LE SEUIL DU TÉLÉPHONE, une fois.
+   *
+   * Il y en avait deux — `ETROIT` pour les libellés courts, `TELEPHONE` pour
+   * la barre d'outils — avec la même requête et chacun son écouteur. Ils
+   * répondaient forcément la même chose, mais rien ne disait dans quel ordre
+   * ils réagiraient à une rotation. Il est déclaré ici, avant son premier
+   * usage : `var` ne se hisse pas avec sa valeur.
+   *
+   * 900 px : la largeur en dessous de laquelle la colonne de 330 ne laisse
+   * plus rien à l'aperçu. La même valeur vit dans les média-requêtes
+   * d'index.html, où le CSS ne peut pas lire une constante JavaScript. */
+  var TELEPHONE = window.matchMedia('(max-width: 900px)');
+  var ETROIT = TELEPHONE;
   var enLecture = false;                 // drapeau declare AVANT sa premiere lecture
   function libelle(long, court) { return T(ETROIT.matches ? court : long); }
   function majLibelles() {
@@ -468,7 +480,6 @@
       function (b) { b.classList.remove('on'); });
   }
 
-  var TELEPHONE = window.matchMedia('(max-width: 900px)');
   function majDisposition() {
     var petit = TELEPHONE.matches;
     $('#barre').hidden = !petit;
@@ -578,7 +589,7 @@
     var groupes = GROUPES_STYLE.slice();
     if (orphelins.length) groupes.push({ id: 'autres', nom: 'Autres', ids: orphelins });
 
-    if (familleOuverte) return construitVariantes(boite, groupes);
+    if (familleOuverte) return construitVariantes(boite);
 
     var chips = document.createElement('div');
     chips.className = 'groupes-style';
@@ -625,10 +636,9 @@
       vignette(cv, id, (optionValues[id] || {}));
     });
     boite.appendChild(grille);
-    draw();                       // la scène a servi de brouillon aux vignettes
   }
 
-  function construitVariantes(boite, groupes) {
+  function construitVariantes(boite) {
     var tpl = Studio.get(familleOuverte);
     var def = tpl && optionVariante(tpl);
     if (!tpl || !def) { familleOuverte = null; return construitChoixStyle(); }
@@ -674,7 +684,6 @@
       vignette(cv, tpl.id, apercu);
     });
     boite.appendChild(grille);
-    draw();
   }
 
   /* ---------- essentiels et réglages fins ----------
@@ -1555,7 +1564,7 @@
   $('#tpl').addEventListener('change', function () { majPanneauSon(); });
 
   $('#export-video').addEventListener('click', function () {
-    var btn = $('#export-video'), note = $('#video-state');
+    var note = $('#video-state');
     var size = SIZES[$('#size').value];
     var tplId = $('#tpl').value;
     var act = effective();
@@ -1631,7 +1640,7 @@
    * (CapCut, Premiere, Resolve) l'importe comme une piste et la pose sur
    * ta vidéo. Aucun format vidéo ne sait faire ça. */
   $('#export-seq').addEventListener('click', async function () {
-    var btn = $('#export-seq'), note = $('#video-state');
+    var note = $('#video-state');
     var size = SIZES[$('#size').value];
     var tplId = $('#tpl').value;
     var act = effective();
@@ -1821,7 +1830,9 @@
   }
 
   function messageIcu(e) {
-    if (e.message === 'CLE_REFUSEE') return 'intervals.icu — clé refusée. <a href="#" id="re">Recommencer</a>';
+    /* Pas de lien : rien n'a jamais écouté ce `#re`. Le formulaire revient
+     * de lui-même quand la clé est refusée. */
+    if (e.message === 'CLE_REFUSEE') return T('intervals.icu — clé refusée.');
     if (e.message === 'QUOTA') return 'intervals.icu — quota atteint (2 500 / 15 min).';
     if (e.message === 'RESEAU') return 'intervals.icu — injoignable depuis ce navigateur.';
     return 'intervals.icu — ' + escapeHtml(e.message);
@@ -1884,10 +1895,10 @@
 
   $('#export').addEventListener('click', function () {
     var size = SIZES[$('#size').value];
-    var slug = String(effective().name).toLowerCase()
-      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-      .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'sortie';
-    Studio.exportPNG(canvas, slug + '_' + current.id + '_' + size[0] + 'x' + size[1] + '.png');
+    /* `var slug = …` masquait ici la fonction `slug()` du même nom, avec
+     * le même corps à une écriture près. Deux assainissements de nom de
+     * fichier, c'est deux comportements qui finiront par diverger. */
+    Studio.exportPNG(canvas, slug() + '_' + current.id + '_' + size[0] + 'x' + size[1] + '.png');
   });
 
   /* ---------- démarrage ---------- */

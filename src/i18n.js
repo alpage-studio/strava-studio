@@ -96,10 +96,6 @@
     'Donne une forme à tes sorties.': 'Give your rides a shape.',
     'Une trace GPX devient une affiche, une estampe ou une carte.':
       'A GPX trace becomes a poster, a print or a map.',
-    'Dépose une sortie pour commencer': 'Drop a ride to begin',
-    'Un fichier GPX — depuis Strava, une activité →': 'A GPX file — in Strava, open an activity →',
-    'Exporter en GPX': 'Export GPX',
-    '. Ou saisis les valeurs à la main.': '. Or enter the numbers by hand.',
     'Voir avec une sortie d’exemple': 'See it with a sample ride',
     'Voir d’autres exemples': 'See other examples',
     'Voir avec trois sorties — planches multiples': 'See it with three rides — multi-ride plates',
@@ -447,11 +443,11 @@
     'Pièce retirée.': 'Piece removed.',
     'Pièce ajoutée — le cartel reste à écrire.': 'Piece added — the wall label is still to write.',
     'Lecture impossible.': 'Playback failed.',
+    'intervals.icu — clé refusée.': 'intervals.icu — key refused.',
     'Lecture…': 'Playing…',
     'Pièce': 'Piece',
     'sorties de référence': 'reference rides',
     'cases': 'cells',
-    'Nouveautés': 'What’s new',
 
     /* ---------- la période ---------- */
     'Tout ce qui est chargé': 'Everything loaded',

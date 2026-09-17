@@ -68,12 +68,6 @@
     return registry[0];
   }
 
-  /* Un template est-il transparent POUR CES OPTIONS ?
-   * Trois endroits en dépendent — le fond de contrôle sous l'aperçu, la
-   * légende, et la composition de la vidéo — et chacun lisait jusqu'ici
-   * `tpl.transparent` directement. Avec une déclaration devenue fonction,
-   * ils auraient tous reçu `true` (une fonction est vraie) et cru que les
-   * six planches Alpage étaient toujours transparentes. */
   /* ---------- le support, réglage GLOBAL ----------
    *
    * Le principe du studio : toute planche peut se poser sur une photo. Il
@@ -91,6 +85,12 @@
   var supportSurcouche = false;
   function setSupport(actif) { supportSurcouche = !!actif; }
 
+  /* Un template est-il transparent POUR CES OPTIONS ?
+   * Trois endroits en dépendent — le fond de contrôle sous l'aperçu, la
+   * légende, et la composition de la vidéo — et chacun lisait jusqu'ici
+   * `tpl.transparent` directement. Avec une déclaration devenue fonction,
+   * ils auraient tous reçu `true` (une fonction est vraie) et cru que les
+   * six planches Alpage étaient toujours transparentes. */
   function estTransparent(tpl, opts) {
     if (supportSurcouche) return true;
     if (typeof tpl === 'string') tpl = get(tpl);

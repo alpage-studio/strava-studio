@@ -27,10 +27,8 @@
     return 50;
   }
 
-  function alpha(hex, k) {
-    var n = parseInt(String(hex).replace('#', ''), 16);
-    return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + k + ')';
-  }
+  /* délègue à Alpage : une seule définition pour tout le studio */
+  function alpha(hex, k) { return Alpage.melange(hex, k); }
 
   function draw(mode) {
     return function (s) {

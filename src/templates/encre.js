@@ -82,7 +82,7 @@ Studio.template({
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
     var socle = Alpage.socle(H, o);
     var encre = socle.encre;
-    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || '#F2EFE6');
+    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || Alpage.PALETTE.papier);
     if (!socle.transparent && o.grain) H.grain(0.012);
 
     var vue = Alpage.projette(a.track);
@@ -477,9 +477,7 @@ Studio.template({
       return best;
     }
 
-    function melange(hex, k) {
-      var v = parseInt(String(hex).replace('#', ''), 16);
-      return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + k + ')';
-    }
+    /* délègue à Alpage : une seule définition pour tout le studio */
+    function melange(hex, k) { return Alpage.melange(hex, k); }
   }
 });

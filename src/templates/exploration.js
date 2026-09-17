@@ -239,9 +239,7 @@ Studio.template({
       };
     }
 
-    function melange(hex, k) {
-      var v = parseInt(String(hex).replace('#', ''), 16);
-      return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + k + ')';
-    }
+    /* délègue à Alpage : une seule définition pour tout le studio */
+    function melange(hex, k) { return Alpage.melange(hex, k); }
   }
 });

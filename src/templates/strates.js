@@ -65,7 +65,7 @@ Studio.template({
      * le voile éventuel, et rend l'encre à utiliser. */
     var socle = Alpage.socle(H, o);
     var encre = socle.encre;
-    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || '#F2EFE6');
+    var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || Alpage.PALETTE.papier);
     var faint = melange(encre, 0.45), hair = melange(encre, 0.16);
 
 
@@ -446,10 +446,8 @@ Studio.template({
       return courte(dates[0]) + ' — ' + courte(dates[dates.length - 1]);
     }
 
-    function melange(hex, k) {
-      var v = parseInt(String(hex).replace('#', ''), 16);
-      return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + k + ')';
-    }
+    /* délègue à Alpage : une seule définition pour tout le studio */
+    function melange(hex, k) { return Alpage.melange(hex, k); }
     function melange2(hex, k) { return melange(hex, k * 0.42); }
 
     /* Un mélange OPAQUE de deux couleurs. Le massif ne peut pas utiliser

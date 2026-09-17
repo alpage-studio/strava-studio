@@ -130,10 +130,8 @@ Studio.template({
     /* ================= utilitaires locaux ================= */
 
     // '#121212' + 0.45  ->  'rgba(18,18,18,.45)'
-    function alpha(hex, k) {
-      var n = parseInt(String(hex).replace('#', ''), 16);
-      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + k + ')';
-    }
+    /* délègue à Alpage : une seule définition pour tout le studio */
+    function alpha(hex, k) { return Alpage.melange(hex, k); }
 
     // Ramène n'importe quelle série à ~56 barres : au-delà, elles se collent.
     function resample(values, n) {

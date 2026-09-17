@@ -164,9 +164,7 @@ Studio.template({
     H.text('GAMME PENTATONIQUE · LE SON NE DÉMARRE QUE SI TU LE DEMANDES',
            g.left, g.bottom, H.t('label', { color: faint, maxWidth: g.width }));
 
-    function melange(hex, k) {
-      var v = parseInt(String(hex).replace('#', ''), 16);
-      return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' + (v & 255) + ',' + k + ')';
-    }
+    /* délègue à Alpage : une seule définition pour tout le studio */
+    function melange(hex, k) { return Alpage.melange(hex, k); }
   }
 });

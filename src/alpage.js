@@ -543,6 +543,26 @@
     ];
   }
 
+  /* UNE COULEUR HEXA, RENDUE EN RGBA.
+   *
+   * Cette fonction était recopiée à l'identique dans dix-sept templates,
+   * sous le nom `melange`. Seize fois le même corps, quatre lignes chacun,
+   * et un dix-septième qui ne différait que par le nom de son paramètre :
+   * personne ne l'avait remarqué parce que chacune marchait.
+   *
+   * Le coût n'est pas la place, c'est qu'une correction — accepter
+   * `#abc`, par exemple — aurait demandé dix-sept modifications, ou aurait
+   * produit dix-sept comportements. Elle vit ici, où vit déjà la palette.
+   *
+   * Les templates gardent une fonction `melange` locale d'UNE ligne qui
+   * délègue ici : une fonction se hisse, `var melange = …` non, et les
+   * appels précèdent la déclaration dans la plupart de ces fichiers. */
+  function melange(hex, k) {
+    var v = parseInt(String(hex).replace('#', ''), 16);
+    return 'rgba(' + ((v >> 16) & 255) + ',' + ((v >> 8) & 255) + ',' +
+           (v & 255) + ',' + k + ')';
+  }
+
   function luminance(hex) {
     var v = parseInt(String(hex).replace('#', ''), 16);
     if (!isFinite(v)) return 0;
@@ -653,6 +673,7 @@
     semaineISO: semaineISO,
     fenetre: fenetre,
     dansLaFenetre: dansLaFenetre, lundiDe: lundiDe, positionDansPeriode: positionDansPeriode,
-    socle: socle, optionsFond: optionsFond, luminance: luminance
+    socle: socle, optionsFond: optionsFond, luminance: luminance,
+    melange: melange
   };
 }(window));

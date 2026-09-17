@@ -337,6 +337,76 @@ function testsCoherence() {
        !A.dansLaFenetre(null, f));
   }());
 
+  /* LA MARQUE NE SE DÉDOUBLE PAS.
+   *
+   * Elle est dessinée en SVG dans l'entête, et redessinée en Python pour les
+   * icônes — iOS et Android veulent des PNG. Le fichier icones.py le dit :
+   * « sans ce fichier, la marque et l'icône divergent à la première
+   * retouche ». C'est exactement ce qui est arrivé en l'affinant : l'entête a
+   * changé, l'icône est restée sur l'ancien tracé, et rien ne l'a dit.
+   *
+   * On compare donc les COORDONNÉES, pas les fichiers : les six points de
+   * chaque segment cubique doivent être les mêmes des deux côtés. */
+  (function () {
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const py = path.join(ROOT, 'tools', 'icones.py');
+    if (!fs.existsSync(py)) { saute('marque · icônes', 'icones.py absent'); return; }
+
+    const m = html.match(/<svg class="mark"[\s\S]*?<path d="([^"]+)"/);
+    if (!m) { saute('marque · tracé', 'chemin introuvable dans l’entête'); return; }
+    const nombresSvg = (m[1].match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+
+    const src = fs.readFileSync(py, 'utf8');
+    const mg = src.match(/GESTE = \[([\s\S]*?)\]/);
+    if (!mg) { saute('marque · GESTE', 'littéral introuvable'); return; }
+    const nombresPy = (mg[1].match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+
+    /* Le SVG écrit le point de départ une fois (M) puis trois points par
+     * segment ; le Python répète le point de départ de chaque segment. On
+     * compare donc la suite dépliée. */
+    const dep = [];
+    for (var i = 0; i + 1 < nombresPy.length; i += 2) {
+      if (i % 8 === 0 && i > 0) continue;          // le départ répété
+      dep.push(nombresPy[i], nombresPy[i + 1]);
+    }
+    const memes = nombresSvg.length === dep.length &&
+      nombresSvg.every(function (v, k) { return Math.abs(v - dep[k]) < 0.001; });
+    ok('marque · l’icône suit le même tracé que l’entête  (' +
+       nombresSvg.length / 2 + ' points)',
+       memes, 'entête : ' + nombresSvg.join(' ') + '  —  icône : ' + dep.join(' '));
+  }());
+
+  /* LE RANGEMENT NE SE DÉFAIT PAS.
+   *
+   * `melange()` — une couleur hexa rendue en rgba — était recopiée à
+   * l'identique dans dix-sept templates. Elle vit maintenant dans Alpage, et
+   * chaque template en garde une délégation d'une ligne. Rien n'empêche de
+   * recoller un corps complet au prochain template : ce contrôle le refuse.
+   *
+   * Il regarde le CORPS, pas le nom : un template a le droit d'avoir sa
+   * propre fonction de mélange si elle fait autre chose (strates en a deux,
+   * tissage délègue à sa propre teinte). Ce qui est refusé, c'est la
+   * dix-huitième copie de la MÊME analyse d'hexadécimal. */
+  (function () {
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const fichiers = (html.match(/src="src\/templates\/[^"]+"/g) || [])
+      .map(function (m) { return m.slice(5, -1); });
+    const copieurs = fichiers.filter(function (f) {
+      const src = fs.readFileSync(path.join(ROOT, f), 'utf8');
+      return /parseInt\(String\(hex\)\.replace\('#', ''\), 16\)/.test(src);
+    });
+    ok('rangement · aucun template ne recopie l’analyse d’hexadécimal  (' +
+       fichiers.length + ' templates)',
+       copieurs.length === 0, 'copies : ' + copieurs.join(', '));
+
+    /* Et l'ordre de chargement : un template qui délègue à Alpage sans
+     * qu'Alpage soit chargé avant lui échoue à la première couleur. */
+    const iAlpage = html.indexOf('src/alpage.js');
+    const iPremier = html.indexOf('src/templates/');
+    ok('rangement · Alpage est chargé avant les templates',
+       iAlpage > 0 && iAlpage < iPremier);
+  }());
+
   /* LA NAVIGATION.
    *
    * La barre du téléphone ne DUPLIQUE pas les contrôles : elle les DÉPLACE,

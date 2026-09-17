@@ -145,17 +145,30 @@
     display: flex; align-items: center; gap: 14px;
     background: var(--panel);
   }
-  /* La marque : une planche, et dedans une courbe de niveau qui la traverse.
-     C'est exactement ce que fait l'outil — un terrain devient une image
-     imprimable — et cela reste lisible à seize pixels, ce qu'un tracé de
-     parcours détaillé ne ferait pas. */
-  .mark { width: 24px; height: 24px; flex: none; display: block; }
-  .mark .plaque { fill: none; stroke: var(--mut); stroke-width: 1.4; }
-  .mark .ligne  { fill: none; stroke: var(--acc); stroke-width: 1.6;
-                  stroke-linecap: round; }
-  .mark .sommet { fill: var(--acc); }
-  /* Le mot-symbole en bas de casse : une maison d'édition signe, elle ne
-     crie pas. Les capitales espacées restent, mais pour les mentions. */
+  /* LA MARQUE : un seul geste.
+     Il monte, redescend, puis revient vers la gauche en croisant sa propre
+     montée. Le croisement fabrique la contreforme du A — le nom — et le
+     trajet fabrique le chemin — ce qu'on met sur les planches.
+
+     Elle est en ENCRE, pas en accent : la reconnaissance doit tenir en noir
+     et blanc, et l'encre s'inverse toute seule d'un thème à l'autre. Trois
+     contours topographiques auraient été plus proches des affiches, mais à
+     vingt-quatre pixels ils se referment en cible.
+
+     UN SEUL DESSIN, DEUX POIDS. Le trait fait 2,1 ici et 2,35 dans l'icône :
+     même géométrie, un seul nombre de différence. L'entête vit à vingt-cinq
+     pixels à côté d'une typographie fine, l'icône à cent-quatre-vingts sur
+     un écran d'accueil chargé de couleurs — elle a besoin d'un peu plus de
+     présence. Deux DESSINS auraient été deux marques à tenir d'accord. */
+  /* La marque et le nom forment UN bloc : ils se touchent presque, et le
+     reste de l'entête garde son écart. Auparavant la marque flottait à
+     quatorze pixels du mot, avec la même respiration qu'entre deux boutons —
+     elle avait l'air posée là, pas d'appartenir au nom. */
+  .marque-nom { display: flex; align-items: center; gap: 7px; }
+  .mark { width: 29px; height: 29px; flex: none; display: block; color: var(--ink); }
+  .mark path { fill: none; stroke: currentColor; stroke-width: 2.1;
+               stroke-linecap: round; stroke-linejoin: round; }
+
   header h1 {
     font-size: 15px; margin: 0; font-weight: 600;
     letter-spacing: -.005em; text-transform: none;
@@ -170,6 +183,8 @@
   @media (max-width: 400px) {
     header { padding: env(safe-area-inset-top) 11px 0; gap: 8px; }
     header h1 { font-size: 14px; letter-spacing: -.01em; }
+    .marque-nom { gap: 6px; }
+    .mark { width: 26px; height: 26px; }
     header .lien-galerie { padding: 5px 9px; }
     header #langue { padding: 4px 20px 4px 7px; background-position: calc(100% - 9px) 50%, calc(100% - 5px) 50%; }
   }
@@ -387,7 +402,6 @@
     flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch;
     padding: 12px 16px calc(18px + env(safe-area-inset-bottom));
   }
-  #feuille .zone[hidden] { display: none; }
 
   /* ---------- colonnes ---------- */
   main { flex: 1; display: flex; min-height: 0; }
@@ -640,10 +654,7 @@
   }
   #empty .autres { width: 100%; }
   #empty .autres > summary { margin: 4px 0 8px; }
-  #empty svg { color: var(--line-2); }
   #empty p { margin: 0; font-size: 13px; }
-  #empty strong { color: var(--ink); font-weight: 600; font-size: 14.5px; }
-  #empty em { font-style: normal; color: var(--ink); }
   body.vide #empty { display: flex; }
   body.vide #sheet, body.vide #stage .caption { display: none; }
 
@@ -743,15 +754,13 @@
 <body>
 
 <header>
-  <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
-    <rect class="plaque" x="2.6" y="2.6" width="18.8" height="18.8" rx="3.4"></rect>
-    <path class="ligne" d="M5.6 16.4c2.1 0 2.6-3.2 4.3-3.2 1.5 0 1.9 2 3.3 2
-                           1.6 0 2.1-4.1 3.8-4.1"></path>
-    <path class="ligne" d="M5.6 19.2c2.6 0 3.1-2.1 4.9-2.1 1.6 0 2 1.3 3.4 1.3
-                           1.5 0 2-2.6 4.5-2.6" opacity=".45"></path>
-    <circle class="sommet" cx="17" cy="11.1" r="1.5"></circle>
-  </svg>
-  <h1>alpage <span class="second">studio</span></h1>
+  <span class="marque-nom">
+    <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5.7 20.4 C7.2 14.3 9.5 8.5 12.4 4.5 C14.5 9.3 16.4 14.7 17.9 19.8
+               C16.6 19.2 13.3 17 6.7 16.5"/>
+    </svg>
+    <h1>alpage <span class="second">studio</span></h1>
+  </span>
   <span class="sub">tes données, tes templates, ton code</span>
   <div class="spacer"></div>
   <span class="sub" id="header-note"></span>
