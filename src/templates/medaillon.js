@@ -35,6 +35,19 @@ Studio.template({
   id: 'medaillon',
   name: 'Médaillon — une fenêtre sur le lieu',
   famille: 'affiche',
+  /* LES VARIANTES DE LA FAMILLE, telles que le catalogue les montre.
+   * Déclarées ici parce que l'axe unique — la première liste déroulante — ne
+   * suffit pas : « Fragment » est un cadrage et un décalage — deux CURSEURS,
+   * qu'aucune carte ne pouvait montrer.
+   * Le harnais vérifie que cette liste couvre les valeurs de ce premier menu
+   * ET toutes les planches de la galerie de revue. */
+  variantes: [
+    { nom: 'Minéral', dit: 'papier clair', o: {} },
+    { nom: 'Nocturne', dit: 'fond charbon', o: { palette: 'nocturne' } },
+    { nom: 'Fragment', dit: 'la trace déborde du cadre',
+      o: { cadrage: 58, decalage: -15 } }
+  ],
+
   /* La transparence est une OPTION : le médaillon s'exporte sur papier ou en
    * surcouche, et c'est la planche la plus naturelle à poser sur une photo —
    * la fenêtre circulaire s'ouvre alors littéralement sur l'image. */

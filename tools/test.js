@@ -538,6 +538,9 @@ function testsCoherence() {
     }
     reg.forEach(function (t) {
       verifie(t.name);
+      /* Les variantes déclarées sont AFFICHÉES sur les cartes du catalogue :
+       * elles se traduisent comme le reste. */
+      (t.variantes || []).forEach(function (v) { verifie(v.nom); verifie(v.dit); });
       (t.options || []).forEach(function (o) {
         verifie(o.label);
         (o.choices || []).forEach(function (c) { verifie(c[1]); });
@@ -565,6 +568,116 @@ function testsCoherence() {
        (vraiesManquantes.length > 8 ? ' … et ' + (vraiesManquantes.length - 8) + ' autres' : ''));
 
     ok('langue · l\u2019anglais est la langue par d\u00e9faut', bac.I18N.langue() === 'en');
+
+    /* ---------- LES VARIANTES SONT-ELLES ATTEIGNABLES ? ----------
+     *
+     * Le défaut signalé : « je retrouve pas tous les templates, empreinte etc,
+     * tous les plus artistiques ». Il était réel. Le catalogue n'ouvrait qu'un
+     * SEUL axe — la première liste déroulante — et tout ce qui demandait une
+     * combinaison restait invisible : « Fragment » de Médaillon est un cadrage
+     * et un décalage, « Gravity » d'Almanac combine trois clés, « Massif ·
+     * accent » ajoute un réglage à la composition. Ces planches existaient dans
+     * la galerie de revue et nulle part dans l'outil.
+     *
+     * LA RÈGLE CONTRÔLÉE ICI : ce que la galerie montre doit être atteignable.
+     *
+     * La sélection des variantes est REDÉRIVÉE ici, et non empruntée à
+     * src/app.js. Un contrôle qui appellerait la fonction du produit ne
+     * prouverait que sa cohérence avec elle-même — y compris quand elle a
+     * tort. */
+    function variantesDe(t) {
+      if (t.variantes && t.variantes.length) return t.variantes;
+      const def = (t.options || []).filter(function (d) {
+        return d.type === 'select' && d.key !== 'fond' && d.key !== 'voile';
+      })[0];
+      if (!def) return null;
+      return def.choices.map(function (c) {
+        const o = {};
+        o[def.key] = c[0];
+        return { nom: c[1], o: o };
+      });
+    }
+    /* COMPARER À DÉFAUTS ÉGAUX.
+     *
+     * Une entrée de galerie note `{}` pour la composition de base — « pars des
+     * réglages du template » — là où la variante engendrée depuis le premier
+     * menu note `{ interpretation: 'trait' }`. Les deux décrivent la MÊME
+     * planche. Une première version du contrôle les déclarait différentes et
+     * signalait trois défauts qui n'existaient pas.
+     *
+     * On projette donc les deux côtés sur les clés que la famille fait varier,
+     * en remplaçant l'absence par le défaut du template — exactement ce que
+     * fait le produit quand on clique sur une carte. */
+    function projette(t, cles, o) {
+      return cles.map(function (k) {
+        const v = (o && o[k] !== undefined) ? o[k]
+                : (t.options || []).filter(function (d) { return d.key === k; })
+                    .map(function (d) { return d.default; })[0];
+        return String(v);
+      }).join(' ');
+    }
+
+    /* 1. Déclarer `variantes` ne doit RIEN retirer : la liste explicite doit
+     *    couvrir au moins les valeurs du premier menu, sinon le correctif
+     *    provoque la perte qu'il répare. */
+    const retirees = [];
+    reg.forEach(function (t) {
+      if (!t.variantes || !t.variantes.length) return;
+      const def = (t.options || []).filter(function (d) {
+        return d.type === 'select' && d.key !== 'fond' && d.key !== 'voile';
+      })[0];
+      if (!def) return;
+      def.choices.forEach(function (c) {
+        const atteint = t.variantes.some(function (v) {
+          return String(v.o[def.key]) === String(c[0]) ||
+                 (c[0] === def.default && !Object.keys(v.o).length);
+        });
+        if (!atteint) retirees.push(t.id + ' · ' + def.key + '=' + c[0]);
+      });
+    });
+    ok('variantes · déclarer une liste ne retire aucune composition',
+       retirees.length === 0, retirees.join(' | '));
+
+    /* 2. Chaque planche de la galerie — hors « Support », qui décrit des
+     *    réglages globaux et non des compositions — doit avoir sa carte. */
+    const catV = path.join(ROOT, 'apercus-catalogue.js');
+    if (!fs.existsSync(catV)) {
+      saute('variantes · galerie', 'catalogue absent');
+    } else {
+      const fauxV = {};
+      new Function('window', fs.readFileSync(catV, 'utf8'))(fauxV);
+      const entrees = fauxV.Apercus.CATALOGUE.filter(function (e) {
+        return e.g === 'Original' || e.g === 'Exploration';
+      });
+      const introuvables = [];
+      entrees.forEach(function (e) {
+        const t = bac.Studio.get(e.t);
+        const liste = t && variantesDe(t);
+        if (!liste) { introuvables.push(e.f + ' · ' + e.n + ' (aucune variante)'); return; }
+        /* Les clés comparées sont celles des variantes ET CELLES DE L'ENTRÉE.
+         *
+         * Une première version ne prenait que celles des variantes : pour
+         * Médaillon sans liste déclarée, elle ne comparait donc que `palette`,
+         * et « Fragment » — cadrage 58, décalage −15 — se projetait sur la
+         * palette par défaut, c'est-à-dire sur « Minéral ». Le contrôle
+         * déclarait atteignable la planche même qui ne l'était pas. Il est
+         * resté VERT sur son propre témoin avant cette correction. */
+        const vues = {};
+        liste.forEach(function (v) {
+          Object.keys(v.o).forEach(function (k) { vues[k] = 1; });
+        });
+        Object.keys(e.o || {}).forEach(function (k) { vues[k] = 1; });
+        const cles = Object.keys(vues);
+        const cible = projette(t, cles, e.o || {});
+        if (!liste.some(function (v) { return projette(t, cles, v.o) === cible; })) {
+          introuvables.push(e.f + ' · ' + e.n + ' ' + JSON.stringify(e.o));
+        }
+      });
+      ok('variantes · les ' + entrees.length +
+         ' planches de la galerie sont atteignables dans l’outil',
+         introuvables.length === 0,
+         'sans carte : ' + introuvables.join(' | '));
+    }
   }());
 
   /* La galerie de revue. Le catalogue décrit ce qui existe ; la génération
@@ -973,6 +1086,195 @@ function testsCoherence() {
      suspects.length === 0, suspects.join(', '));
 }
 
+/* ================= 2 quater. MENUS REMPLIS =================
+ *
+ * Le défaut réel : `<select id="collection">` était vide dans index.html et
+ * aucun code ne le remplissait. Huit palettes existaient, s'appliquaient
+ * correctement, et aucune n'était atteignable. Rien n'a levé d'erreur — poser
+ * une valeur sur un menu vide ne lève rien — et le studio a vécu des semaines
+ * avec un réglage global inaccessible.
+ *
+ * Le contrôle est donc GÉNÉRAL, pas particulier : tout menu déclaré sans
+ * option dans le HTML doit être rempli quelque part dans src/. */
+
+function testsMenus() {
+  titre('2 quater. MENUS REMPLIS');
+
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const js = fs.readdirSync(path.join(ROOT, 'src'))
+    .filter(function (f) { return /\.js$/.test(f); })
+    .map(function (f) { return fs.readFileSync(path.join(ROOT, 'src', f), 'utf8'); })
+    .join('\n');
+
+  const re = /<select([^>]*)>([\s\S]*?)<\/select>/g;
+  let m;
+  const vides = [];
+  while ((m = re.exec(html))) {
+    const id = (/id="([^"]+)"/.exec(m[1]) || [])[1];
+    if (!id) continue;
+    if (/<option/.test(m[2])) continue;                 // rempli dans le HTML
+    /* Rempli en JS : on cherche une ÉCRITURE vers ce menu — `appendChild(`,
+     * `innerHTML =` ou `add(` — dans ce qui suit immédiatement l'endroit où le
+     * menu est désigné.
+     *
+     * DEUX VERSIONS FAUSSES AVANT CELLE-CI, et chacune dans un sens différent.
+     * La première acceptait `add` sans parenthèse : `addEventListener` lui
+     * suffisait, et elle restait VERTE sur le défaut exact qu'elle devait
+     * attraper. La deuxième exigeait l'écriture directement sur `$('#id')` et
+     * déclarait donc vide un menu rempli par `var sel = $('#id'); sel.innerHTML
+     * = …` — ROUGE sur du code correct. Un contrôle se trompe dans les deux
+     * sens, et les deux coûtent : l'un laisse passer, l'autre fait chercher un
+     * défaut qui n'existe pas. */
+    const sel = id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const points = [...js.matchAll(new RegExp("#" + sel + "'\\)", 'g'))];
+    const ecrit = points.some(function (p) {
+      const suite = js.slice(p.index, p.index + 400);
+      return /\.\s*(?:appendChild\s*\(|innerHTML\s*=|add\s*\(|options\s*=)/.test(suite) ||
+             /\bnew Option\b/.test(suite);
+    });
+    if (!ecrit) vides.push(id);
+  }
+  ok('aucun menu ne reste vide  (' +
+     (html.match(/<select/g) || []).length + ' menus)',
+     vides.length === 0,
+     'déclaré sans option et jamais rempli : ' + vides.join(', '));
+
+  /* LES NOTES DES COLLECTIONS SONT DES PHRASES, LEURS NOMS SONT DES NOMS.
+   *
+   * Les noms — Alpage, Braise, Brume — ne doivent PAS être traduits. Une
+   * première version les passait par T(), et « Papier », qui existe déjà au
+   * dictionnaire comme nom de support, ressortait « Paper » au milieu de sept
+   * noms français. Les notes, elles, doivent toutes l'être : sept phrases
+   * françaises dans une interface anglaise, c'est la moitié d'une traduction. */
+  const bacI = {};
+  new Function('window', fs.readFileSync(path.join(ROOT, 'src', 'i18n.js'), 'utf8'))(bacI);
+  const EN = bacI.I18N && bacI.I18N.DICOS && bacI.I18N.DICOS.en;
+  const srcColl = fs.readFileSync(path.join(ROOT, 'src', 'collections.js'), 'utf8');
+  const notes = [...srcColl.matchAll(/note: '([^']+)'/g)].map(function (m) { return m[1]; });
+  if (!EN) {
+    saute('collections · notes traduites', 'dictionnaire illisible');
+  } else {
+    const sansTrad = notes.filter(function (n) { return !EN[n]; });
+    ok('collections · les ' + notes.length + ' notes sont traduites',
+       notes.length > 0 && sansTrad.length === 0, sansTrad.join(' | '));
+  }
+
+  const appSrc = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
+  ok('collections · les noms ne passent pas par le dictionnaire',
+     !/op\.textContent = T\(c\.name\)/.test(appSrc));
+
+  /* LE VOILE GLOBAL PARLE-T-IL LA MÊME LANGUE QUE LES TEMPLATES ?
+   *
+   * Le menu global ne peint rien lui-même : il transmet son choix au voile de
+   * chaque planche, déclaré dans `optionsFond()` (alpage.js). Si les deux
+   * vocabulaires divergent — « centre » d'un côté, « radial » de l'autre — la
+   * transmission échoue EN SILENCE : `transmetVoile` ne trouve pas la valeur
+   * dans les choix du template et n'écrit rien. Aucune erreur, aucun voile. */
+  const voileHtml = (/<select id="voile">([\s\S]*?)<\/select>/.exec(html) || [])[1] || '';
+  const valeursHtml = [...voileHtml.matchAll(/value="([^"]+)"/g)].map(function (m) { return m[1]; });
+  const alpageSrc = fs.readFileSync(path.join(ROOT, 'src', 'alpage.js'), 'utf8');
+  const blocVoile = (/key: 'voile'[\s\S]*?choices: \[([\s\S]*?)\]\s*\}/.exec(alpageSrc) || [])[1] || '';
+  const valeursTpl = [...blocVoile.matchAll(/\['([^']+)'/g)].map(function (m) { return m[1]; });
+  const orphelines = valeursHtml.filter(function (v) { return valeursTpl.indexOf(v) < 0; });
+  ok('voile · le menu global parle le vocabulaire des templates  (' +
+     valeursHtml.join(', ') + ')',
+     valeursHtml.length >= 3 && orphelines.length === 0,
+     'valeurs sans équivalent dans optionsFond() : ' + orphelines.join(', '));
+
+  ok('voile · le moteur reçoit le réglage avant chaque rendu',
+     /Studio\.setVoile\(/.test(appSrc) &&
+     /setVoile: setVoile/.test(fs.readFileSync(path.join(ROOT, 'src', 'studio.js'), 'utf8')));
+}
+
+/* ================= 2 ter. CHAÎNE DE PUBLICATION =================
+ *
+ * La chaîne se contrôle elle-même. Un fichier de workflow n'échoue pas quand il
+ * a tort : il s'exécute, il est vert, et il ne fait pas ce qu'on croit. Les cas
+ * ci-dessous portent sur ce que personne ne relit — l'épinglage des actions, le
+ * nom d'un script appelé, les permissions par défaut. */
+
+function testsChaine() {
+  titre('2 ter. CHAÎNE DE PUBLICATION');
+
+  const fWorkflow = path.join(ROOT, '.github', 'workflows', 'publication.yml');
+  if (!fs.existsSync(fWorkflow)) {
+    saute('chaîne · workflow', '.github/workflows/publication.yml absent');
+    return;
+  }
+  const wf = fs.readFileSync(fWorkflow, 'utf8');
+
+  /* UNE ACTION S'ÉPINGLE À UN COMMIT. `@v4` exécute ce que son auteur y met
+   * aujourd'hui : l'étiquette se déplace, le code change, et rien ne le dit
+   * dans notre dépôt. */
+  const usages = wf.match(/uses:\s*\S+/g) || [];
+  const flottantes = usages.filter(function (u) {
+    return !/@[0-9a-f]{40}\b/.test(u);
+  });
+  ok('chaîne · toutes les actions sont épinglées à un commit',
+     usages.length > 0 && flottantes.length === 0,
+     flottantes.join(' · '));
+
+  /* Le jeton ne doit pouvoir QUE lire par défaut ; seule la tâche qui publie
+   * demande davantage. */
+  ok('chaîne · les permissions par défaut sont en lecture',
+     /^permissions:\s*\n\s+contents:\s*read\s*$/m.test(wf));
+
+  /* Un `run: node tools/xxx.js` qui désigne un fichier absent ne se voit qu'au
+   * moment où la tâche tourne — c'est-à-dire trop tard. */
+  const appels = (wf.match(/node\s+tools\/[\w.-]+\.js/g) || [])
+    .map(function (s) { return s.replace(/^node\s+/, ''); });
+  const manquants = appels.filter(function (rel) {
+    return !fs.existsSync(path.join(ROOT, rel));
+  });
+  ok('chaîne · les scripts appelés existent  (' +
+     Array.from(new Set(appels)).join(', ') + ')',
+     appels.length >= 3 && manquants.length === 0, manquants.join(', '));
+
+  /* La publication DÉPEND des contrôles : c'est tout l'objet du fichier. Si la
+   * dépendance saute, le workflow reste vert et la barrière n'existe plus. */
+  ok('chaîne · la publication dépend du harnais et de l’acceptation',
+     /needs:\s*\[harnais,\s*acceptation\]/.test(wf));
+  ok('chaîne · seule la branche main publie',
+     /github\.ref == 'refs\/heads\/main'/.test(wf));
+
+  /* La mémoire du dépôt et les agents : leur absence ne casse rien, leur
+   * dérive si. Un agent sans outils déclarés reçoit tout, ce qu'on ne veut pas
+   * pour une revue qui ne doit rien modifier. */
+  ok('chaîne · CLAUDE.md porte la mémoire du dépôt',
+     fs.existsSync(path.join(ROOT, 'CLAUDE.md')));
+
+  const dAgents = path.join(ROOT, '.claude', 'agents');
+  if (!fs.existsSync(dAgents)) {
+    saute('chaîne · agents', '.claude/agents absent');
+  } else {
+    const agents = fs.readdirSync(dAgents).filter(function (f) { return /\.md$/.test(f); });
+    const mal = agents.filter(function (f) {
+      const t = fs.readFileSync(path.join(dAgents, f), 'utf8');
+      /* l'en-tête est le bloc entre les deux lignes de tirets ; on l'isole
+       * d'abord, puis on cherche les clés dedans, sans rien supposer de leur
+       * ORDRE — une expression qui les exigeait dans l'ordre a échoué sur ces
+       * deux fichiers, qui étaient parfaitement corrects */
+      const entete = (/^---\r?\n([\s\S]*?)\r?\n---/.exec(t) || [])[1];
+      if (!entete) return true;
+      return ['name', 'description', 'tools'].some(function (cle) {
+        return !new RegExp('^' + cle + ':\\s*\\S', 'm').test(entete);
+      });
+    });
+    ok('chaîne · chaque agent déclare nom, description et outils  (' +
+       agents.length + ')', agents.length > 0 && mal.length === 0, mal.join(', '));
+
+    /* Une revue qui peut écrire n'est plus une revue : elle corrige, et le
+     * constat disparaît avec la correction. */
+    const revue = path.join(dAgents, 'revue.md');
+    if (fs.existsSync(revue)) {
+      const t = fs.readFileSync(revue, 'utf8');
+      const ligne = (/\ntools:\s*(.+)/.exec(t) || [])[1] || '';
+      ok('chaîne · l’agent de revue ne peut pas écrire',
+         !/\b(Write|Edit|NotebookEdit)\b/.test(ligne), ligne.trim());
+    }
+  }
+}
+
 /* ================= 2 bis. BIBLIOTHÈQUE ================= */
 
 function chargeLibrary() {
@@ -1094,6 +1396,8 @@ async function testsServeur() {
   console.log('Harnais de régression — ' + new Date().toISOString().slice(0, 16).replace('T', ' '));
   testsCalculs(chargeActivity());
   testsCoherence();
+  testsMenus();
+  testsChaine();
   testsBibliotheque(chargeLibrary());
   await testsServeur();
 

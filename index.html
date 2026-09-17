@@ -926,6 +926,22 @@
             <option value="surcouche">Sans fond — sur ta photo</option>
           </select>
         </label>
+        <!-- LE VOILE, LUI AUSSI GLOBAL.
+             Sans fond, une planche claire posée sur une photo claire devient
+             illisible. Huit planches — la famille « sur photo » — apportaient
+             leur propre voile, et elles seules : les vingt-cinq autres étaient
+             transparentes sans être utilisables. Le voile est un fait de
+             COMPOSITION, pas de template ; il se règle donc ici, et le moteur
+             le pose sous l'encre. Les planches qui ont déjà le leur ne le
+             reçoivent pas deux fois. -->
+        <label class="opt" id="opt-voile" hidden><span>Voile — lisibilité sur la photo</span>
+          <select id="voile">
+            <option value="aucun">Aucun</option>
+            <option value="bas">Vers le bas</option>
+            <option value="haut">Vers le haut</option>
+            <option value="centre">Au centre</option>
+          </select>
+        </label>
         <!-- Les réglages d'un template partent dans TROIS réceptacles selon
              leur nature. Sur un écran large ils se suivent, et rien ne
              change. Sur un téléphone, chacun rejoint son panneau : la

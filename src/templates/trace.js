@@ -20,7 +20,18 @@ Studio.template({
 
     /* --- fond --- */
     if (H.surcouche()) {
-      /* surcouche : aucun fond, c'est la photo du montage qui le fournit */
+      /* Surcouche : aucun fond — c'est la photo du montage qui le fournit.
+       * Le VOILE, lui, reste utile, et il ne l'était pas : cette branche
+       * sortait sans rien peindre, donc Trace posée sur une photo chargée
+       * n'offrait aucune protection à son texte, quel que soit le réglage. */
+      if (o.voile > 0) {
+        ctx.save();
+        ctx.fillStyle = H.gradient([[0, 'rgba(8,10,14,0)'],
+                                    [0.55, 'rgba(8,10,14,' + (o.voile / 100 * 0.45) + ')'],
+                                    [1, 'rgba(8,10,14,' + (o.voile / 100) + ')']]);
+        ctx.fillRect(0, 0, w, h);
+        ctx.restore();
+      }
     } else if (o.fond === 'photo' && H.photo()) {
       ctx.save();
       ctx.fillStyle = 'rgba(8,10,14,' + (o.voile / 100) + ')';

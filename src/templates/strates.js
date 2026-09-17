@@ -30,6 +30,22 @@ Studio.template({
   id: 'strates',
   name: 'Strates — les profils en massif',
   famille: 'serie',
+  /* LES VARIANTES DE LA FAMILLE, telles que le catalogue les montre.
+   * Déclarées ici parce que l'axe unique — la première liste déroulante — ne
+   * suffit pas : « Massif · accent » ajoute un réglage À la composition,
+   * et n'apparaissait donc nulle part.
+   * Le harnais vérifie que cette liste couvre les valeurs de ce premier menu
+   * ET toutes les planches de la galerie de revue. */
+  variantes: [
+    { nom: 'Gravure', dit: 'reliefs en tiges', o: {} },
+    { nom: 'Papier découpé', dit: 'aplats sobres', o: { finition: 'papier' } },
+    { nom: 'Massif', dit: 'couches rapprochées', o: { finition: 'massif' } },
+    { nom: 'Massif · accent', dit: 'une couche en rouille',
+      o: { finition: 'massif', accent: 3 } },
+    { nom: 'Gravure continue', dit: 'lignes déployées', o: { finition: 'continue' } },
+    { nom: 'Horizons', dit: 'bandes fines', o: { finition: 'horizons' } }
+  ],
+
   /* La transparence est une OPTION : la même planche s'exporte sur papier
    * ou en surcouche à poser sur une photo. */
   transparent: function (o) { return o.fond === 'transparent'; },

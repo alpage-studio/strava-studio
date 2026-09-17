@@ -1,0 +1,19 @@
+# Fins de ligne : LF dans le dépôt ET dans le répertoire de travail.
+#
+# POURQUOI CE FICHIER EXISTE
+#   Le dépôt stocke tout en LF. Sans consigne, un outil qui réécrit un fichier
+#   sur Windows le rend en CRLF, et git affiche alors le fichier ENTIER comme
+#   modifié : trois cents lignes ajoutées deviennent mille quatre cents lignes
+#   changées, et la vraie modification devient introuvable dans le diff. C'est
+#   arrivé sur tools/test.js, et le seul indice était un nombre de lignes
+#   invraisemblable au regard du travail fait.
+#
+#   `core.autocrlf` est un réglage de MACHINE : il ne suit pas le dépôt et ne
+#   protège donc pas le prochain qui clone. Ce fichier-ci, si.
+* text=auto eol=lf
+
+# Les binaires ne se touchent pas.
+*.png  binary
+*.webp binary
+*.woff2 binary
+*.mp4  binary

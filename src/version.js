@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.2.1';
+var STUDIO_VERSION = '3.3';
 var STUDIO_DATE = '16.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,12 @@ var STUDIO_DATE = '16.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.3', d: '17.09.2026', points: [
+    'Les collections sont enfin accessibles : le menu existait, il n’avait jamais reçu une seule entrée. Huit palettes nommées, Ascension à Braise.',
+    'Les variantes cachées sortent au jour : « Fragment », « Gravity », « Massif · accent » demandaient plusieurs réglages à la fois et n’avaient donc aucune carte. Ce que la galerie montre est désormais atteignable en un clic.',
+    'Un voile global : sans fond, une planche claire sur une photo claire était illisible. Les trente-trois peuvent maintenant protéger leur texte, pas seulement les huit de la famille « sur photo ».',
+    'Cette famille s’appelle d’ailleurs « Voile compris » : ce qui la distingue n’est plus la transparence, que tout le monde a.'
+  ] },
   { v: '3.2.1', d: '17.09.2026', points: [
     'Une directive de sécurité qui ne servait à rien est retirée : un navigateur ignore `frame-ancestors` quand la politique vient d’une balise, et le dit à chaque chargement.'
   ] },

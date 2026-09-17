@@ -163,6 +163,117 @@
   $('#support').dispatchEvent(new Event('change'));
   await attends(400);
 
+
+  // ---------- 4 bis. la collection, les variantes, le voile ----------
+
+  /* LA COLLECTION. Le menu était VIDE — déclaré sans option dans le HTML et
+   * rempli nulle part — alors que huit palettes existaient et s'appliquaient
+   * correctement. Poser une valeur sur un menu vide ne lève rien : le défaut
+   * n'avait aucun symptôme, sinon un réglage qui ne faisait jamais rien. */
+  var selColl = $('#collection');
+  ok('collection · le menu propose les palettes  (' + selColl.options.length + ')',
+     selColl.options.length >= 5,
+     'menu vide ou presque : ' + selColl.options.length + ' entrée(s)');
+
+  if (selColl.options.length > 2) {
+    var avantColl = $('#canvas').toDataURL();
+    selColl.value = selColl.options[2].value;
+    selColl.dispatchEvent(new Event('change'));
+    await attends(700);
+    ok('collection · en choisir une change la planche',
+       $('#canvas').toDataURL() !== avantColl);
+    ok('collection · sa note s’affiche',
+       ($('#collection-note').textContent || '').length > 4);
+    selColl.value = 'libre';
+    selColl.dispatchEvent(new Event('change'));
+    await attends(500);
+  }
+
+  /* LES VARIANTES. Le catalogue n'ouvrait qu'un seul axe — la première liste
+   * déroulante — et tout ce qui demandait une combinaison restait invisible :
+   * « Fragment » de Médaillon est un cadrage ET un décalage. Le contrôle vise
+   * donc une famille qui déclare ses variantes, pas une famille quelconque. */
+  var famille = null;
+  var groupes = document.querySelectorAll('.groupes-style button');
+  for (var g = 0; g < groupes.length && !famille; g++) {
+    groupes[g].click();
+    await attends(320);
+    var cartes = document.querySelectorAll('#choix-style .familles .carte-style');
+    for (var c = 0; c < cartes.length; c++) {
+      cartes[c].click();
+      await attends(420);
+      if ($('#tpl').value === 'medaillon') { famille = true; break; }
+      var retourF = document.querySelector('.retour-familles');
+      if (retourF) { retourF.click(); await attends(260); }
+    }
+  }
+  if (!famille) {
+    resultats.push({ cas: 'variantes · Médaillon', verdict: 'sauté',
+                     detail: 'famille introuvable dans le catalogue' });
+  } else {
+    await attends(500);
+    var vCartes = document.querySelectorAll('#choix-style .variantes .carte-style');
+    var noms = Array.prototype.map.call(vCartes, function (x) {
+      return (x.querySelector('.nom') || {}).textContent || '';
+    });
+    ok('variantes · Médaillon en propose au moins trois  (' + noms.join(' · ') + ')',
+       vCartes.length >= 3);
+
+    var fragment = null;
+    Array.prototype.forEach.call(vCartes, function (x) {
+      if (!fragment && /Fragment/i.test(x.textContent)) fragment = x;
+    });
+    if (!fragment) {
+      ok('variantes · « Fragment » a sa carte', false,
+         'les variantes visibles sont : ' + noms.join(' · '));
+    } else {
+      var avantV = $('#canvas').toDataURL();
+      fragment.click();
+      await attends(900);
+      ok('variantes · « Fragment » change la planche',
+         $('#canvas').toDataURL() !== avantV);
+      ok('variantes · la carte choisie est marquée',
+         /Fragment/i.test((document.querySelector(
+           '#choix-style .variantes .carte-style.on') || {}).textContent || ''));
+    }
+    var retour2 = document.querySelector('.retour-familles');
+    if (retour2) { retour2.click(); await attends(300); }
+  }
+
+  /* LE VOILE. Sans lui, une planche claire posée sur une photo claire est
+   * illisible : huit planches apportaient le leur, les vingt-cinq autres
+   * étaient transparentes sans être utilisables. */
+  ok('voile · le réglage est caché tant qu’on est sur fond plein',
+     $('#opt-voile').hidden);
+  $('#support').value = 'surcouche';
+  $('#support').dispatchEvent(new Event('change'));
+  await attends(600);
+  ok('voile · il apparaît dès qu’on passe en surcouche', !$('#opt-voile').hidden);
+
+  function couverture() {
+    var cvv = $('#canvas');
+    var dd = cvv.getContext('2d').getImageData(0, 0, cvv.width, cvv.height).data;
+    var n = 0, t = 0;
+    for (var k = 3; k < dd.length; k += 4 * 61) { t++; if (dd[k] > 12) n++; }
+    return n / t;
+  }
+  $('#voile').value = 'aucun';
+  $('#voile').dispatchEvent(new Event('change'));
+  await attends(700);
+  var nu = couverture();
+  $('#voile').value = 'bas';
+  $('#voile').dispatchEvent(new Event('change'));
+  await attends(700);
+  var voile = couverture();
+  ok('voile · il couvre réellement le cadre  (' + Math.round(nu * 100) + ' % → ' +
+     Math.round(voile * 100) + ' %)', voile > nu + 0.2,
+     'le réglage ne change rien au rendu');
+  $('#voile').value = 'aucun';
+  $('#voile').dispatchEvent(new Event('change'));
+  $('#support').value = 'papier';
+  $('#support').dispatchEvent(new Event('change'));
+  await attends(500);
+
   // ---------- 5. l'export garde ce qu'on voit ----------
   var blob = await new Promise(function (r) { $('#canvas').toBlob(r, 'image/png'); });
   ok('export · le PNG se fabrique  (' + Math.round(blob.size / 1024) + ' Ko)',

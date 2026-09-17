@@ -69,7 +69,8 @@
         tpl: $('#tpl').value, size: $('#size').value, opts: optionValues,
         collection: $('#collection').value, minimal: $('#minimal').checked,
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
-        support: $('#support').value, periode: $('#periode').value
+        support: $('#support').value, voile: $('#voile').value,
+        periode: $('#periode').value
       }));
     } catch (e) { /* mode privé : tant pis */ }
   }
@@ -168,6 +169,7 @@
     Studio.setMinimal($('#minimal').checked);
     Studio.setAchromatique($('#rendu').value === 'nb', $('#photo-nb').checked);
     Studio.setSupport($('#support').value === 'surcouche');
+    Studio.setVoile($('#voile') ? $('#voile').value : 'aucun');
   }
 
   function syncBibliotheque() {
@@ -328,7 +330,7 @@
      * `#tpl.value` puis émettent l'événement elles-mêmes, et `disabled` ne
      * bloque que les gestes de l'utilisateur, pas un dispatchEvent. On le
      * neutralise donc par un drapeau, lu au moment du clic. */
-    ['#size', '#tpl', '#collection', '#minimal',
+    ['#size', '#tpl', '#collection', '#voile', '#minimal',
      '#rendu', '#support', '#photo-nb', '#periode'].forEach(function (sel) {
       var el = $(sel); if (el) el.disabled = exportEnCours;
     });
@@ -401,7 +403,7 @@
      * choisir une activité — l'application serait jolie et inutilisable. */
     style:   ['#section-activite', '#choix-style', '#opt-collection', '#collection-note',
               '#opt-minimal', '#opts', '#section-garder'],
-    teintes: ['#opt-teintes', '#opt-photo-nb', '#opt-support', '#section-fond', '#opts-couleur'],
+    teintes: ['#opt-teintes', '#opt-photo-nb', '#opt-support', '#opt-voile', '#section-fond', '#opts-couleur'],
     texte:   ['#opts-texte'],
     /* « Garder » rejoint le panneau Style : c'est ce qu'on fait d'une sortie
      * une fois qu'on en a une. Sans cela ces blocs restaient dans la colonne
@@ -529,7 +531,15 @@
     { id: 'souvenirs', nom: 'Souvenirs',
       ids: ['saisons', 'musee', 'serie', 'fresque'] },
     { id: 'films', nom: 'Films et son', ids: ['film', 'partition'] },
-    { id: 'surcouches', nom: 'Surcouches',
+    /* CE QUI DISTINGUE CETTE FAMILLE N'EST PLUS LA TRANSPARENCE.
+     *
+     * Toutes les planches se posent sur une photo depuis que le support est
+     * global : appeler ces huit-là « Surcouches » laissait croire aux autres
+     * qu'elles ne le pouvaient pas. Ce qu'elles ont en propre, et que la
+     * mesure montre, c'est leur VOILE : elles couvrent 19 à 68 % du cadre là
+     * où les autres en laissent 91 à 98 % nus. Elles garantissent la
+     * lisibilité sans qu'on ait à y penser. */
+    { id: 'surcouches', nom: 'Voile compris',
       ids: ['ov-filet', 'ov-profil', 'ov-trace', 'ov-ardoise', 'ov-heros',
             'ov-tranche', 'ov-sommet-ligne', 'ov-sommet-barres'] }
   ];
@@ -546,12 +556,69 @@
     return i > 0 ? { nom: n.slice(0, i), dit: n.slice(i + 3) } : { nom: n, dit: '' };
   }
 
-  /* La variante d'une famille : son premier menu, hors fond et voile qui
-   * sont devenus des réglages globaux. */
-  function optionVariante(tpl) {
-    return (tpl.options || []).filter(function (d) {
+  /* LES VARIANTES D'UNE FAMILLE — un JEU d'options, pas une valeur.
+   *
+   * Par défaut, ce sont les valeurs de la PREMIÈRE liste déroulante du
+   * template, hors fond et voile qui sont devenus des réglages globaux. Pour
+   * la plupart des planches c'est exact : leur premier réglage EST la
+   * composition, et Encre, Empreinte ou Atlas exposent ainsi toutes leurs
+   * variantes.
+   *
+   * Trois familles ne rentraient pas dans cette forme, et leurs plus belles
+   * variantes étaient introuvables dans l'outil alors qu'elles figuraient dans
+   * la galerie de revue :
+   *   · Médaillon « Fragment »        = cadrage 58 + décalage −15, deux CURSEURS
+   *   · Almanac « Gravity »           = trois clés à la fois
+   *   · Strates « Massif · accent »   = une composition PLUS un accent
+   * Aucune carte ne pouvait les montrer : le catalogue n'affichait qu'un seul
+   * axe. Ces templates déclarent donc `variantes` en clair.
+   *
+   * Un template ne déclare cette liste que si l'axe unique lui ment. */
+  function variantesDe(tpl) {
+    if (tpl && tpl.variantes && tpl.variantes.length) return tpl.variantes;
+    var def = ((tpl && tpl.options) || []).filter(function (d) {
       return d.type === 'select' && d.key !== 'fond' && d.key !== 'voile';
-    })[0] || null;
+    })[0];
+    if (!def) return null;
+    return def.choices.map(function (c) {
+      var o = {};
+      o[def.key] = c[0];
+      return { nom: c[1], o: o };
+    });
+  }
+
+  /* Toutes les clés qu'une famille fait varier. Choisir une variante remet
+   * CES clés au défaut du template avant d'appliquer les siennes : sans ça,
+   * passer de « Fragment » à « Nocturne » garderait le cadrage de Fragment et
+   * la carte montrerait autre chose que son aperçu. */
+  function clesVariantes(liste) {
+    var vues = {};
+    liste.forEach(function (v) {
+      Object.keys(v.o).forEach(function (k) { vues[k] = 1; });
+    });
+    return Object.keys(vues);
+  }
+
+  function defautDe(tpl, cle) {
+    var d = (tpl.options || []).filter(function (x) { return x.key === cle; })[0];
+    return d ? d.default : undefined;
+  }
+
+  /* La variante active : celle dont TOUTES les options correspondent, et la
+   * plus précise quand plusieurs correspondent — « Massif » et
+   * « Massif · accent » partagent une clé, seule la seconde décrit l'état
+   * complet. */
+  function varianteActive(tpl, liste, vals) {
+    var gagnante = -1, precision = -1;
+    liste.forEach(function (v, i) {
+      var cles = Object.keys(v.o);
+      var colle = cles.every(function (k) {
+        var courant = vals[k] === undefined ? defautDe(tpl, k) : vals[k];
+        return String(courant) === String(v.o[k]);
+      });
+      if (colle && cles.length > precision) { precision = cles.length; gagnante = i; }
+    });
+    return gagnante;
   }
 
   /* Une vignette : un vrai rendu, en petit. On rend à 300 px de large et on
@@ -629,7 +696,7 @@
         if (exportEnCours) return;          // un export en cours a la priorité
         $('#tpl').value = id;
         $('#tpl').dispatchEvent(new Event('change'));
-        familleOuverte = optionVariante(tpl) ? id : null;
+        familleOuverte = variantesDe(tpl) ? id : null;
         construitChoixStyle();
       });
       grille.appendChild(carte);
@@ -640,8 +707,8 @@
 
   function construitVariantes(boite) {
     var tpl = Studio.get(familleOuverte);
-    var def = tpl && optionVariante(tpl);
-    if (!tpl || !def) { familleOuverte = null; return construitChoixStyle(); }
+    var liste = tpl && variantesDe(tpl);
+    if (!tpl || !liste) { familleOuverte = null; return construitChoixStyle(); }
 
     var retour = document.createElement('button');
     retour.type = 'button';
@@ -653,12 +720,30 @@
     boite.appendChild(retour);
 
     var vals = optionValues[tpl.id] || (optionValues[tpl.id] = {});
+    var cles = clesVariantes(liste);
+    var active = varianteActive(tpl, liste, vals);
+
+    /* L'état d'une variante : on part des réglages courants, on remet au
+     * défaut toutes les clés que la famille fait varier, puis on applique les
+     * siennes. Le même calcul sert à l'aperçu ET au clic — une vignette qui
+     * montrerait autre chose que ce qu'un clic produit serait pire qu'absente. */
+    function etatDe(v) {
+      var o = {};
+      Object.keys(vals).forEach(function (k) { o[k] = vals[k]; });
+      cles.forEach(function (k) {
+        var d = defautDe(tpl, k);
+        if (d === undefined) delete o[k]; else o[k] = d;
+      });
+      Object.keys(v.o).forEach(function (k) { o[k] = v.o[k]; });
+      return o;
+    }
+
     var grille = document.createElement('div');
     grille.className = 'variantes';
-    def.choices.forEach(function (c) {
+    liste.forEach(function (v, i) {
       var carte = document.createElement('button');
       carte.type = 'button';
-      carte.className = 'carte-style' + (String(vals[def.key]) === String(c[0]) ? ' on' : '');
+      carte.className = 'carte-style' + (i === active ? ' on' : '');
       var cv = document.createElement('canvas');
       carte.appendChild(cv);
       var nom = document.createElement('span');
@@ -666,22 +751,26 @@
       /* Le nom seul : « Original · Sceau — disque décentré » dans une carte
        * de cent-cinquante pixels ne se lit pas. L'histoire du développement
        * (Original / Exploration) n'a rien à faire dans le parcours. */
-      var lib = T(c[1]).replace(/^(Original|Exploration)\s*·\s*/, '').split(' — ')[0];
+      var lib = T(v.nom).replace(/^(Original|Exploration)\s*·\s*/, '').split(' — ')[0];
       nom.textContent = lib;
       carte.appendChild(nom);
+      if (v.dit) {
+        var dit = document.createElement('span');
+        dit.className = 'dit';
+        dit.textContent = T(v.dit);
+        carte.appendChild(dit);
+      }
       carte.addEventListener('click', function () {
         if (exportEnCours) return;
-        vals[def.key] = c[0];
+        var etat = etatDe(v);
+        optionValues[tpl.id] = etat;
         buildOptions();
         construitChoixStyle();
         draw();
         save();
       });
       grille.appendChild(carte);
-      var apercu = {};
-      Object.keys(vals).forEach(function (k) { apercu[k] = vals[k]; });
-      apercu[def.key] = c[0];
-      vignette(cv, tpl.id, apercu);
+      vignette(cv, tpl.id, etatDe(v));
     });
     boite.appendChild(grille);
   }
@@ -1343,7 +1432,8 @@
         tpl: $('#tpl').value, size: $('#size').value,
         collection: $('#collection').value, minimal: $('#minimal').checked,
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
-        support: $('#support').value, periode: $('#periode').value,
+        support: $('#support').value, voile: $('#voile').value,
+        periode: $('#periode').value,
         opts: optionValues
       }, 'projet-' + slug() + '.json');
       note.textContent = Library.count() + ' sorties enregistrées.';
@@ -1376,6 +1466,7 @@
     if (p.reglages.minimal != null) $('#minimal').checked = !!p.reglages.minimal;
     if (p.reglages.rendu) $('#rendu').value = p.reglages.rendu;
     if (p.reglages.support) $('#support').value = p.reglages.support;
+    if (p.reglages.voile) $('#voile').value = p.reglages.voile;
     /* La période décide QUELLES sorties composent la planche : sans elle, un
      * projet multi-sorties se rouvrait sur une autre sélection que celle
      * qu'on avait enregistrée. C'est le réglage qui change le plus ce qu'on
@@ -1489,7 +1580,7 @@
 
   $('#collection').addEventListener('change', function () {
     var c = Collections.get($('#collection').value);
-    $('#collection-note').textContent = c.note || '';
+    $('#collection-note').textContent = c.note ? T(c.note) : '';
     buildOptions();
     construitChoixStyle();      // les vignettes suivent la collection
     draw();
@@ -1511,6 +1602,11 @@
    * la planche elle-même : le fond de contrôle et les options propres au
    * template suivent. */
   function majSupport() {
+    /* Le voile ne veut rien dire sur un fond plein : il ne se montre qu'en
+     * surcouche. Un réglage visible en permanence et sans effet la moitié du
+     * temps apprend à l'utilisateur à ne plus le lire. */
+    var opt = $('#opt-voile');
+    if (opt) opt.hidden = $('#support').value !== 'surcouche';
     buildOptions();
     construitChoixStyle();
     changement();
@@ -1524,6 +1620,10 @@
     changement();
   });
   $('#support').addEventListener('change', majSupport);
+  $('#voile').addEventListener('change', function () {
+    construitChoixStyle();      // les vignettes portent le voile, elles aussi
+    changement();
+  });
   /* pas d'écouteur `draw` ici : majPhotoNb s'en charge, avec le catalogue */
 
   /* ---------- aperçu animé ----------
@@ -1920,7 +2020,7 @@
    * et les séries demandent plusieurs sorties chargées. */
   var FAMILLES = [
     { id: 'affiche',   label: 'Affiches' },
-    { id: 'surcouche', label: 'Surcouches transparentes' },
+    { id: 'surcouche', label: 'Sur photo — voile compris' },
     { id: 'serie',     label: 'Séries — plusieurs sorties' }
   ];
   FAMILLES.forEach(function (f) {
@@ -1934,6 +2034,31 @@
     if (og.children.length) $('#tpl').appendChild(og);
   });
 
+  /* LES COLLECTIONS, QUI N'ÉTAIENT NULLE PART.
+   *
+   * `<select id="collection">` était vide dans index.html et rien ne le
+   * remplissait : huit palettes nommées existaient dans collections.js,
+   * s'appliquaient correctement — `Collections.apply()` est appelé à chaque
+   * rendu — et aucune n'était atteignable. Toute la couche « signature » du
+   * studio était morte à l'écran.
+   *
+   * Le détail qui l'a rendue invisible : `$('#collection').value = …` sur un
+   * menu vide ne lève rien et ne change rien. Le réglage sauvegardé était
+   * donc relu, posé, et perdu en silence — le correctif d'à côté ne pouvait
+   * pas fonctionner, et rien ne le disait. */
+  Collections.list.forEach(function (c) {
+    var op = document.createElement('option');
+    op.value = c.id;
+    /* LES NOMS DE COLLECTIONS SONT DES NOMS PROPRES — Alpage, Braise, Brume.
+     * Ils ne passent pas par T(). Une première version les traduisait, et
+     * « Papier », qui existe au dictionnaire comme nom de SUPPORT, ressortait
+     * « Paper » au milieu de sept noms restés français : une clé partagée
+     * traduisant un nom propre par accident. Seule la première entrée est une
+     * phrase et non un nom — elle, se traduit. */
+    op.textContent = c.id === 'libre' ? T(c.name) : c.name;
+    $('#collection').appendChild(op);
+  });
+
   if (saved.opts) optionValues = saved.opts;
   if (saved.tpl && Studio.get(saved.tpl).id === saved.tpl) $('#tpl').value = saved.tpl;
   if (saved.size && SIZES[saved.size]) $('#size').value = saved.size;
@@ -1941,13 +2066,17 @@
   if (saved.rendu) $('#rendu').value = saved.rendu;
   if (saved.photoNb) $('#photo-nb').checked = true;
   if (saved.support) $('#support').value = saved.support;
+  if (saved.voile) $('#voile').value = saved.voile;
+  /* le menu part caché dans le HTML : au chargement, c'est le support
+   * relu qui décide s'il doit apparaître */
+  $('#opt-voile').hidden = $('#support').value !== 'surcouche';
   if (saved.periode) $('#periode').value = saved.periode;
   /* La collection était sauvée et jamais relue : c'était le seul réglage
    * global à se perdre au rechargement. */
   if (saved.collection) {
     $('#collection').value = saved.collection;
     var cInit = Collections.get(saved.collection);
-    if (cInit) $('#collection-note').textContent = cInit.note || '';
+    if (cInit) $('#collection-note').textContent = cInit.note ? T(cInit.note) : '';
   }
   $('#opt-photo-nb').hidden = $('#rendu').value !== 'nb';
 

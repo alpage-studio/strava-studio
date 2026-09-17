@@ -26,9 +26,13 @@ git remote add origin https://github.com/alpage-studio/strava-studio.git
 git push -u origin main
 ```
 
-Puis, dans le dépôt : **Settings → Pages → Source : Deploy from a branch →
-`main` / `/ (root)`**. Une minute plus tard le studio est sur
+Puis, dans le dépôt : **Settings → Pages → Source : GitHub Actions**. C'est le
+workflow qui publie, et seulement si les contrôles passent — voir
+[La publication](#la-publication). Une minute plus tard le studio est sur
 `https://alpage-studio.github.io/strava-studio/`.
+
+(Sur *Deploy from a branch → `main` / `/ (root)`* ça marche aussi, mais alors
+chaque poussée est une mise en production, contrôles ou pas.)
 
 Trois détails qui font que ça marche du premier coup :
 
@@ -92,6 +96,9 @@ garde fermé. Trois familles :
   d'`index.html` oublié dans le `SHELL` de `sw.js` ne casse rien… jusqu'au
   premier vol sans réseau. Un balayage cherche aussi tout identifiant écrit
   en dur.
+- **Chaîne de publication** — le workflow se contrôle lui-même : actions
+  épinglées à un commit, permissions en lecture par défaut, scripts appelés
+  qui existent, publication qui dépend bien des contrôles.
 - **Serveur** — les routes réellement attaquées : URL mal formée, écriture
   de fichier, remontée d'arborescence, injection dans le retour OAuth.
 
@@ -99,6 +106,58 @@ En ajoutant un template ou un calcul, ajoute son cas ici. Le harnais a
 lui-même trouvé deux erreurs le jour de sa mise en place : le dénivelé que
 `build()` ne dérivait pas, et une intégration qui comptait les bords en
 double.
+
+### Les deux gardes
+
+```bash
+node tools/garde-secrets.js       # secrets, et données de position
+node tools/garde-version.js       # le numéro suit-il ce qu'on a changé
+```
+
+`garde-secrets` ne lit que les fichiers **suivis** — ce qui n'est pas suivi
+n'est pas publié, et le répertoire de travail est plein de sorties réelles. Il
+refuse aussi tout fichier `.gpx` ou `.json` qui n'est pas nommé dans sa liste :
+`.gitignore` autorise `demo-*.gpx` en bloc, donc une vraie sortie appelée
+`demo-mon-tour.gpx` y passerait sans bruit.
+
+`garde-version` compare deux états du dépôt : si un fichier du `SHELL` de
+`sw.js` a changé, le numéro doit avoir changé aussi — sinon les visiteurs
+gardent l'ancien cache, sans erreur et sans signe. Le contrôle a été vu rouge
+sur un cas réel de l'historique : `node tools/garde-version.js 405dc11 96129ff`.
+
+### L'acceptation, sans personne devant l'écran
+
+```bash
+node tools/acceptation-tete-nue.js
+node tools/acceptation-tete-nue.js --url https://alpage-studio.github.io/strava-studio/
+```
+
+Les mêmes cas que `tools/acceptation.js`, lancés dans un Chromium sans fenêtre,
+à **1280 px puis 390 px** — les cas « téléphone » sont derrière une condition
+`max-width: 900px` et n'étaient donc vus qu'en redimensionnant à la main.
+Playwright n'est pas une dépendance du produit : il s'installe hors du dépôt
+(`npm i -g playwright && npx playwright install chromium`) et ne part avec aucun
+fichier servi.
+
+## La publication
+
+`main` se déploie par `.github/workflows/publication.yml` : harnais et gardes,
+acceptation à deux largeurs, **puis** Pages, **puis** une vérification de ce qui
+est réellement servi. Un contrôle rouge ne publie pas — il n'y a rien à annuler,
+le site reste celui d'avant.
+
+Deux réglages vivent dans GitHub, pas dans le dépôt, et sans eux la barrière
+n'existe pas :
+
+- **Settings → Pages → Source : GitHub Actions.** Tant qu'il est sur *Deploy
+  from a branch*, c'est la branche qui publie, quoi qu'en disent les contrôles.
+- **Settings → Rules → protection de `main`** : interdire la poussée directe,
+  exiger les contrôles. Sans cela, « on ne déploie que par la CI » est un usage,
+  pas une règle.
+
+Chaque version servie porte une étiquette (`v3.2.1`), posée sur le **dernier**
+commit qui a porté ce numéro : c'est l'état complet servi sous ce nom, donc
+celui qu'on veut retrouver pour revenir en arrière.
 
 ## Le serveur local
 

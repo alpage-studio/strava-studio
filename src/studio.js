@@ -85,6 +85,46 @@
   var supportSurcouche = false;
   function setSupport(actif) { supportSurcouche = !!actif; }
 
+  /* LE VOILE, RÉGLAGE GLOBAL — EN PASSANT PAR CELUI DU TEMPLATE.
+   *
+   * Sans fond, une planche claire posée sur une photo claire est illisible.
+   * Chaque template a DÉJÀ son voile — `optionsFond()` dans alpage.js le
+   * déclare avec le même vocabulaire pour toutes : aucun, bas, haut, centre —
+   * mais il était enterré dans les réglages fins, et un commentaire de l'app
+   * affirmait qu'il était devenu global alors qu'il ne l'était pas. Résultat :
+   * les vingt-cinq planches hors de la famille « sur photo » étaient
+   * transparentes sans être utilisables sur une photo chargée.
+   *
+   * Le moteur ne peint donc PAS de voile à lui : il transmet le choix global
+   * dans le vocabulaire de chaque planche, exactement comme il le fait déjà
+   * pour le fond. Un voile générique par-dessus aurait ignoré le travail de
+   * composition de chaque template — une première version le faisait, et
+   * n'avait aucun effet parce que toutes les planches déclarent déjà la clé
+   * qu'elle croyait absente. */
+  var voileGlobal = 'aucun';
+  function setVoile(v) { voileGlobal = v || 'aucun'; }
+
+  function transmetVoile(tpl, o, mode) {
+    var def = tpl.options.filter(function (d) { return d.key === 'voile'; })[0];
+    if (!def) return;
+    if (def.type === 'select') {
+      var possible = (def.choices || []).some(function (c) { return c[0] === mode; });
+      if (possible) o.voile = mode;
+    } else if (def.type === 'toggle') {
+      /* LE RÉGLAGE GLOBAL AJOUTE, IL NE RETIRE PAS.
+       *
+       * La famille « sur photo » porte son voile par défaut — c'est sa raison
+       * d'être : elle garantit la lisibilité sur n'importe quelle image. Une
+       * première version écrivait `o.voile = (mode !== 'aucun')`, et comme le
+       * réglage global part sur « aucun », ces huit planches perdaient leur
+       * voile dès l'ouverture. Mesuré : 41 % du cadre couvert, puis 1 %. Leur
+       * propre menu reste disponible pour l'éteindre volontairement. */
+      if (mode !== 'aucun') o.voile = true;
+    } else if (def.type === 'range') {
+      o.voile = mode === 'aucun' ? (def.min || 0) : def.default;
+    }
+  }
+
   /* Un template est-il transparent POUR CES OPTIONS ?
    * Trois endroits en dépendent — le fond de contrôle sous l'aperçu, la
    * légende, et la composition de la vidéo — et chacun lisait jusqu'ici
@@ -523,6 +563,7 @@
         var aTransparent = def.choices.some(function (c) { return c[0] === 'transparent'; });
         if (aTransparent) o.fond = 'transparent';
       });
+      transmetVoile(tpl, o, voileGlobal);
     }
 
     var H = helpers(ctx, w, h, state);
@@ -592,7 +633,8 @@
     render: render, exportPNG: exportPNG, setPhoto: setPhoto, setMinimal: setMinimal,
     setLibrary: setLibrary, setHistorique: setHistorique, setMusee: setMusee,
     setAchromatique: setAchromatique,
-    setSupport: setSupport, versGris: versGris, rampeDeGris: rampeDeGris,
+    setSupport: setSupport, setVoile: setVoile,
+    versGris: versGris, rampeDeGris: rampeDeGris,
     setProgress: setProgress, fmt: fmt
   };
 }(window));

@@ -475,8 +475,72 @@
 
     /* ---------- familles du sélecteur ---------- */
     'Affiches': 'Posters',
-    'Surcouches transparentes': 'Transparent overlays',
-    'Séries — plusieurs sorties': 'Series — several rides'
+    'Sur photo — voile compris': 'Over a photo — veil included',
+    'Voile compris': 'Veil included',
+    'Séries — plusieurs sorties': 'Series — several rides',
+
+    /* ---------- le voile global ---------- */
+    'Voile — lisibilité sur la photo': 'Veil — legibility on the photo',
+    'Aucun': 'None',
+    'Vers le bas': 'Towards the bottom',
+    'Vers le haut': 'Towards the top',
+    'Au centre': 'In the centre',
+
+    /* ---------- variantes déclarées ----------
+     *
+     * Trois familles déclarent leurs variantes en clair — voir `variantes`
+     * dans strates.js, almanac.js et medaillon.js. Ces noms et ces phrases
+     * s'affichent sur les cartes du catalogue, donc ils se traduisent. Les
+     * noms propres restent : Gravity, Horizons, Fragment. */
+    'Gravure': 'Engraving',
+    'reliefs en tiges': 'relief as stems',
+    'Papier découpé': 'Cut paper',
+    'aplats sobres': 'plain flat areas',
+    'Massif': 'Massif',
+    'couches rapprochées': 'layers close together',
+    'Massif · accent': 'Massif · accent',
+    'une couche en rouille': 'one layer in rust',
+    'Gravure continue': 'Continuous engraving',
+    'lignes déployées': 'unfolded lines',
+    'Horizons': 'Horizons',
+    'bandes fines': 'thin bands',
+    'Année': 'Year',
+    'une rotation, une année': 'one rotation, one year',
+    'Mois': 'Month',
+    'une rotation, un mois': 'one rotation, one month',
+    'Années': 'Years',
+    'plusieurs systèmes côte à côte': 'several systems side by side',
+    'Gravity': 'Gravity',
+    'rayon et taille par dénivelé': 'radius and size by elevation gain',
+    'Une teinte par sport': 'One colour per sport',
+    'la couleur dit le sport': 'the colour tells the sport',
+    'Minéral': 'Mineral',
+    'papier clair': 'light paper',
+    'Nocturne': 'Nocturne',
+    'fond charbon': 'charcoal ground',
+    'Fragment': 'Fragment',
+    'la trace déborde du cadre': 'the track runs past the frame',
+
+    /* ---------- collections ----------
+     *
+     * Les NOMS des collections ne sont pas ici : Alpage, Braise, Brume sont
+     * des noms propres et ne se traduisent pas. Seules leurs notes le sont —
+     * ce sont des phrases. */
+    'Libre — réglages du template': 'Free — the template’s own settings',
+    'nuit vers aube, l’encre blanche tient partout':
+      'night into dawn, white ink holds everywhere',
+    'crème et encre noire, le plus éditorial':
+      'cream and black ink, the most editorial',
+    'sombre et froid, pour les traces seules':
+      'dark and cold, for bare tracks',
+    'aplat saturé, encre noire — frontal':
+      'saturated flat colour, black ink — head-on',
+    'bleu délavé, lisible en plein soleil':
+      'washed-out blue, readable in full sun',
+    'papier, encre et rouille — la palette de la collection':
+      'paper, ink and rust — the collection’s own palette',
+    'chaud et dense, pour les fins de journée':
+      'warm and dense, for the end of the day'
   };
 
   var DICOS = { en: EN, fr: null };

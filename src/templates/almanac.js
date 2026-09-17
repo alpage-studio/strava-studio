@@ -49,6 +49,22 @@ Studio.template({
   id: 'almanac',
   name: 'Almanac — la forme d’une année',
   famille: 'serie',
+  /* LES VARIANTES DE LA FAMILLE, telles que le catalogue les montre.
+   * Déclarées ici parce que l'axe unique — la première liste déroulante — ne
+   * suffit pas : le premier menu est la PÉRIODE, et les compositions
+   * — Gravity, une teinte par sport — vivent dans d'autres clés.
+   * Le harnais vérifie que cette liste couvre les valeurs de ce premier menu
+   * ET toutes les planches de la galerie de revue. */
+  variantes: [
+    { nom: 'Année', dit: 'une rotation, une année', o: {} },
+    { nom: 'Mois', dit: 'une rotation, un mois', o: { echelleTemps: 'mois' } },
+    { nom: 'Années', dit: 'plusieurs systèmes côte à côte', o: { echelleTemps: 'annees' } },
+    { nom: 'Gravity', dit: 'rayon et taille par dénivelé',
+      o: { orbite: 'deniv', taille: 'duree', remarquables: 'deniv' } },
+    { nom: 'Une teinte par sport', dit: 'la couleur dit le sport',
+      o: { couleur: 'sport' } }
+  ],
+
   /* La transparence est une OPTION : la même planche s'exporte sur papier
    * ou en surcouche à poser sur une photo. */
   transparent: function (o) { return o.fond === 'transparent'; },

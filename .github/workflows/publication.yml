@@ -1,0 +1,171 @@
+# Contrôles, puis publication.
+#
+# CE QUE CE FICHIER CHANGE
+#   Avant lui, `git push` ÉTAIT la mise en production : GitHub Pages servait la
+#   branche telle quelle, une minute plus tard, quoi qu'il y ait dedans. Le
+#   harnais ne tournait que si quelqu'un y pensait — et le jour où personne n'y
+#   pense, rien ne le dit.
+#
+#   Ici, la publication est une TÂCHE QUI DÉPEND des contrôles. Un harnais rouge
+#   ne publie pas : il n'y a rien à annuler, rien à rattraper, le site en ligne
+#   reste celui d'avant.
+#
+# CONDITION D'ACTIVATION
+#   Settings → Pages → Source doit être « GitHub Actions ». Tant qu'il est sur
+#   « Deploy from a branch », c'est la branche qui publie et cette tâche échoue :
+#   la barrière n'existe pas encore.
+#
+# LES ACTIONS SONT ÉPINGLÉES À UN COMMIT, pas à une étiquette. Une étiquette se
+# déplace ; `actions/checkout@v4` exécute ce que son auteur y met aujourd'hui.
+# Le numéro de version est en commentaire pour rester lisible.
+
+name: Contrôles et publication
+
+# `push` sur main seulement, `pull_request` partout ailleurs : une branche
+# poussée ET proposée déclencherait sinon deux fois les mêmes contrôles.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Par défaut le jeton ne peut que lire. Les deux permissions d'écriture dont
+# Pages a besoin sont demandées par la SEULE tâche qui publie.
+permissions:
+  contents: read
+
+jobs:
+  harnais:
+    name: Harnais et gardes
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # la garde de version compare DEUX états du dépôt : il lui faut
+          # l'historique, pas seulement le dernier commit
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      # Aucun `npm install` : le projet n'a pas de dépendance, et le harnais
+      # n'en a pas non plus. C'est ce qui rend cette tâche courte.
+      - name: Harnais de régression
+        run: node tools/test.js
+
+      - name: Secrets et données de position
+        run: node tools/garde-secrets.js
+
+      - name: Le numéro de version suit le contenu
+        run: |
+          # sur une poussée : le commit d'avant ; sur une proposition : la base.
+          # Un dépôt neuf ou une branche nouvelle donne 000…0 — la garde le dit
+          # et se passe, plutôt que de prétendre avoir comparé quelque chose.
+          BASE="${{ github.event.before || github.event.pull_request.base.sha }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="origin/main"
+          fi
+          node tools/garde-version.js "$BASE" "${{ github.sha }}"
+
+  acceptation:
+    name: Acceptation (Chromium sans fenêtre)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      # Playwright s'installe HORS du dépôt, dans le répertoire temporaire du
+      # runner : « zéro dépendance » est une règle du produit — ce que
+      # télécharge un visiteur — et rien ici n'atterrit dans un fichier servi.
+      - name: Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund playwright@1.63.0 > /dev/null
+          npx playwright install --with-deps chromium
+
+      - name: Le parcours réel, à 1280 px puis à 390 px
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node tools/acceptation-tete-nue.js
+
+  publication:
+    name: Publication sur Pages
+    needs: [harnais, acceptation]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    # Une publication à la fois, et on ne coupe pas celle qui est en cours :
+    # interrompre un déploiement de Pages au milieu laisse le site dans un état
+    # qu'on n'a pas choisi. La contrainte porte sur CETTE tâche — au niveau du
+    # workflow, elle ferait aussi la queue aux contrôles des propositions.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      # Le dépôt entier, comme le faisait la publication par branche : les
+      # chemins sont relatifs, `.nojekyll` est à la racine, et tools/ est servi
+      # exprès — c'est ce qui permet d'éprouver le SITE EN LIGNE depuis la
+      # console d'un navigateur.
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: '.'
+
+      - id: deploiement
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  verification:
+    name: Vérifier ce qui est réellement servi
+    needs: publication
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      # Le seul contrôle qui parle de la production. Tout le reste éprouve un
+      # dépôt ; celui-ci éprouve ce qu'un visiteur reçoit — y compris le cache
+      # du service worker et la version réellement servie.
+      - name: Le numéro servi est celui qu'on vient de publier
+        run: |
+          ATTENDU=$(grep -o "STUDIO_VERSION = '[^']*'" src/version.js | grep -o "[0-9][0-9.]*")
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            SERVI=$(curl -sf "https://alpage-studio.github.io/strava-studio/src/version.js?ci=$GITHUB_SHA" \
+                    | grep -o "STUDIO_VERSION = '[^']*'" | grep -o "[0-9][0-9.]*" || true)
+            [ "$SERVI" = "$ATTENDU" ] && break
+            echo "servi : ${SERVI:-rien} — attendu : $ATTENDU (tentative $i)"
+            sleep 15
+          done
+          if [ "$SERVI" != "$ATTENDU" ]; then
+            echo "le site sert encore $SERVI après la publication de $ATTENDU"
+            exit 1
+          fi
+          echo "en ligne : $SERVI"
+
+      - name: Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pw"
+          cd "$RUNNER_TEMP/pw"
+          npm init -y > /dev/null
+          npm install --no-audit --no-fund playwright@1.63.0 > /dev/null
+          npx playwright install --with-deps chromium
+
+      - name: Le parcours réel, sur le site publié
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node tools/acceptation-tete-nue.js --url https://alpage-studio.github.io/strava-studio/
