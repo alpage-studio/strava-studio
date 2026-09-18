@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.4';
+var STUDIO_VERSION = '3.5';
 var STUDIO_DATE = '18.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,12 @@ var STUDIO_DATE = '18.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.5', d: '18.09.2026', points: [
+    'Teintes ne porte plus que des couleurs : le support et le voile sont partis dans Export, où l’on choisit déjà la photo. Un panneau, une question.',
+    'L’interface est en anglais, sans choix : le sélecteur FR/EN proposait une alternative que personne ne prenait et qu’il fallait tenir dans deux états.',
+    'La galerie porte enfin la même identité que le studio — même papier, même encre, mêmes polices, même marque, et le même choix clair/sombre.',
+    'Le sombre est repris sur deux mesures : les panneaux ne se détachaient plus du fond (1,06 contre 1,10 en clair), et l’accent passait de la rouille à l’or — une autre marque, pas une variante nocturne.'
+  ] },
   { v: '3.4', d: '18.09.2026', points: [
     'Les réglages suivent enfin le même ordre partout : Activité, Style, Teintes, Texte, Export — sur téléphone comme sur grand écran.',
     'La photo et la vidéo de fond ont rejoint l’Export : on choisit une image au moment de produire la sortie, pas au moment de régler une couleur.',

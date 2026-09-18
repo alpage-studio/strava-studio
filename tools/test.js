@@ -1147,6 +1147,93 @@ function testsCoherence() {
      suspects.length === 0, suspects.join(', '));
 }
 
+/* ================= 2 sexies. LES DEUX THEMES SE MESURENT =================
+ *
+ * « Les couleurs du sombre doivent etre meilleures » est un avis tant qu'on ne
+ * mesure pas. Une fois mesure, c'etaient deux faits :
+ *
+ *   · les SURFACES ne se separaient plus. Fond, panneau et bloc en relief
+ *     etaient a 1,06 et 1,08 de rapport, contre 1,10 et 1,09 en clair. Sur un
+ *     ecran sombre l'oeil a besoin de PLUS d'ecart, pas de moins.
+ *   · l'ACCENT changeait d'identite : rouille en clair, OR en sombre. Pas une
+ *     variante nocturne — une autre marque.
+ *
+ * Ces cas figent les deux. Ils lisent les jetons dans index.html, la ou ils
+ * sont ecrits : un controle qui recopierait les valeurs mesurerait sa copie.
+ */
+
+function testsThemes() {
+  titre('2 sexies. LES DEUX THEMES');
+
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+
+  function jetons(bloc) {
+    const o = {};
+    (bloc.match(/--[\w-]+:\s*#[0-9A-Fa-f]{6}/g) || []).forEach(function (d) {
+      const m = /--([\w-]+):\s*(#[0-9A-Fa-f]{6})/.exec(d);
+      o[m[1]] = m[2];
+    });
+    return o;
+  }
+  const mClair = /\n  :root \{([\s\S]*?)\n  \}/.exec(html);
+  const mSombre = /\[data-theme="sombre"\] \{([\s\S]*?)\n  \}/.exec(html);
+  if (!mClair || !mSombre) { saute('themes', 'jetons introuvables'); return; }
+  const clair = jetons(mClair[1]), sombre = jetons(mSombre[1]);
+
+  function lum(h) {
+    const v = parseInt(h.slice(1), 16);
+    const c = [(v >> 16 & 255) / 255, (v >> 8 & 255) / 255, (v & 255) / 255]
+      .map(function (x) { return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  }
+  function rapport(a, b) {
+    const A = lum(a), B = lum(b);
+    return (Math.max(A, B) + 0.05) / (Math.min(A, B) + 0.05);
+  }
+
+  [['clair', clair], ['sombre', sombre]].forEach(function (pr) {
+    const nom = pr[0], t = pr[1];
+    if (!t.bg || !t.ink || !t.mut || !t.acc || !t.panel || !t.raised) {
+      saute('theme ' + nom, 'jetons incomplets');
+      return;
+    }
+    /* Du TEXTE sur son fond : le seuil lisible usuel est 4,5. */
+    [['ink', t.ink], ['mut', t.mut], ['acc', t.acc]].forEach(function (x) {
+      const r = rapport(x[1], t.bg);
+      ok('theme ' + nom + ' · ' + x[0] + ' lisible sur le fond  (' + r.toFixed(2) + ')',
+         r >= 4.5);
+    });
+    /* Les SURFACES : un palier trop faible efface la structure de la page.
+     * 1,08 est le plancher observe sur le theme clair, qui tient. */
+    const sep = rapport(t.panel, t.bg);
+    ok('theme ' + nom + ' · les panneaux se detachent du fond  (' + sep.toFixed(2) + ')',
+       sep >= 1.08);
+    const rel = rapport(t.raised, t.panel);
+    ok('theme ' + nom + ' · le relief se detache du panneau  (' + rel.toFixed(2) + ')',
+       rel >= 1.08);
+  });
+
+  /* L'ACCENT GARDE SA TEINTE. On compare l'angle de teinte des deux rouilles :
+   * une variante nocturne s'eclaircit, elle ne change pas de couleur. */
+  function teinte(h) {
+    const v = parseInt(h.slice(1), 16);
+    const r = (v >> 16 & 255) / 255, g = (v >> 8 & 255) / 255, b = (v & 255) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+    if (!d) return 0;
+    let t;
+    if (mx === r) t = ((g - b) / d) % 6;
+    else if (mx === g) t = (b - r) / d + 2;
+    else t = (r - g) / d + 4;
+    t *= 60;
+    return t < 0 ? t + 360 : t;
+  }
+  const ecart = Math.abs(teinte(clair.acc) - teinte(sombre.acc));
+  ok('themes · l’accent garde sa teinte  (' + Math.round(teinte(clair.acc)) +
+     '° vs ' + Math.round(teinte(sombre.acc)) + '°)',
+     Math.min(ecart, 360 - ecart) <= 20,
+     'le clair et le sombre ne portent pas la meme couleur d’accent');
+}
+
 /* ================= 2 quinquies. L'ORDRE DES MORCEAUX =================
  *
  * src/app.js portait huit sujets dans deux mille lignes ; il en garde trois et
@@ -1510,6 +1597,7 @@ async function testsServeur() {
   console.log('Harnais de régression — ' + new Date().toISOString().slice(0, 16).replace('T', ' '));
   testsCalculs(chargeActivity());
   testsCoherence();
+  testsThemes();
   testsMorceaux();
   testsMenus();
   testsChaine();

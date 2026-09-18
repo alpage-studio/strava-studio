@@ -86,7 +86,7 @@ surcouche opaque — visuellement « ça marche », et la photo dessous a dispar
 
 **La chaîne française EST la clé i18n.** `src/i18n.js` traduit depuis le texte
 source. Renommer un libellé français casse sa traduction sans rien signaler ; un
-contrôle du harnais exige que les 33 templates soient traduits. Les libellés
+contrôle du harnais exige que les 32 templates soient traduits. Les libellés
 partagés entre templates (« Cadrage », par exemple) sont une seule entrée : la
 changer pour l'un la change pour tous.
 
@@ -112,6 +112,17 @@ défaut les valeurs de la première liste déroulante. Quand cet axe unique ment
 combine trois clés — le template déclare `variantes`. Règle : ce que la galerie
 de revue montre doit être atteignable dans l'outil, et un contrôle le vérifie.
 
+**L'interface est en anglais, et il n'y a plus de choix.** Le sélecteur FR/EN
+a été retiré, mais le moteur i18n reste : c'est lui qui PRODUIT l'anglais, les
+libellés étant écrits en français dans le code. Le retirer voudrait dire
+réécrire six cents libellés dans trente-deux planches.
+
+**Les deux thèmes se mesurent, ils ne s'apprécient pas.** Texte ≥ 4,5 de
+rapport sur son fond, surfaces ≥ 1,08 entre elles, et l'accent garde sa teinte
+d'un thème à l'autre — une variante nocturne s'éclaircit, elle ne change pas de
+couleur. Des contrôles lisent les jetons dans `index.html` et refusent le
+contraire.
+
 **Un menu déclaré vide doit être rempli quelque part.** `<select
 id="collection">` ne l'a jamais été : huit palettes existaient, s'appliquaient,
 et aucune n'était atteignable. Poser une valeur sur un menu vide ne lève rien —
@@ -126,7 +137,7 @@ appels précèdent souvent la déclaration dans ces fichiers. Un contrôle refus
 vingt et unième copie, et il regarde le **corps**, pas le nom.
 
 **En mobile, les nœuds sont DÉPLACÉS, jamais dupliqués.** `ZONES`,
-`versPanneaux()`, `versColonne()` et `majDisposition()` dans `src/app.js`
+`versPanneaux()`, `versColonne()` et `majDisposition()` dans `src/app/mobile.js`
 déplacent les mêmes éléments entre la colonne et les panneaux
 (`appendChild`). Dupliquer créerait deux éléments de même `id` et les écouteurs
 ne suivraient qu'un seul. Un contrôle vérifie que chaque sélecteur de `ZONES`
@@ -158,7 +169,7 @@ interdit `eval` et `new Function` dans la page.
 ## Les contrôles
 
 ```bash
-node tools/test.js            # 151 cas, sort en 1 si un seul échoue
+node tools/test.js            # 163 cas, sort en 1 si un seul échoue
 node tools/acceptation-tete-nue.js   # le parcours réel, navigateur headless
 python tools/icones.py        # redessine les icônes depuis la marque
 ```

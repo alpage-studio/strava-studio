@@ -24,7 +24,7 @@
       if (t === 'sombre') document.documentElement.setAttribute('data-theme', 'sombre');
       else document.documentElement.removeAttribute('data-theme');
       var meta = document.querySelector('meta[name="theme-color"]');
-      if (meta) meta.setAttribute('content', t === 'sombre' ? '#0A0A09' : '#F7F5EF');
+      if (meta) meta.setAttribute('content', t === 'sombre' ? '#14140F' : '#F7F5EF');
       try { localStorage.setItem(CLE, t); } catch (e) { /* tant pis */ }
     }
     pose(actuel);
@@ -38,7 +38,5 @@
    * ne soit construit : autrement le parcours des nœuds de texte retomberait
    * sur des libellés déjà traduits et n'en reconnaîtrait plus la clé. */
   I18N.appliquer(document.body);
-  $('#langue').value = I18N.langue();
-  $('#langue').addEventListener('change', function () { I18N.setLangue(this.value); });
 
 }(window.App));

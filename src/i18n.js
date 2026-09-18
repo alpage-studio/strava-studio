@@ -529,13 +529,24 @@
       'warm and dense, for the end of the day'
   };
 
-  var DICOS = { en: EN, fr: null };
+  /* `fr: null` vivait ici pour dire « la source EST le francais, il n'y a
+   * rien a traduire ». Avec le selecteur retire, cette branche n'est plus
+   * jamais atteinte : une entree morte dans une table de correspondance
+   * finit par etre lue comme une possibilite. */
+  var DICOS = { en: EN };
 
+  /* UNE SEULE LANGUE, ET PLUS DE CHOIX.
+   *
+   * Le sélecteur FR/EN a été retiré : il proposait une alternative que
+   * personne ne prenait et qu'il fallait tenir dans deux états. Le moteur,
+   * lui, reste — c'est lui qui PRODUIT l'anglais, puisque les libellés sont
+   * écrits en français dans le code et traduits à l'affichage.
+   *
+   * Le choix retenu dans les navigateurs qui avaient dit « FR » est efface :
+   * sans cela ils resteraient en francais pour toujours, devant une interface
+   * qui n'offre plus le moyen d'en sortir. */
   var langue = 'en';
-  try {
-    var retenue = localStorage.getItem(CLE);
-    if (retenue === 'fr' || retenue === 'en') langue = retenue;
-  } catch (e) { /* mode privé : anglais par défaut */ }
+  try { localStorage.removeItem(CLE); } catch (e) { /* mode privé : rien à oublier */ }
 
   /* La traduction d'UNE chaîne. Absente du dictionnaire : on rend le
    * français tel quel — mieux vaut un mot non traduit qu'un trou. */
@@ -615,15 +626,6 @@
     document.documentElement.lang = langue;
   }
 
-  /* Changer de langue RECHARGE la page. Retraduire à chaud demanderait de
-   * connaître le texte d'origine de chaque nœud déjà traduit : on le
-   * retrouverait à l'envers, et une seule erreur laisserait un mot figé
-   * dans la mauvaise langue. Un rechargement est déterministe. */
-  function setLangue(l) {
-    if (l !== 'fr' && l !== 'en') return;
-    try { localStorage.setItem(CLE, l); } catch (e) { /* tant pis */ }
-    location.reload();
-  }
 
   global.I18N = {
     /* Le dictionnaire est expose : le harnais s'en sert pour distinguer
@@ -632,7 +634,6 @@
     DICOS: DICOS,
     T: T,
     appliquer: appliquer,
-    setLangue: setLangue,
     langue: function () { return langue; }
   };
   global.T = T;                       // raccourci, très utilisé dans app.js

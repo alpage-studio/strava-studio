@@ -114,15 +114,28 @@
     --ombre:   0 1px 2px rgba(37, 40, 32, .07);
   }
 
+  /* LE SOMBRE, REPRIS SUR DEUX MESURES.
+   *
+   * 1. LES SURFACES NE SE SÉPARAIENT PLUS. Le fond, les panneaux et les blocs
+   *    en relief étaient à 1,06 et 1,08 de rapport de contraste — contre 1,10
+   *    et 1,09 en clair. Sur un écran sombre l'œil a besoin de PLUS d'écart,
+   *    pas de moins : la structure de la page s'effaçait. Le fond remonte du
+   *    quasi-noir (#0A0A09) au charbon (#14140F), et les paliers suivent.
+   *    L'identité disait charbon, pas noir.
+   *
+   * 2. L'ACCENT CHANGEAIT D'IDENTITÉ. Rouille en clair (#A54F37), OR en
+   *    sombre (#C99A32) : ce n'était pas une variante nocturne, c'était une
+   *    autre marque. Le sombre garde la rouille, éclaircie pour tenir sur le
+   *    charbon — 5,47 sur le fond, 4,96 sur un panneau. */
   [data-theme="sombre"] {
-    --bg:      #0A0A09;
-    --panel:   #121210;
-    --raised:  #1A1A17;
-    --line:    #26261F;
-    --line-2:  #35342B;
+    --bg:      #14140F;
+    --panel:   #1E1E17;
+    --raised:  #282820;
+    --line:    #34332A;
+    --line-2:  #474539;
     --ink:     #EDEAE0;
-    --mut:     #8C897C;
-    --acc:     #C99A32;
+    --mut:     #948F80;
+    --acc:     #C9765A;
     --acc-ink: #17150E;
     --danger:  #D96A4E;
     --ok:      #8FB877;
@@ -189,8 +202,6 @@
     .marque-nom { gap: 6px; }
     .mark { width: 26px; height: 26px; }
     header .lien-galerie { padding: 5px 9px; }
-    header #langue { padding: 4px 20px 4px 7px; background-position: calc(100% - 9px) 50%, calc(100% - 5px) 50%; }
-  }
   header .sub { color: var(--mut); font-size: 12px; }
   header .lien-galerie {
     color: var(--mut); font-size: 12px; text-decoration: none; white-space: nowrap;
@@ -203,12 +214,6 @@
     border-radius: 999px;
   }
   header .theme:hover { color: var(--ink); border-color: var(--line-2); }
-  header #langue {
-    width: auto; flex: none; padding: 5px 24px 5px 9px; font-size: 11.5px;
-    color: var(--mut); background-color: transparent; border-radius: 999px;
-    background-position: calc(100% - 11px) 50%, calc(100% - 7px) 50%;
-  }
-  header #langue:hover { color: var(--ink); }
   header .spacer { flex: 1; }
 
   /* ---------- les nouveautés ----------
@@ -755,13 +760,14 @@
   <!-- La revue des compositions. Elle vit à côté du studio et non dedans :
        c'est une page de contact, pas un écran de l'outil. -->
   <a class="lien-galerie" href="apercus/">Galerie</a>
-  <!-- Anglais par défaut : le studio se partage, et « Épaisseur par » ne se
-       devine pas. Le choix est retenu dans ce navigateur. -->
+  <!-- L'INTERFACE EST EN ANGLAIS, ET IL N'Y A PLUS DE CHOIX.
+       Le studio se partage, et « Épaisseur par » ne se devine pas. Le
+       sélecteur FR/EN proposait une alternative que personne ne prenait et
+       qu'il fallait tenir dans deux états. Le moteur de traduction reste :
+       c'est LUI qui produit l'anglais — les libellés sont écrits en français
+       dans le code et traduits à l'affichage. Le retirer voudrait dire
+       réécrire six cents libellés dans trente-deux planches. -->
   <button class="theme" id="theme" type="button" aria-label="Papier ou sombre">◐</button>
-  <select id="langue" aria-label="Language">
-    <option value="en">EN</option>
-    <option value="fr">FR</option>
-  </select>
 </header>
 
 <!-- Ce qui a changé depuis la dernière visite de CE navigateur. Fermé,
@@ -921,32 +927,6 @@
         <label class="opt" id="opt-photo-nb" hidden><span>Photo aussi en N&amp;B</span>
           <input type="checkbox" id="photo-nb">
         </label>
-        <!-- Le support est GLOBAL, comme le rendu. Toute planche peut se
-             poser sur une photo : le réglage n'appartient donc pas au
-             template. Quand il y vivait, il fallait le redéclarer une fois
-             par template — et il manquait sur dix-neuf des trente-trois. -->
-        <label class="opt" id="opt-support"><span>Support</span>
-          <select id="support">
-            <option value="papier">Fond plein — affiche</option>
-            <option value="surcouche">Sans fond — sur ta photo</option>
-          </select>
-        </label>
-        <!-- LE VOILE, LUI AUSSI GLOBAL.
-             Sans fond, une planche claire posée sur une photo claire devient
-             illisible. Huit planches — la famille « sur photo » — apportaient
-             leur propre voile, et elles seules : les vingt-cinq autres étaient
-             transparentes sans être utilisables. Le voile est un fait de
-             COMPOSITION, pas de template ; il se règle donc ici, et le moteur
-             le pose sous l'encre. Les planches qui ont déjà le leur ne le
-             reçoivent pas deux fois. -->
-        <label class="opt" id="opt-voile" hidden><span>Voile — lisibilité sur la photo</span>
-          <select id="voile">
-            <option value="aucun">Aucun</option>
-            <option value="bas">Vers le bas</option>
-            <option value="haut">Vers le haut</option>
-            <option value="centre">Au centre</option>
-          </select>
-        </label>
         <div id="opts-couleur"></div>
       </section>
 
@@ -981,6 +961,36 @@
             <div id="projet-state"></div>
           </div>
         </details>
+      </section>
+
+      <!-- SUPPORT : SUR QUOI LA PLANCHE SE POSE.
+           Ces deux réglages vivaient dans « Teintes », où ils n'ont rien à
+           faire : ils ne décident d'aucune couleur, ils décident du FOND. La
+           section répond à une seule question — papier ou photo — et la photo
+           elle-même se choisit juste en dessous, à l'endroit où on vient de
+           dire qu'on en voulait une. -->
+      <section id="section-support">
+        <h2>Support</h2>
+        <label class="opt" id="opt-support"><span>Support</span>
+          <select id="support">
+            <option value="papier">Fond plein — affiche</option>
+            <option value="surcouche">Sans fond — sur ta photo</option>
+          </select>
+        </label>
+        <!-- LE VOILE. Sans fond, une planche claire posée sur une photo claire
+             devient illisible. Huit planches — la famille « sur photo » —
+             apportent le leur ; les vingt-cinq autres étaient transparentes
+             sans être utilisables. Le voile est un fait de COMPOSITION, pas de
+             template : le moteur le transmet au voile de chaque planche, et
+             celles qui ont déjà le leur ne le reçoivent pas deux fois. -->
+        <label class="opt" id="opt-voile" hidden><span>Voile — lisibilité sur la photo</span>
+          <select id="voile">
+            <option value="aucun">Aucun</option>
+            <option value="bas">Vers le bas</option>
+            <option value="haut">Vers le haut</option>
+            <option value="centre">Au centre</option>
+          </select>
+        </label>
       </section>
 
       <!-- Repliée par défaut : on ne charge pas une photo à chaque planche,

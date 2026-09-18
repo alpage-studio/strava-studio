@@ -2,15 +2,58 @@
 <html lang="fr">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#121210">
+<meta name="theme-color" content="#F7F5EF">
 <title>Alpage — revue des compositions</title>
 <style>
+  /* LES POLICES DU STUDIO, SERVIES EN LOCAL.
+     La galerie tombait sur les polices du système pendant que l'outil servait
+     Archivo et IBM Plex Mono. Deux pages de la même main qui n'ont pas la même
+     écriture : c'est le premier écart qu'on voit, avant même les couleurs. */
+  @font-face {
+    font-family: "Archivo";
+    src: url("../assets/archivo-latin.woff2") format("woff2");
+    font-weight: 100 900; font-stretch: 62% 125%; font-display: block;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                   U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193,
+                   U+2212, U+2215, U+FEFF, U+FFFD;
+  }
+  @font-face {
+    font-family: "Archivo";
+    src: url("../assets/archivo-latin-ext.woff2") format("woff2");
+    font-weight: 100 900; font-stretch: 62% 125%; font-display: block;
+    unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB,
+                   U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+  }
+  @font-face {
+    font-family: "IBM Plex Mono";
+    src: url("../assets/plexmono-latin.woff2") format("woff2");
+    font-weight: 400; font-display: block;
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+                   U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212,
+                   U+2215, U+FEFF, U+FFFD;
+  }
+
+  /* LA MÊME PALETTE QUE L'OUTIL.
+     La galerie était sombre et or pendant que le studio était papier et
+     rouille. On y arrivait par un lien de l'entête, et on changeait de maison.
+     Les noms de variables restent ceux d'ici — --papier, --encre — mais leurs
+     VALEURS sont celles du studio, et le sombre suit le même attribut
+     `data-theme`, écrit dans le même localStorage : le choix fait dans l'outil
+     se retrouve en arrivant. */
   :root {
-    --papier: #121210; --encre: #EDEAE0; --mut: #8C897C;
-    --line: #26261F; --acc: #C99A32;
+    --papier: #F7F5EF; --encre: #252820; --mut: #62665C;
+    --line: #D8D5CC; --acc: #A54F37;
+    --panel: #EEEAE1; --acc-ink: #FBF9F4;
+    --damier-a: #E6E1D6; --damier-b: #DAD4C6;
     --col: 150px;            /* largeur mini d'une colonne : deux par ligne sur un téléphone */
     --marge: 14px;
     --sbar: env(safe-area-inset-bottom, 0px);
+  }
+  [data-theme="sombre"] {
+    --papier: #14140F; --encre: #EDEAE0; --mut: #948F80;
+    --line: #34332A; --acc: #C9765A;
+    --panel: #1E1E17; --acc-ink: #17150E;
+    --damier-a: #1E1E17; --damier-b: #282820;
   }
   @media (min-width: 720px) { :root { --col: 240px; --marge: 22px; } }
 
@@ -24,7 +67,27 @@
     background: var(--papier); color: var(--encre);
     font: 14px/1.5 "Archivo", "Segoe UI", system-ui, sans-serif;
   }
-  h1 { font-size: 19px; margin: 0 0 4px; letter-spacing: -.01em; }
+  /* L'ENTÊTE DE LA GALERIE PORTE LA MÊME MARQUE QUE L'OUTIL.
+     On arrive ici par un lien de l'entête du studio : sans marque ni retour,
+     on ne sait plus d'où l'on vient ni comment y revenir. */
+  .entete { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; }
+  .marque-nom { display: flex; align-items: center; gap: 7px; }
+  .mark { width: 26px; height: 26px; flex: none; display: block; color: var(--encre); }
+  .mark path { fill: none; stroke: currentColor; stroke-width: 2.1;
+               stroke-linecap: round; stroke-linejoin: round; }
+  .entete .retour {
+    margin-left: auto; font-size: 12.5px; color: var(--mut);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+  }
+  .entete .retour:hover { color: var(--encre); border-color: var(--acc); }
+  .entete .theme {
+    font: inherit; font-size: 15px; line-height: 1; cursor: pointer;
+    background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--mut); width: 32px; height: 32px; flex: none;
+  }
+  .entete .theme:hover { color: var(--encre); border-color: var(--acc); }
+  h1 { font-size: 19px; margin: 0; letter-spacing: -.01em; }
+  h1 .second { font-weight: 400; color: var(--mut); }
   @media (min-width: 720px) { h1 { font-size: 21px; } }
   .sous { color: var(--mut); font-size: 13px; margin-bottom: 16px; max-width: 70ch; }
   .sous .plus { display: none; }
@@ -43,7 +106,7 @@
     margin: 0 calc(-1 * var(--marge)) 18px;
     padding: 9px var(--marge) 9px;
     padding-top: max(9px, env(safe-area-inset-top, 0px));
-    background: rgba(18,18,16,.95); backdrop-filter: blur(6px);
+    background: color-mix(in srgb, var(--papier) 94%, transparent); backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--line);
     display: flex; flex-direction: column; gap: 7px;
   }
@@ -68,7 +131,7 @@
     min-height: 34px;                       /* cible tactile */
   }
   button.f:hover { color: var(--encre); }
-  button.f.on { background: var(--acc); border-color: var(--acc); color: #17150E; font-weight: 600; }
+  button.f.on { background: var(--acc); border-color: var(--acc); color: var(--acc-ink); font-weight: 600; }
   .compte { color: var(--mut); font-size: 12px; flex: none; }
   @media (min-width: 720px) { .compte { margin-left: auto; } }
   /* Le réglage de taille ne sert à rien tant qu'on ne tient qu'une ou deux
@@ -98,13 +161,13 @@
   .vignette {
     display: block; position: relative; overflow: hidden;
     border: 1px solid var(--line); border-radius: 3px;
-    background-color: #1A1A17;
+    background-color: var(--damier-a);
     background-image:
-      linear-gradient(45deg, #232320 25%, transparent 25%, transparent 75%, #2b2b36 75%),
-      linear-gradient(45deg, #232320 25%, transparent 25%, transparent 75%, #2b2b36 75%);
+      linear-gradient(45deg, var(--damier-b) 25%, transparent 25%, transparent 75%, var(--damier-b) 75%),
+      linear-gradient(45deg, var(--damier-b) 25%, transparent 25%, transparent 75%, var(--damier-b) 75%);
     background-size: 18px 18px; background-position: 0 0, 9px 9px;
   }
-  .vignette.photo { background: #333 url("v/photo-demo.webp") center/cover; }
+  .vignette.photo { background: var(--panel) url("v/photo-demo.webp") center/cover; }
   /* La hauteur est réservée AVANT le chargement : sans elle, chaque image
      qui arrive pousse la page et la revue devient impossible à lire au
      pouce. C'est aussi pour cela que le catalogue porte les dimensions. */
@@ -117,12 +180,12 @@
     border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px;
     margin: 3px 4px 0 0; color: var(--mut);
   }
-  .tag.expl { border-color: #5a5030; color: #b8a05a; }
+  .tag.expl { border-color: var(--acc); color: var(--acc); }
   /* Le chemin dans l'outil : discret, mais c'est lui qui fait le lien entre
      ce qu'on voit ici et ce qu'on règle là-bas. */
   .chemin {
     display: block; margin-top: 5px; font-size: 10.5px; line-height: 1.45;
-    color: #6f7a55; font-family: "IBM Plex Mono", ui-monospace, monospace;
+    color: var(--mut); font-family: "IBM Plex Mono", ui-monospace, monospace;
   }
   a { color: inherit; text-decoration: none; }
   a:hover .vignette { border-color: var(--acc); }
@@ -133,7 +196,7 @@
     position: fixed; right: max(12px, env(safe-area-inset-right, 0px));
     bottom: calc(12px + var(--sbar));
     width: 42px; height: 42px; border-radius: 50%;
-    border: 1px solid var(--line); background: rgba(18,18,16,.92);
+    border: 1px solid var(--line); background: color-mix(in srgb, var(--papier) 92%, transparent);
     color: var(--encre); font-size: 17px; cursor: pointer; display: none;
     backdrop-filter: blur(6px);
   }
@@ -141,7 +204,17 @@
   @media (min-width: 720px) { #haut { display: none !important; } }
 </style>
 
-<h1>Alpage — revue des compositions</h1>
+<div class="entete">
+  <span class="marque-nom">
+    <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5.7 20.4 C7.2 14.3 9.5 8.5 12.4 4.5 C14.5 9.3 16.4 14.7 17.9 19.8
+               C16.6 19.2 13.3 17 6.7 16.5"/>
+    </svg>
+    <h1>alpage <span class="second">galerie</span></h1>
+  </span>
+  <button class="theme" id="theme" type="button" aria-label="Papier ou sombre">◐</button>
+  <a class="retour" href="../">Retour au studio</a>
+</div>
 <div class="sous" id="sous">
   Chaque famille garde ses compositions <b>Original</b> ; les <b>Explorations</b>
   s’ajoutent à côté.<span class="plus"> Les parcours changent d’une vignette à
@@ -171,6 +244,29 @@
      sous chaque vignette le chemin exact pour la retrouver dans l'outil, avec
      les libellés que l'outil affiche et non une copie qui divergera. Ils
      n'ont besoin d'aucun canvas pour se déclarer. -->
+<script>
+/* LE MÊME THÈME QUE L'OUTIL, LA MÊME CLÉ.
+ * Le choix papier/sombre est stocké sous 'strava-studio-theme' par le studio.
+ * On le relit ici plutôt que d'en tenir un second : deux préférences pour une
+ * même personne, c'est celle qu'on n'a pas changée qui surprend. */
+(function () {
+  var CLE = 'strava-studio-theme';
+  var actuel = 'papier';
+  try { actuel = localStorage.getItem(CLE) || 'papier'; } catch (e) { /* mode privé */ }
+  function pose(t) {
+    actuel = t;
+    if (t === 'sombre') document.documentElement.setAttribute('data-theme', 'sombre');
+    else document.documentElement.removeAttribute('data-theme');
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t === 'sombre' ? '#14140F' : '#F7F5EF');
+    try { localStorage.setItem(CLE, t); } catch (e) { /* tant pis */ }
+  }
+  pose(actuel);
+  document.getElementById('theme').addEventListener('click', function () {
+    pose(actuel === 'sombre' ? 'papier' : 'sombre');
+  });
+}());
+</script>
 <script src="../src/studio.js"></script>
 <script src="../src/alpage.js"></script>
 <script src="../src/library.js"></script>

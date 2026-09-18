@@ -35,8 +35,11 @@
     /* La palette a rejoint les teintes : c'est une affaire de couleur, pas de
      * composition, et elle s'appelait « Collection » au milieu du choix de
      * style — un mot qui designait deja deux autres choses ailleurs. */
+    /* Teintes ne porte plus QUE des couleurs : la palette, le rendu, et les
+     * couleurs du template. Le support et le voile sont partis dans Export —
+     * ils ne decident d'aucune couleur, ils decident du fond. */
     teintes: ['#opt-collection', '#collection-note', '#opt-teintes', '#opt-photo-nb',
-              '#opt-support', '#opt-voile', '#opts-couleur'],
+              '#opts-couleur'],
     texte:   ['#opts-texte'],
     /* « Garder » rejoint le panneau Style : c'est ce qu'on fait d'une sortie
      * une fois qu'on en a une. Sans cela ces blocs restaient dans la colonne
@@ -50,8 +53,9 @@
      * les teintes, ou elles n'ont rien a faire : on choisit une image de fond
      * au moment de produire la sortie, pas au moment de regler une couleur.
      * « Garder » aussi : enregistrer un projet est une sortie. */
-    format:  ['#rangee-format', '#section-fond', '#preview-play', '#son',
-              '#export-video', '#export-seq', '#video-state', '#section-garder']
+    format:  ['#opt-support', '#opt-voile', '#rangee-format', '#section-fond',
+              '#preview-play', '#son', '#export-video', '#export-seq',
+              '#video-state', '#section-garder']
   };
   var placeOrigine = {};        // sélecteur -> { parent, suivant } avant déplacement
   var feuilleOuverte = null;

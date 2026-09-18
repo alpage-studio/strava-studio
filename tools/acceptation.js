@@ -298,9 +298,33 @@
     ok('téléphone · le panneau se ferme', $('#feuille').hidden);
     $('#barre button[data-feuille="teintes"]').click();
     await attends(300);
-    ok('téléphone · Teintes porte le rendu et le support',
-       !!document.querySelector('#feuille .zone[data-zone="teintes"] #opt-teintes') &&
-       !!document.querySelector('#feuille .zone[data-zone="teintes"] #opt-support'));
+    /* CHAQUE PANNEAU REPOND A UNE SEULE QUESTION.
+     *
+     * Ce cas exigeait que Teintes porte le rendu ET le support. Il a echoue le
+     * jour ou le support est parti dans Export — a juste titre : le support ne
+     * decide d'aucune couleur, il decide du fond. Le cas ne verifie donc plus
+     * qu'une presence, mais un PARTAGE : ce qui est de la couleur d'un cote,
+     * ce qui est du fond de l'autre, et rien des deux a la fois. */
+    var dansTeintes = function (sel) {
+      return !!document.querySelector('#feuille .zone[data-zone="teintes"] ' + sel);
+    };
+    ok('téléphone · Teintes ne porte que des couleurs',
+       dansTeintes('#opt-teintes') && dansTeintes('#opt-collection') &&
+       !dansTeintes('#opt-support') && !dansTeintes('#opt-voile'),
+       'rendu ' + dansTeintes('#opt-teintes') + ' · palette ' + dansTeintes('#opt-collection') +
+       ' · support (ne devrait pas) ' + dansTeintes('#opt-support'));
+    $('#feuille-voile').click();
+    await attends(250);
+    $('#barre button[data-feuille="format"]').click();
+    await attends(300);
+    var dansExport = function (sel) {
+      return !!document.querySelector('#feuille .zone[data-zone="format"] ' + sel);
+    };
+    ok('téléphone · Export porte le support, le fond et le format',
+       dansExport('#opt-support') && dansExport('#section-fond') &&
+       dansExport('#rangee-format'),
+       'support ' + dansExport('#opt-support') + ' · photo ' + dansExport('#section-fond') +
+       ' · format ' + dansExport('#rangee-format'));
     $('#feuille-voile').click();
     await attends(250);
     ok('téléphone · le voile ferme aussi', $('#feuille').hidden);
