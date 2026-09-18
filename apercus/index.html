@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#F7F5EF">
-<title>Alpage — revue des compositions</title>
+<title>alpage gallery — every composition</title>
 <style>
   /* LES POLICES DU STUDIO, SERVIES EN LOCAL.
      La galerie tombait sur les polices du système pendant que l'outil servait
@@ -216,13 +216,13 @@
   <a class="retour" href="../">Retour au studio</a>
 </div>
 <div class="sous" id="sous">
-  Chaque famille garde ses compositions <b>Original</b> ; les <b>Explorations</b>
-  s’ajoutent à côté.<span class="plus"> Les parcours changent d’une vignette à
-  l’autre — boucle sinueuse, aller-retour, parcours ouvert, huit avec
-  croisements — parce qu’une planche qui tient sur un cercle peut s’effondrer
-  sur un aller-retour. Les surcouches sont montrées sur une photo de
-  démonstration synthétique. Toucher une vignette ouvre la planche entière,
-  en 1080 × 1920.</span><button id="dev"
+  <!-- UNE PHRASE, UN NŒUD DE TEXTE.
+       La traduction parcourt les nœuds de texte du DOM : une phrase coupée par
+       un <b> au milieu devient cinq fragments, et il faudrait cinq entrées au
+       dictionnaire pour une seule idée. On retire l'emphase plutôt que de
+       hacher la phrase — elle ne portait rien que la phrase ne dise. -->
+  <span>Chaque famille garde ses compositions Original ; les Explorations s’ajoutent à côté.</span><span
+  class="plus"> Les parcours changent d’une vignette à l’autre — boucle sinueuse, aller-retour, parcours ouvert, huit avec croisements — parce qu’une planche qui tient sur un cercle peut s’effondrer sur un aller-retour. Les surcouches sont montrées sur une photo de démonstration synthétique. Toucher une vignette ouvre la planche entière, en 1080 × 1920.</span><button id="dev"
   type="button">en savoir plus</button>
 </div>
 
@@ -267,6 +267,13 @@
   });
 }());
 </script>
+<!-- LE DICTIONNAIRE DU STUDIO, PAS UN SECOND.
+     La galerie est une page publique : elle parle la meme langue que l'outil,
+     et elle la parle avec le MEME dictionnaire. Une table de traduction propre
+     a cette page finirait par appeler « Sceau » autrement que le menu qui le
+     regle — et c'est justement ce que la ligne « chemin » sous chaque vignette
+     est censee empecher. -->
+<script src="../src/i18n.js"></script>
 <script src="../src/studio.js"></script>
 <script src="../src/alpage.js"></script>
 <script src="../src/library.js"></script>
@@ -290,10 +297,17 @@ var etatF = null, etatG = null;
  *
  * Les libellés sont lus dans les templates chargés ci-dessus, pas recopiés :
  * une copie finirait par dire autre chose que le menu. */
+/* « Original · Sceau — disque decentre » se lit « Sceau » dans le menu de
+ * l'outil : la carte y retire le prefixe et la glose. Le chemin doit dire le
+ * MEME mot, sinon il envoie chercher une entree qui ne s'appelle pas comme ca. */
+function sansPrefixe(x) {
+  return x.replace(/^(Original|Exploration)\s*·\s*/, '').split(' —')[0];
+}
+
 function chemin(e) {
   var tpl = window.Studio && window.Studio.get(e.t);
   if (!tpl) return '';
-  var pas = [tpl.name.split(' —')[0]];
+  var pas = [T(tpl.name).split(' —')[0]];
   var o = e.o || {};
 
   var vus = {};
@@ -307,7 +321,7 @@ function chemin(e) {
     var choix = (def.choices || []).filter(function (c) { return c[0] === o[k]; })[0];
     if (!choix) return;
     vus[k] = true;
-    pas.push(def.label + ' : ' + choix[1].split(' —')[0]);
+    pas.push(T(def.label) + ' : ' + sansPrefixe(T(choix[1])));
   });
 
   /* Aucune option n'est donnée : c'est la composition par défaut, et c'est
@@ -318,20 +332,29 @@ function chemin(e) {
     })[0];
     if (premier) {
       var par = (premier.choices || []).filter(function (c) { return c[0] === premier.default; })[0];
-      if (par) pas.push(premier.label + ' : ' + par[1].split(' —')[0]);
+      if (par) pas.push(T(premier.label) + ' : ' + sansPrefixe(T(par[1])));
     }
   }
 
   if (o.fond === 'transparent') {
-    pas.push('Support : Transparent');
+    pas.push(T('Support') + ' : ' + T('Transparent'));
     if (o.voile && o.voile !== 'aucun') {
       var dv = tpl.options.filter(function (d) { return d.key === 'voile'; })[0];
       var cv = dv && (dv.choices || []).filter(function (c) { return c[0] === o.voile; })[0];
-      if (cv) pas.push('Voile : ' + cv[1]);
+      if (cv) pas.push(T('Voile') + ' : ' + T(cv[1]));
     }
   }
-  if (e.nb) pas.push('Rendu : Noir & blanc');
+  if (e.nb) pas.push(T('Rendu') + ' : ' + T('Noir & blanc'));
   return pas.join('  \u2192  ');
+}
+
+/* LE NOM D'UNE FAMILLE VIENT DU TEMPLATE, partout : les puces du filtre comme
+ * les titres de section. Le catalogue ecrit « Encre », l'outil affiche « Ink ».
+ * Deux mots pour une planche, c'est exactement ce qu'une copie produit. */
+function nomFamille(f) {
+  var e = C.filter(function (x) { return x.f === f; })[0];
+  var tpl = e && window.Studio && window.Studio.get(e.t);
+  return tpl ? T(tpl.name).split(' —')[0] : T(f);
 }
 
 function uniques(champ) {
@@ -343,7 +366,7 @@ function uniques(champ) {
 function bouton(txt, actif, onClic) {
   var b = document.createElement('button');
   b.className = 'f' + (actif ? ' on' : '');
-  b.textContent = txt;
+  b.textContent = T(txt);
   b.addEventListener('click', onClic);
   return b;
 }
@@ -351,7 +374,7 @@ function bouton(txt, actif, onClic) {
 function barre() {
   var bf = document.getElementById('familles');
   var bg = document.getElementById('groupes');
-  [['Toutes', null]].concat(uniques('f').map(function (x) { return [x, x]; }))
+  [['Toutes', null]].concat(uniques('f').map(function (x) { return [nomFamille(x), x]; }))
     .forEach(function (p) {
       bf.appendChild(bouton(p[0], etatF === p[1], function () { etatF = p[1]; refait(); }));
     });
@@ -378,7 +401,7 @@ function barre() {
   document.getElementById('dev').addEventListener('click', function () {
     var s = document.getElementById('sous');
     var ouvert = s.classList.toggle('ouvert');
-    this.textContent = ouvert ? 'réduire' : 'en savoir plus';
+    this.textContent = T(ouvert ? 'réduire' : 'en savoir plus');
   });
   var haut = document.getElementById('haut');
   haut.addEventListener('click', function () { window.scrollTo({ top: 0, behavior: 'smooth' }); });
@@ -404,8 +427,8 @@ function rend() {
     return (!etatF || e.f === etatF) && (!etatG || e.g === etatG);
   });
   document.getElementById('compte').textContent =
-    liste.length + ' composition' + (liste.length > 1 ? 's' : '');
-  if (!liste.length) { sortie.innerHTML = '<div class="vide">Aucune composition.</div>'; return; }
+    liste.length + ' ' + T(liste.length > 1 ? 'compositions' : 'composition');
+  if (!liste.length) { sortie.innerHTML = '<div class="vide">' + T('Aucune composition.') + '</div>'; return; }
 
   /* Regroupement famille → version, dans l'ordre du catalogue : c'est lui
    * qui décide de ce qu'on voit côte à côte. */
@@ -419,7 +442,11 @@ function rend() {
 
   sections.forEach(function (s) {
     var h = document.createElement('h2');
-    h.innerHTML = '<em>' + s.f + '</em> · ' + s.g;
+      /* LE NOM DE FAMILLE VIENT DU TEMPLATE, PAS DU CATALOGUE.
+       * Le catalogue ecrit « Encre » ; l'outil affiche « Ink ». Recopier le
+       * mot du catalogue aurait donne deux noms pour une meme planche, et
+       * c'est exactement ce qu'on reproche a une copie. */
+    h.innerHTML = '<em>' + nomFamille(s.f) + '</em> · ' + T(s.g);
     sortie.appendChild(h);
     var gr = document.createElement('div');
     gr.className = 'grille';
@@ -440,17 +467,17 @@ function rend() {
       f.innerHTML =
         '<a href="p/' + k + '.webp" target="_blank" rel="noopener">' +
           '<span class="vignette' + (e.photo ? ' photo' : '') + '">' +
-            '<img loading="lazy" decoding="async" alt="' + e.n + '"' +
+            '<img loading="lazy" decoding="async" alt="' + T(e.n) + '"' +
               ' width="' + t[0] + '" height="' + t[1] + '"' +
               ' src="v/' + k + '.webp"' +
               ' onerror="this.onerror=null;this.src=\'p/' + k + '.webp\'">' +
           '</span>' +
         '</a>' +
-        '<figcaption><b>' + e.n + '</b>' +
-          '<span class="d">' + e.d + '</span>' +
-          (e.g === 'Exploration' ? '<span class="tag expl">exploration</span>' : '') +
-          (e.nb ? '<span class="tag">noir &amp; blanc</span>' : '') +
-          (e.photo ? '<span class="tag">surcouche</span>' : '') +
+        '<figcaption><b>' + T(e.n) + '</b>' +
+          '<span class="d">' + T(e.d) + '</span>' +
+          (e.g === 'Exploration' ? '<span class="tag expl">' + T('exploration') + '</span>' : '') +
+          (e.nb ? '<span class="tag">' + T('noir & blanc') + '</span>' : '') +
+          (e.photo ? '<span class="tag">' + T('surcouche') + '</span>' : '') +
           '<span class="tag">' + t.join(' × ') + '</span>' +
           (chemin(e) ? '<span class="chemin">' + chemin(e) + '</span>' : '') +
         '</figcaption>';
@@ -460,6 +487,10 @@ function rend() {
   });
 }
 
+/* LA PAGE STATIQUE EST TRADUITE AVANT le dynamique : sinon le parcours des
+ * noeuds de texte retomberait sur des libelles deja traduits et n'en
+ * reconnaitrait plus la cle. */
+I18N.appliquer(document.body);
 barre();
 rend();
 </script>

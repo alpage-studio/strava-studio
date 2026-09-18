@@ -620,6 +620,13 @@ function testsCoherence() {
       corpus += fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
       const cat = path.join(ROOT, 'apercus-catalogue.js');
       if (fs.existsSync(cat)) corpus += fs.readFileSync(cat, 'utf8');
+      /* LA GALERIE COMPTE AUSSI. Elle est devenue une page publique traduite
+       * par le meme dictionnaire ; sans elle dans le corpus, ses quatre-vingts
+       * libelles passaient pour orphelins et une suppression aveugle aurait
+       * remis la page en francais. Troisieme fois qu'un controle se trompe de
+       * PERIMETRE plutot que de regle. */
+      const gal = path.join(ROOT, 'apercus', 'index.html');
+      if (fs.existsSync(gal)) corpus += fs.readFileSync(gal, 'utf8');
       corpus = nettoie(corpus);
       const orphelines = Object.keys(DICO).filter(function (k) {
         return corpus.indexOf(nettoie(k)) < 0;
@@ -756,6 +763,30 @@ function testsCoherence() {
     const faux = { };
     new Function('window', fs.readFileSync(cat, 'utf8'))(faux);
     const A = faux.Apercus;
+
+    /* LA GALERIE EST UNE PAGE PUBLIQUE, EN ANGLAIS, AVEC LE MEME DICTIONNAIRE.
+     *
+     * Elle a longtemps ete la page de revue d'une seule personne : sombre, en
+     * francais, avec ses propres couleurs. Devenue publique, elle doit parler
+     * comme l'outil — et surtout avec la MEME table, pas une copie. Une copie
+     * finirait par appeler « Sceau » autrement que le menu qui le regle, ce
+     * que la ligne « chemin » sous chaque vignette est censee empecher. */
+    const gal = path.join(ROOT, 'apercus', 'index.html');
+    if (!fs.existsSync(gal)) {
+      saute('galerie · page', 'absente');
+    } else {
+      const html = fs.readFileSync(gal, 'utf8');
+      ok('galerie · elle charge le dictionnaire du studio',
+         /src="\.\.\/src\/i18n\.js"/.test(html));
+      ok('galerie · elle applique la traduction au chargement',
+         /I18N\.appliquer\(/.test(html));
+      ok('galerie · elle se declare en anglais', /<html lang="en">/.test(html));
+      /* Une seconde table de traduction dans la page serait la copie qu'on
+       * refuse : on la reconnait a un objet de correspondances francais →
+       * anglais declare sur place. */
+      const propre = /var\s+(DICO|TRAD|EN)\s*=\s*\{/.test(html);
+      ok('galerie · elle ne tient pas sa propre table de traduction', !propre);
+    }
 
     const cles = A.CATALOGUE.map(A.cle);
     ok('galerie · les identifiants du catalogue sont uniques  (' + cles.length + ')',

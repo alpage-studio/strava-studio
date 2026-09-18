@@ -169,7 +169,7 @@ interdit `eval` et `new Function` dans la page.
 ## Les contrôles
 
 ```bash
-node tools/test.js            # 163 cas, sort en 1 si un seul échoue
+node tools/test.js            # 167 cas, sort en 1 si un seul échoue
 node tools/acceptation-tete-nue.js   # le parcours réel, navigateur headless
 python tools/icones.py        # redessine les icônes depuis la marque
 ```
