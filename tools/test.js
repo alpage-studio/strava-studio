@@ -222,6 +222,27 @@ function testsCoherence() {
   ok('les exemples sont dans le cache hors ligne',
      horsCache.length === 0, 'manquants : ' + horsCache.join(', '));
 
+  /* ---------- LE SHELL SE SERT D'UNE SEULE GENERATION ----------
+   *
+   * Le studio etait UN fichier de code ; il en fait dix depuis le decoupage.
+   * Avec une strategie reseau-d'abord appliquee requete par requete, une
+   * connexion qui flanche sert quelques fichiers neufs et les autres depuis le
+   * cache : un melange qui ne ressemble a aucune version. Reproduit sur un
+   * profil iPhone — la classe `telephone` n'est jamais posee, la barre du bas
+   * disparait, la colonne du bureau s'ecrase sur l'ecran.
+   *
+   * Deux choses a tenir, et la seconde est celle qu'on oublie :
+   *   · le shell se lit dans le cache de SA version, pas sur le reseau ;
+   *   · on n'interroge jamais `caches.match` tout court — il cherche dans TOUS
+   *     les caches, y compris ceux des versions precedentes. */
+  const swSrc = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+  ok('sw · le shell est servi depuis le cache de sa version',
+     /CHEMINS_SHELL\.has\(url\.pathname\)/.test(swSrc) &&
+     /caches\.open\(VERSION\)[\s\S]{0,200}?c\.match\(req\)/.test(swSrc));
+  ok('sw · aucune lecture dans tous les caches a la fois',
+     !/(^|[^.\w])caches\.match\(/.test(swSrc),
+     '`caches.match` sans cache nomme peut servir un fichier d’une version precedente');
+
   const ver = fs.readFileSync(path.join(ROOT, 'src', 'version.js'), 'utf8');
   ok('version.js · numéro lisible',
      /var STUDIO_VERSION = '[\d.]+'/.test(ver));

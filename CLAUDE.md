@@ -160,6 +160,14 @@ existe et n'est réclamé que par une zone.
 sans relancer `python tools/icones.py` fait diverger les deux — c'est arrivé le
 jour même où l'avertissement a été écrit. Un contrôle compare les dix points.
 
+**Le shell se sert d'UNE SEULE génération.** Le studio était un fichier de
+code, il en fait dix. Une stratégie réseau-d'abord appliquée requête par requête
+sert alors quelques fichiers neufs et les autres depuis le cache dès qu'une
+connexion flanche — un mélange qui ne ressemble à aucune version : la classe
+`telephone` n'est jamais posée, la barre du bas disparaît. Le shell se lit donc
+dans `caches.open(VERSION)`, jamais par `caches.match` qui cherche dans tous les
+caches. Découper du code change la façon dont il faut le servir.
+
 **Le numéro de version purge le cache.** `src/version.js` est chargé par la page
 *et* par `sw.js` via `importScripts` ; `VERSION = 'studio-v' + STUDIO_VERSION`
 nomme le cache hors ligne. Modifier un fichier du `SHELL` sans monter le numéro
@@ -181,7 +189,7 @@ interdit `eval` et `new Function` dans la page.
 ## Les contrôles
 
 ```bash
-node tools/test.js            # 167 cas, sort en 1 si un seul échoue
+node tools/test.js            # 169 cas, sort en 1 si un seul échoue
 node tools/acceptation-tete-nue.js --moteur tous   # Chromium ET WebKit
 python tools/icones.py        # redessine les icônes depuis la marque
 ```

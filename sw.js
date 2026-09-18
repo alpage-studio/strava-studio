@@ -126,6 +126,13 @@ self.addEventListener('activate', function (e) {
   );
 });
 
+/* Le SHELL, en chemins absolus, pour reconnaitre une requete d'un coup d'oeil.
+ * `new URL(u, self.location)` resout './src/app.js' contre la portee du
+ * service worker — qui n'est pas la racine du domaine sur un site de projet. */
+const CHEMINS_SHELL = new Set(SHELL.map(function (u) {
+  return new URL(u, self.location).pathname;
+}));
+
 self.addEventListener('fetch', function (e) {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -144,6 +151,47 @@ self.addEventListener('fetch', function (e) {
       url.pathname.startsWith('/connect') ||
       url.pathname.startsWith('/exchange_token')) return;
 
+  /* ---------- LE SHELL SE SERT D'UNE SEULE GENERATION ----------
+   *
+   * LE DEFAUT QUE CETTE REGLE FERME. Le studio etait un fichier de code ; il en
+   * fait dix depuis le decoupage. Avec une strategie RESEAU D'ABORD appliquee
+   * requete par requete, une connexion qui flanche au milieu d'un chargement
+   * sert quelques fichiers depuis le reseau — la nouvelle version — et les
+   * autres depuis le cache — l'ancienne. Tant que le code tenait en un fichier,
+   * on obtenait l'une OU l'autre, toutes deux coherentes. A dix fichiers, on
+   * obtient un melange, et un melange ne ressemble a aucune version : la classe
+   * `telephone` n'est jamais posee, la barre du bas disparait, et la colonne du
+   * bureau s'ecrase sur un telephone. C'est reproduit, pas suppose.
+   *
+   * Le cache porte le NUMERO DE VERSION dans son nom : il est donc, par
+   * construction, d'une seule generation. Servir le shell depuis lui — et
+   * depuis lui seul, jamais par `caches.match` qui cherche dans tous les
+   * caches — rend le melange impossible.
+   *
+   * CE QUE CA COUTE. Une version fraiche n'apparait plus au premier
+   * rechargement mais au suivant, le temps que le nouveau service worker
+   * s'installe et remplisse son cache. C'est le prix d'une page coherente, et
+   * il est plus bas que celui d'une page qui ne ressemble a rien. */
+  if (CHEMINS_SHELL.has(url.pathname)) {
+    e.respondWith(
+      caches.open(VERSION).then(function (c) {
+        return c.match(req).then(function (hit) {
+          if (hit) return hit;
+          return fetch(req).then(function (res) {
+            if (res && res.ok) c.put(req, res.clone());
+            return res;
+          }).catch(function () {
+            if (req.mode === 'navigate') return c.match('./index.html');
+            return Response.error();
+          });
+        });
+      })
+    );
+    return;
+  }
+
+  /* Le reste — les GPX qu'on charge, ce qui n'est pas du code — garde le
+   * reseau d'abord : ces fichiers ne forment pas une generation entre eux. */
   e.respondWith(
     fetch(req)
       .then(function (res) {
@@ -154,11 +202,12 @@ self.addEventListener('fetch', function (e) {
         return res;
       })
       .catch(function () {
-        return caches.match(req).then(function (hit) {
-          if (hit) return hit;
-          // une navigation hors ligne retombe sur la page d'accueil en cache
-          if (req.mode === 'navigate') return caches.match('./index.html');
-          return Response.error();
+        return caches.open(VERSION).then(function (c) {
+          return c.match(req).then(function (hit) {
+            if (hit) return hit;
+            if (req.mode === 'navigate') return c.match('./index.html');
+            return Response.error();
+          });
         });
       })
   );
