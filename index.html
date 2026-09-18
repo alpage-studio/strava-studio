@@ -510,23 +510,8 @@
   .warn { color: #FFB454; }
   #gpx-err { color: var(--danger); font-size: 12px; margin-top: 7px; }
   #video-state, #bgvideo-state { font-size: 11.5px; color: var(--mut); margin-top: 7px; }
-  #projet-state, #hist-state, #musee-state, #son-state { font-size: 11.5px; color: var(--mut); margin-top: 6px; }
+  #projet-state, #hist-state, #son-state { font-size: 11.5px; color: var(--mut); margin-top: 6px; }
   #son { margin-top: 8px; }
-  #musee-panneau textarea { width: 100%; resize: vertical; font: inherit; }
-  #musee-liste .piece, #musee-suggestions .sugg {
-    display: flex; align-items: center; gap: 7px; padding: 5px 7px;
-    border: 1px solid var(--line); border-radius: 7px; margin-bottom: 5px;
-    background: var(--raised); font-size: 12px;
-  }
-  #musee-suggestions .sugg { display: block; }
-  #musee-suggestions .sugg .pourquoi { color: var(--mut); font-size: 11px; margin: 3px 0 5px; }
-  #musee-suggestions .sugg button { width: auto; padding: 2px 9px; margin: 0; }
-  #musee-liste .piece .nom { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #musee-liste .piece button {
-    width: auto; padding: 1px 5px; background: none; border: 0;
-    color: var(--mut); font-size: 13px; line-height: 1; margin: 0;
-  }
-  #musee-liste .piece button:hover { color: var(--ink); }
   .rangee { display: flex; gap: 6px; align-items: center; }
   .rangee > * { flex: 1; }
   .projet { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
@@ -801,7 +786,7 @@
   <button type="button" data-feuille="style">Style</button>
   <button type="button" data-feuille="teintes">Teintes</button>
   <button type="button" data-feuille="texte">Texte</button>
-  <button type="button" data-feuille="format">Format</button>
+  <button type="button" data-feuille="format">Export</button>
   <button type="button" id="barre-enregistrer" class="principal">Enregistrer</button>
 </nav>
 
@@ -884,6 +869,12 @@
         </details>
       </section>
 
+      <!-- TROIS SECTIONS, ET CE SONT LES MÊMES QUE LES PANNEAUX DU TÉLÉPHONE.
+           Un seul bloc contenait jusqu'ici la composition, les couleurs et les
+           mots, dans l'ordre où ils avaient été ajoutés. Sur téléphone ils
+           partaient dans trois panneaux nommés ; sur écran large ils restaient
+           mélangés. Deux rangements différents pour la même application, c'est
+           un de trop : celui qu'on apprend sur l'un ne sert pas sur l'autre. -->
       <section>
         <h2>Style</h2>
         <!-- Le choix en deux temps : une famille, puis sa variante. Le menu
@@ -896,18 +887,32 @@
              du catalogue qui les remplace. On le masque, on ne le supprime
              pas ; le supprimer reviendrait à réécrire vingt endroits. -->
         <select id="tpl"></select>
-        <label class="opt" id="opt-collection" style="margin-top: 9px"><span>Collection</span>
-          <select id="collection"></select>
-        </label>
-        <div id="collection-note" class="muted" style="font-size: 11.5px; margin: 0 0 4px"></div>
         <label class="opt" id="opt-minimal"><span>Minimaliste — tracé seul</span>
           <input type="checkbox" id="minimal">
         </label>
+        <!-- Les réglages d'un template partent dans TROIS réceptacles selon
+             leur nature, et chacun rejoint la section qui porte son nom. Un
+             seul constructeur les remplit — buildOptions() — donc ils ne
+             peuvent pas diverger. -->
+        <div id="opts"></div>
+      </section>
+
+      <section>
+        <h2>Teintes</h2>
+        <!-- LA PALETTE S'APPELAIT « COLLECTION ».
+             Le mot désignait trois choses à la fois : cette palette, les
+             planches gardées, et une composition d'Empreinte. Un mot pour
+             trois idées n'en nomme aucune. Ici c'est une palette, et elle vit
+             avec les couleurs plutôt qu'au milieu du choix de style. -->
+        <label class="opt" id="opt-collection"><span>Palette</span>
+          <select id="collection"></select>
+        </label>
+        <div id="collection-note" class="muted" style="font-size: 11.5px; margin: 0 0 4px"></div>
         <!-- Rendu et support sont deux choix INDÉPENDANTS : une affiche
              sombre peut être colorée, une affiche claire strictement en noir
              et blanc. Les fusionner en un seul menu aurait fabriqué six
              combinaisons dont quatre n'ont pas de nom. -->
-        <label class="opt" id="opt-teintes"><span>Teintes</span>
+        <label class="opt" id="opt-teintes"><span>Rendu</span>
           <select id="rendu">
             <option value="couleur">Couleur</option>
             <option value="nb">Noir &amp; blanc</option>
@@ -942,51 +947,39 @@
             <option value="centre">Au centre</option>
           </select>
         </label>
-        <!-- Les réglages d'un template partent dans TROIS réceptacles selon
-             leur nature. Sur un écran large ils se suivent, et rien ne
-             change. Sur un téléphone, chacun rejoint son panneau : la
-             composition dans Style, les couleurs dans Teintes, les mots dans
-             Texte. Un seul constructeur les remplit — buildOptions() — donc
-             ils ne peuvent pas diverger. -->
-        <div id="opts"></div>
         <div id="opts-couleur"></div>
+      </section>
+
+      <section>
+        <h2>Texte</h2>
         <div id="opts-texte"></div>
       </section>
 
-      <!-- MUSÉE, HISTORIQUE, PROJETS.
-           Ces trois blocs vivaient à l'INTÉRIEUR de l'écran d'accueil, qui
-           disparaît dès qu'une sortie est chargée. Ils n'étaient donc
-           atteignables que dans l'état où ils refusent de travailler :
-           « Enregistrer le projet » répondait « Rien à enregistrer ».
-           Ils rejoignent la colonne, avec le reste de ce qu'on fait d'une
-           sortie une fois qu'on en a une. -->
+      <!-- HISTORIQUE ET PROJETS.
+           Ces blocs vivaient à l'INTÉRIEUR de l'écran d'accueil, qui disparaît
+           dès qu'une sortie est chargée. Ils n'étaient donc atteignables que
+           dans l'état où ils refusent de travailler : « Enregistrer le projet »
+           répondait « Rien à enregistrer ». Ils rejoignent la colonne, avec le
+           reste de ce qu'on fait d'une sortie une fois qu'on en a une.
+
+           Le musée vivait ici aussi. Il demandait de CURER une collection —
+           écrire un cartel, ranger des pièces — quand tout le reste du studio
+           demande de faire une affiche. Personne ne l'a rempli, et la planche
+           qui le dessinait n'avait donc jamais rien à montrer. -->
       <section class="pliable" id="section-garder">
         <details>
           <summary class="titre">Garder</summary>
-        <div class="projet" id="musee-panneau">
-        <button class="ghost" id="musee-creer" type="button">Créer une pièce de musée</button>
-        <input type="text" id="musee-titre" placeholder="Titre de la pièce">
-        <textarea id="musee-recit" rows="2" placeholder="Cartel — quelques lignes, de ta main"></textarea>
-          <div id="musee-suggestions" data-brut></div>
-          <div id="musee-liste" data-brut></div>
-          <div class="rangee">
-          <button class="ghost" id="musee-save" type="button">Sauvegarder la collection</button>
-          <label class="file"><input type="file" id="musee-open" accept=".json,application/json">
-            <span>Restaurer</span></label>
-        </div>
-          <div id="musee-state" data-brut></div>
-      </div>
-        <div class="projet">
-        <button class="ghost" id="hist-add" type="button">Ajouter ces sorties à l’historique</button>
-        <button class="ghost" id="hist-clear" type="button">Effacer l’historique</button>
-          <div id="hist-state"></div>
-      </div>
-        <div class="projet">
-        <button class="ghost" id="projet-save" type="button">Enregistrer le projet</button>
-        <label class="file"><input type="file" id="projet-open" accept=".json,application/json">
-          <span>Rouvrir un projet</span></label>
-          <div id="projet-state"></div>
-      </div>
+          <div class="projet">
+            <button class="ghost" id="hist-add" type="button">Ajouter ces sorties à l’historique</button>
+            <button class="ghost" id="hist-clear" type="button">Effacer l’historique</button>
+            <div id="hist-state"></div>
+          </div>
+          <div class="projet">
+            <button class="ghost" id="projet-save" type="button">Enregistrer le projet</button>
+            <label class="file"><input type="file" id="projet-open" accept=".json,application/json">
+              <span>Rouvrir un projet</span></label>
+            <div id="projet-state"></div>
+          </div>
         </details>
       </section>
 
@@ -994,7 +987,7 @@
            et cette section poussait les réglages du template hors de l'écran. -->
       <section class="pliable" id="section-fond">
         <details>
-          <summary class="titre">Fond</summary>
+          <summary class="titre">Photo ou vidéo</summary>
         <label class="file">
           <input type="file" id="photo" accept="image/*">
           <span>Ajouter une photo</span>
@@ -1094,7 +1087,6 @@
 <script src="src/library.js"></script>
 <script src="src/projet.js"></script>
 <script src="src/historique.js"></script>
-<script src="src/musee.js"></script>
 <script src="src/partition.js"></script>
 <script src="src/collections.js"></script>
 <script src="src/icu-web.js"></script>
@@ -1118,7 +1110,6 @@
 <script src="src/templates/tissage.js"></script>
 <script src="src/templates/fresque.js"></script>
 <script src="src/templates/exploration.js"></script>
-<script src="src/templates/musee.js"></script>
 <script src="src/templates/partition.js"></script>
 <script src="src/templates/allumettes.js"></script>
 <script src="src/templates/pente.js"></script>

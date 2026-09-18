@@ -505,7 +505,7 @@
 
   /* progress : fraction de la géométrie révélée (animation)
    * textFade : opacité du texte — les deux valent 1 en rendu normal */
-  var state = { photo: null, progress: 1, textFade: 1, library: [], historique: null, musee: [], achromatique: false, photoGris: false };
+  var state = { photo: null, progress: 1, textFade: 1, library: [], historique: null, achromatique: false, photoGris: false };
 
   function setPhoto(img) { state.photo = img; }
   function setMinimal(v) { state.minimal = !!v; }
@@ -525,7 +525,6 @@
   function setHistorique(h) { state.historique = h || null; }
   /* La collection du musée, pour les mêmes raisons : IndexedDB est
    * asynchrone, le rendu ne l'est pas. */
-  function setMusee(p) { state.musee = p || []; }
   function setProgress(p, fade) {
     state.progress = p == null ? 1 : Math.max(0, Math.min(1, p));
     state.textFade = fade == null ? 1 : Math.max(0, Math.min(1, fade));
@@ -586,7 +585,7 @@
         });
       }
       tpl.draw({ ctx: ctx, w: w, h: h, a: activity, o: o, H: H, library: biblio,
-                 historique: state.historique, musee: state.musee,
+                 historique: state.historique,
                  progress: state.progress, fade: state.textFade });
     } catch (e) {
       ctx.fillStyle = '#111'; ctx.fillRect(0, 0, w, h);
@@ -631,7 +630,7 @@
     template: template, all: all, get: get, chrono: chrono,
     estTransparent: estTransparent,
     render: render, exportPNG: exportPNG, setPhoto: setPhoto, setMinimal: setMinimal,
-    setLibrary: setLibrary, setHistorique: setHistorique, setMusee: setMusee,
+    setLibrary: setLibrary, setHistorique: setHistorique,
     setAchromatique: setAchromatique,
     setSupport: setSupport, setVoile: setVoile,
     versGris: versGris, rampeDeGris: rampeDeGris,

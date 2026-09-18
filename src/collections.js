@@ -74,7 +74,6 @@
     'fresque':        { fond: 'fond', encre: 'encre' },
     'exploration':    { fond: 'fond', encre: 'encre', accent: 'accent' },
     'partition':      { fond: 'fond', encre: 'encre', accent: 'accent' },
-    'musee':          { fond: 'fond', encre: 'encre', accent: 'accent' },
     /* Les six planches Alpage. Elles nomment leur papier « papier » et non
      * « fond » : le rôle de collection reste le même, seule la clé change. */
     'encre':          { papier: 'fond', encre: 'encre' },

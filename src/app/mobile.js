@@ -31,9 +31,12 @@
     /* La sortie vit dans le panneau Style : sans elle, sur un téléphone où la
      * colonne est masquée, il n'y aurait AUCUN moyen d'importer un GPX ni de
      * choisir une activité — l'application serait jolie et inutilisable. */
-    style:   ['#section-activite', '#choix-style', '#opt-collection', '#collection-note',
-              '#opt-minimal', '#opts', '#section-garder'],
-    teintes: ['#opt-teintes', '#opt-photo-nb', '#opt-support', '#opt-voile', '#section-fond', '#opts-couleur'],
+    style:   ['#section-activite', '#choix-style', '#opt-minimal', '#opts'],
+    /* La palette a rejoint les teintes : c'est une affaire de couleur, pas de
+     * composition, et elle s'appelait « Collection » au milieu du choix de
+     * style — un mot qui designait deja deux autres choses ailleurs. */
+    teintes: ['#opt-collection', '#collection-note', '#opt-teintes', '#opt-photo-nb',
+              '#opt-support', '#opt-voile', '#opts-couleur'],
     texte:   ['#opts-texte'],
     /* « Garder » rejoint le panneau Style : c'est ce qu'on fait d'une sortie
      * une fois qu'on en a une. Sans cela ces blocs restaient dans la colonne
@@ -43,8 +46,12 @@
      * devenaient donc introuvables sur téléphone. Un contrôle resté dans un
      * conteneur qu'on cache ne disparaît pas de l'écran : il disparaît de
      * l'application. */
-    format:  ['#rangee-format', '#preview-play', '#son', '#export-video',
-              '#export-seq', '#video-state']
+    /* La photo et la video de fond ont rejoint l'export. Elles etaient dans
+     * les teintes, ou elles n'ont rien a faire : on choisit une image de fond
+     * au moment de produire la sortie, pas au moment de regler une couleur.
+     * « Garder » aussi : enregistrer un projet est une sortie. */
+    format:  ['#rangee-format', '#section-fond', '#preview-play', '#son',
+              '#export-video', '#export-seq', '#video-state', '#section-garder']
   };
   var placeOrigine = {};        // sélecteur -> { parent, suivant } avant déplacement
   var feuilleOuverte = null;

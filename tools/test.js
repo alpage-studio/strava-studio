@@ -586,6 +586,50 @@ function testsCoherence() {
 
     ok('langue · l\u2019anglais est la langue par d\u00e9faut', bac.I18N.langue() === 'en');
 
+    /* ---------- LES ENTREES QUE PLUS RIEN N'AFFICHE ----------
+     *
+     * Retirer une fonctionnalite laisse ses libelles au dictionnaire. Ils ne
+     * cassent rien : ils encombrent, et surtout ils font croire que la chose
+     * existe encore a qui lit le dictionnaire pour savoir ce que fait l'app.
+     *
+     * DEUX PIEGES, ET LES DEUX ONT FAIT MENTIR UNE PREMIERE VERSION.
+     *   · Le corpus ne doit PAS contenir i18n.js : chaque cle s'y trouve
+     *     forcement, en tant que cle. Le controle trouvait tout et ne
+     *     signalait jamais rien.
+     *   · Il faut normaliser. « Photo aussi en N&B » s'ecrit « N&amp;B » dans
+     *     le HTML, et une phrase longue y est coupee sur deux lignes : sans
+     *     decodage des entites ni ecrasement des espaces, deux libelles bien
+     *     vivants passaient pour orphelins — et une suppression aveugle les
+     *     aurait emportes. */
+    (function () {
+      function nettoie(t) {
+        return t.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+                .replace(/&#39;/g, String.fromCharCode(39)).replace(/&nbsp;/g, ' ')
+                .replace(/\s+/g, ' ');
+      }
+      let corpus = '';
+      (function lis(d) {
+        fs.readdirSync(d, { withFileTypes: true }).forEach(function (e) {
+          const q = path.join(d, e.name);
+          if (e.isDirectory()) return lis(q);
+          if (!/[.](js|html)$/.test(e.name)) return;
+          if (q === path.join(ROOT, 'src', 'i18n.js')) return;
+          corpus += fs.readFileSync(q, 'utf8');
+        });
+      }(path.join(ROOT, 'src')));
+      corpus += fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      const cat = path.join(ROOT, 'apercus-catalogue.js');
+      if (fs.existsSync(cat)) corpus += fs.readFileSync(cat, 'utf8');
+      corpus = nettoie(corpus);
+      const orphelines = Object.keys(DICO).filter(function (k) {
+        return corpus.indexOf(nettoie(k)) < 0;
+      });
+      ok('langue · aucune entree de dictionnaire orpheline  (' +
+         Object.keys(DICO).length + ' entrees)',
+         orphelines.length === 0,
+         'plus affichees nulle part : ' + orphelines.slice(0, 6).join(' | '));
+    }());
+
     /* ---------- LES VARIANTES SONT-ELLES ATTEIGNABLES ? ----------
      *
      * Le défaut signalé : « je retrouve pas tous les templates, empreinte etc,

@@ -39,7 +39,7 @@
     { id: 'reliefs', nom: 'Reliefs et données',
       ids: ['strates', 'ressenti', 'almanac', 'tissage'] },
     { id: 'souvenirs', nom: 'Souvenirs',
-      ids: ['saisons', 'musee', 'serie', 'fresque'] },
+      ids: ['saisons', 'serie', 'fresque'] },
     { id: 'films', nom: 'Films et son', ids: ['film', 'partition'] },
     /* CE QUI DISTINGUE CETTE FAMILLE N'EST PLUS LA TRANSPARENCE.
      *

@@ -1,4 +1,4 @@
-/* collection.js — le musee personnel, l'historique d'exploration et les projets
+/* collection.js — l'historique d'exploration et les projets
  *
  * Sorti de src/app.js lors du découpage. Le contexte partagé arrive par
  * `App` — voir src/app/noyau.js pour ce qu'il contient et pourquoi.
@@ -16,121 +16,6 @@
   var slug = A.slug;
   var escapeHtml = A.escapeHtml;
 
-  /* ---------- musée personnel ----------
-   * Rien n'entre dans la collection sans un clic, et une suggestion affiche
-   * SA RAISON avant qu'on l'accepte. Le studio ne décide d'aucune première
-   * fois à ta place : il dit ce qu'il a vérifié, et sur quoi. */
-  var piecesMusee = [];
-
-  function majMusee(message) {
-    if (!window.Musee) return Promise.resolve();
-    return Musee.lister().then(function (list) {
-      piecesMusee = list;
-      Studio.setMusee(list);
-      rendMusee();
-      if (message) $('#musee-state').textContent = message;
-      draw();
-    }).catch(function (e) { $('#musee-state').textContent = e.message; });
-  }
-
-  function rendMusee() {
-    var box = $('#musee-liste');
-    box.innerHTML = '';
-    piecesMusee.forEach(function (p, i) {
-      var row = document.createElement('div');
-      row.className = 'piece';
-      row.innerHTML = '<span class="nom">' + escapeHtml(p.titre) + '</span>';
-      /* Classer, c'est ORDONNER, pas noter : deux flèches, pas d'étoiles. */
-      var monter = bouton('↑', 'Monter', function () { echange(i, i - 1); });
-      var descendre = bouton('↓', 'Descendre', function () { echange(i, i + 1); });
-      var effacer = bouton('×', 'Retirer de la collection', function () {
-        if (!window.confirm('Retirer « ' + p.titre + ' » de la collection ?')) return;
-        Musee.supprimer(p.id).then(function () { return majMusee(T('Pièce retirée.')); });
-      });
-      if (i === 0) monter.disabled = true;
-      if (i === piecesMusee.length - 1) descendre.disabled = true;
-      row.appendChild(monter); row.appendChild(descendre); row.appendChild(effacer);
-      box.appendChild(row);
-    });
-    rendSuggestions();
-  }
-
-  function echange(i, j) {
-    if (j < 0 || j >= piecesMusee.length) return;
-    var a = piecesMusee[i], b = piecesMusee[j];
-    Promise.all([Musee.modifier(a.id, { rang: b.rang }), Musee.modifier(b.id, { rang: a.rang })])
-      .then(function () { return majMusee(); });
-  }
-
-  function rendSuggestions() {
-    var box = $('#musee-suggestions');
-    box.innerHTML = '';
-    if (!Library.count()) return;
-    var sugg = Musee.suggestions(Library.list(), E.empreinteCourante,
-                                 piecesMusee.map(function (p) { return p.id; }));
-    sugg.slice(0, 4).forEach(function (sg) {
-      var el = document.createElement('div');
-      el.className = 'sugg';
-      el.innerHTML = '<strong>' + escapeHtml(sg.titre) + '</strong>' +
-                     '<div class="pourquoi">' + escapeHtml(sg.pourquoi) + '</div>';
-      var b = document.createElement('button');
-      b.type = 'button'; b.className = 'ghost'; b.textContent = 'Ajouter à la collection';
-      b.addEventListener('click', function () {
-        Musee.creer(sg.activity, { titre: sg.titre, recit: '', couleur: couleurDe(sg.activity) })
-          .then(function () { return majMusee(T('Pièce ajoutée — le cartel reste à écrire.')); })
-          .catch(function (e) { $('#musee-state').textContent = e.message; });
-      });
-      el.appendChild(b);
-      box.appendChild(el);
-    });
-  }
-
-  function couleurDe(act) {
-    var e = Library.list().filter(function (x) { return x.activity === act; })[0];
-    return e ? e.couleur : '#E5502D';
-  }
-
-  $('#musee-creer').addEventListener('click', function () {
-    if (!E.chargee) { $('#musee-state').textContent = 'Charge une sortie d’abord.'; return; }
-    var cur = Library.current() || effective();
-    Musee.creer(cur, {
-      titre: $('#musee-titre').value,
-      recit: $('#musee-recit').value,
-      couleur: couleurDe(cur)
-    }, E.photoFile).then(function () {
-      $('#musee-titre').value = ''; $('#musee-recit').value = '';
-      return majMusee(T('Pièce créée.'));
-    }).catch(function (e) { $('#musee-state').textContent = e.message; });
-  });
-
-  $('#musee-save').addEventListener('click', function () {
-    if (!piecesMusee.length) { $('#musee-state').textContent = 'Collection vide.'; return; }
-    var blob = new Blob([JSON.stringify(Musee.sauvegarde(piecesMusee))], { type: 'application/json' });
-    if (window.Share) Share.file(blob, 'musee.json');
-    else {
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url; a.download = 'musee.json';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
-    }
-    $('#musee-state').textContent = piecesMusee.length + ' pièces sauvegardées — sans les photos.';
-  });
-
-  $('#musee-open').addEventListener('change', function (e) {
-    var file = e.target.files[0];
-    if (!file) return;
-    nomFichier('#musee-open', 'Restaurer', file.name);
-    var r = new FileReader();
-    r.onload = function () {
-      Musee.restaurer(r.result)
-        .then(function (n) { return majMusee(n + ' pièces restaurées.'); })
-        .catch(function (err) { $('#musee-state').textContent = err.message; });
-      e.target.value = '';
-    };
-    r.readAsText(file);
-  });
-
   /* ---------- historique d'exploration ----------
    * Stockage LOCAL et explicite : rien n'y entre sans un clic, et « effacer »
    * efface pour de bon. L'empreinte est recalculée puis poussée au moteur —
@@ -141,9 +26,6 @@
       var emp = Historique.empreinte(list);
       E.empreinteCourante = emp.sorties ? emp : null;
       Studio.setHistorique(E.empreinteCourante);
-      // les suggestions du musée dépendent de l'historique : elles se
-      // recalculent ici plutôt que de rester sur l'état d'avant
-      if (window.Musee) rendSuggestions();
       $('#hist-state').textContent = message || (emp.sorties
         ? emp.sorties + ' ' + T('sorties de référence') + ' · ' + Math.round(emp.km) + ' km · ' +
           emp.cases.toLocaleString('fr-CH') + ' cases'
@@ -272,7 +154,5 @@
     reader.readAsText(file);
   });
 
-  A.majMusee = majMusee;
-  A.rendSuggestions = rendSuggestions;
   A.majHistorique = majHistorique;
 }(window.App));

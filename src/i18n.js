@@ -59,6 +59,10 @@
     'Collection': 'Collection',
     'Minimaliste — tracé seul': 'Minimal — route only',
     'Teintes': 'Tones',
+    'Rendu': 'Rendering',
+    'Export': 'Export',
+    'Garder': 'Keep',
+    'Photo ou vidéo': 'Photo or video',
     'Couleur': 'Colour',
     'Noir & blanc': 'Black & white',
     'Photo aussi en N&B': 'Photo in B&W too',
@@ -104,12 +108,6 @@
     'Quatre formes de parcours — revue': 'Four route shapes — review set',
     'Une semaine partagée — Atlas': 'A shared week — Atlas',
     'Deux régions éloignées — Archipel': 'Two distant regions — Archipelago',
-    'Créer une pièce de musée': 'Create a museum piece',
-    'Titre de la pièce': 'Title of the piece',
-    'Cartel — quelques lignes, de ta main': 'Wall label — a few lines, in your own words',
-    'Sauvegarder la collection': 'Save the collection',
-    'Restaurer': 'Restore',
-    'Ajouter ces sorties à l’historique': 'Add these rides to the history',
     'Effacer l’historique': 'Clear the history',
     'Enregistrer le projet': 'Save the project',
     'Rouvrir un projet': 'Reopen a project',
@@ -371,12 +369,6 @@
     'Kilomètres nouveaux': 'New kilometres',
 
     /* ---------- Musée ---------- */
-    'Musée personnel — la collection': 'Personal museum — the collection',
-    'Galerie — le mur': 'Gallery — the wall',
-    'Cartel — une seule pièce': 'Wall label — a single piece',
-    'Pièce n°': 'Piece no.',
-    'Titre de l’exposition': 'Title of the exhibition',
-    'Cartels sous les pièces': 'Wall labels under the pieces',
 
     /* ---------- Partition ---------- */
     'Partition — la sortie en musique': 'Score — the ride as music',
@@ -439,14 +431,8 @@
     'intervals.icu — connecté depuis ce navigateur': 'intervals.icu — connected from this browser',
     'Strava — connecté': 'Strava — connected',
     'Historique effacé.': 'History cleared.',
-    'Pièce créée.': 'Piece created.',
-    'Pièce retirée.': 'Piece removed.',
-    'Pièce ajoutée — le cartel reste à écrire.': 'Piece added — the wall label is still to write.',
-    'Lecture impossible.': 'Playback failed.',
     'intervals.icu — clé refusée.': 'intervals.icu — key refused.',
     'Lecture…': 'Playing…',
-    'Pièce': 'Piece',
-    'sorties de référence': 'reference rides',
     'cases': 'cells',
 
     /* ---------- la période ---------- */

@@ -416,7 +416,7 @@ src/app/theme.js               papier ou sombre
 src/app/mobile.js              la barre du téléphone et ses panneaux
 src/app/catalogue.js           le choix du style : famille puis variante
 src/app/storyboard.js          la liste de scènes qu'on ordonne
-src/app/collection.js          musée, historique d'exploration, projets
+src/app/collection.js          historique d'exploration, projets
 src/app/exports.js             vidéo de fond, export vidéo, aperçu, séquence PNG
 src/app/sources.js             intervals.icu, Strava, formulaire de clé
 src/app/demarrage.js           EN DERNIER : il lance ce que les autres ont déposé

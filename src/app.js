@@ -195,7 +195,6 @@
     if (!Library.count()) { E.chargee = false; E.base = Activity.empty(); }
     syncBibliotheque();
     // les suggestions du musée portent sur ce qui est chargé : elles suivent
-    if (window.Musee) A.rendSuggestions();
     summary(); syncManualFields(); buildOptions(); draw();
   }
 
@@ -979,7 +978,6 @@
     // l'empreinte d'exploration est chargée en tâche de fond ; sans elle, la
     // planche « Territoires blancs » dirait qu'il n'y a pas d'historique
     A.majHistorique();
-    A.majMusee();
     majPanneauSon();
   });
 
