@@ -62,7 +62,26 @@ Sur tout contrôle ajouté ou modifié :
   ignore, une règle jamais atteinte) donne l'illusion d'une protection : elle
   compte comme un défaut, pas comme une précaution.
 
-### 4. Le layout
+### 4. Le même parcours dans DEUX moteurs
+
+```bash
+node tools/acceptation-tete-nue.js --moteur tous
+```
+
+Chromium et WebKit — celui de Safari, donc de tout navigateur sur iPhone. Ce
+n'est pas une précaution de principe : la première exécution dans WebKit a
+trouvé en trois minutes ce que cinquante-trois cas n'avaient pas vu en
+plusieurs semaines de Chromium. Elle ne l'a pas trouvé en étant plus stricte,
+mais en étant plus **lente** — un délai fixe y a cédé, un cas a échoué, et en
+le rendant honnête il a nommé une planche sans voile.
+
+Ce que WebKit **ne** dit **pas** : rien sur l'export vidéo réel. La compilation
+de Playwright n'embarque ni `canvas.captureStream` ni `MediaRecorder` — ce sont
+ses modules media qui manquent, pas ceux de Safari. Rapporter un échec là-dessus
+comme un défaut du produit serait exactement le contrôle qui ne contrôle pas ce
+qu'il prétend.
+
+### 5. Le layout
 
 Si le changement touche `index.html`, le CSS ou la disposition : éprouve la page
 à **320, 390, 768, 1280 et 1440 px**, dans les deux thèmes. Le pane ne peint pas
@@ -74,7 +93,7 @@ la barre du bas (`height: 100%` prend le padding du parent avec
 un `calc(100dvh − …)` oublie toujours un bandeau), et un `display` qui écrase
 l'attribut `hidden`.
 
-### 5. La cohérence du récit
+### 6. La cohérence du récit
 
 Un commentaire qui affirme ce que le code ne fait pas est un défaut, pas un
 détail : c'est lui qu'on croira à la prochaine lecture. On en a trouvé un qui

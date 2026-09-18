@@ -104,6 +104,47 @@
   var voileGlobal = 'aucun';
   function setVoile(v) { voileGlobal = v || 'aucun'; }
 
+  /* ET POUR LES DIX-SEPT PLANCHES QUI N'EN ONT PAS.
+   *
+   * `transmetVoile` ne sert que celles qui declarent un voile — quinze sur
+   * trente-deux. J'avais verifie six planches, vu que toutes portaient la cle,
+   * et conclu que toutes la portaient : les dix-sept autres restaient
+   * transparentes sans protection, et le journal annoncait le contraire.
+   * C'est l'erreur qu'on reproche a un controle qui echantillonne et affirme.
+   *
+   * Pour celles-la, le moteur peint. Ce n'est pas un pis-aller : un voile est
+   * une couche entre la photo et l'encre, et poser une couche est exactement
+   * son travail. Les planches qui savent mieux faire gardent le leur. */
+  function poseVoile(ctx, w, h, mode) {
+    var g;
+    if (mode === 'bas' || mode === 'haut') {
+      g = mode === 'bas' ? ctx.createLinearGradient(0, h, 0, 0)
+                         : ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, 'rgba(18,20,16,.58)');
+      g.addColorStop(0.30, 'rgba(18,20,16,.20)');
+      g.addColorStop(0.52, 'rgba(18,20,16,0)');
+      ctx.save();
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+      ctx.restore();
+      return;
+    }
+    /* Au centre : un cercle ecrase au format du cadre. Canvas ne connait que
+     * le cercle, on ecrase le repere — et on deborde largement, parce
+     * qu'apres l'ecrasement le cadre ne tient plus dans le rayon. */
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    var k = h / w;
+    ctx.scale(1, k);
+    g = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 0.78);
+    g.addColorStop(0, 'rgba(18,20,16,.52)');
+    g.addColorStop(0.62, 'rgba(18,20,16,.24)');
+    g.addColorStop(1, 'rgba(18,20,16,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(-w * 2, -h * 2 / k, w * 4, h * 4 / k);
+    ctx.restore();
+  }
+
   function transmetVoile(tpl, o, mode) {
     var def = tpl.options.filter(function (d) { return d.key === 'voile'; })[0];
     if (!def) return;
@@ -563,6 +604,13 @@
         if (aTransparent) o.fond = 'transparent';
       });
       transmetVoile(tpl, o, voileGlobal);
+    }
+
+    /* Le voile du moteur, pour les planches qui n'en declarent pas : AVANT le
+     * template, puisqu'il se pose entre la photo et l'encre. */
+    if (supportSurcouche && voileGlobal && voileGlobal !== 'aucun' &&
+        !tpl.options.some(function (d) { return d.key === 'voile'; })) {
+      poseVoile(ctx, w, h, voileGlobal);
     }
 
     var H = helpers(ctx, w, h, state);

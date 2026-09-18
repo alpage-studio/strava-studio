@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.5.1';
+var STUDIO_VERSION = '3.6';
 var STUDIO_DATE = '18.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,9 @@ var STUDIO_DATE = '18.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.6', d: '18.09.2026', points: [
+    'Le voile protège enfin les TRENTE-DEUX planches. Il n’en atteignait que quinze : les dix-sept autres se posaient sur une photo sans rien pour rendre leur texte lisible, et la note de la 3.3 annonçait le contraire.'
+  ] },
   { v: '3.5.1', d: '18.09.2026', points: [
     'La galerie est en anglais, comme le studio — et avec le MÊME dictionnaire : les compositions y portent mot pour mot le nom que le menu leur donne.'
   ] },

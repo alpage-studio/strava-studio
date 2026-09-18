@@ -117,6 +117,18 @@ a été retiré, mais le moteur i18n reste : c'est lui qui PRODUIT l'anglais, le
 libellés étant écrits en français dans le code. Le retirer voudrait dire
 réécrire six cents libellés dans trente-deux planches.
 
+**Deux moteurs, pas un.** `node tools/acceptation-tete-nue.js --moteur tous`
+lance le parcours dans Chromium **et** dans WebKit — celui de Safari, donc de
+tout navigateur sur iPhone. La première exécution dans WebKit a trouvé en trois
+minutes ce que 53 cas n'avaient pas vu en semaines de Chromium : le voile dit
+« global » n'atteignait que 15 planches sur 32. Il ne l'a pas trouvé en étant
+plus strict, mais plus **lent** — un délai fixe y a cédé. Ce que WebKit ne dit
+pas : rien sur l'export vidéo, sa compilation n'embarquant pas les modules media.
+
+**Un contrôle qui échantillonne ne peut pas conclure pour l'ensemble.** J'ai
+vérifié le voile sur six planches et annoncé les trente-deux. Le contrôle les
+parcourt maintenant toutes.
+
 **Les deux thèmes se mesurent, ils ne s'apprécient pas.** Texte ≥ 4,5 de
 rapport sur son fond, surfaces ≥ 1,08 entre elles, et l'accent garde sa teinte
 d'un thème à l'autre — une variante nocturne s'éclaircit, elle ne change pas de
@@ -170,7 +182,7 @@ interdit `eval` et `new Function` dans la page.
 
 ```bash
 node tools/test.js            # 167 cas, sort en 1 si un seul échoue
-node tools/acceptation-tete-nue.js   # le parcours réel, navigateur headless
+node tools/acceptation-tete-nue.js --moteur tous   # Chromium ET WebKit
 python tools/icones.py        # redessine les icônes depuis la marque
 ```
 

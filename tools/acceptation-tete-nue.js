@@ -1,6 +1,8 @@
 /* acceptation-tete-nue.js — le parcours réel, sans personne devant l'écran.
  *
  *   node tools/acceptation-tete-nue.js                 # le dépôt, en local
+ *   node tools/acceptation-tete-nue.js --moteur webkit # le moteur de Safari
+ *   node tools/acceptation-tete-nue.js --moteur tous   # les deux
  *   node tools/acceptation-tete-nue.js --url https://alpage-studio.github.io/strava-studio/
  *
  * CE QUE ÇA AJOUTE À tools/acceptation.js
@@ -9,6 +11,21 @@
  *   à DEUX largeurs — 1280 px puis 390 px. Les cas « téléphone » de
  *   l'acceptation sont derrière une condition `max-width: 900px` : à la main on
  *   ne les voyait qu'en redimensionnant, c'est-à-dire rarement.
+ *
+ * DEUX MOTEURS, ET CE N'EST PAS UNE PRÉCAUTION DE PRINCIPE
+ *   Cinquante-trois cas ont tourné pendant des semaines dans Chromium et
+ *   nulle part ailleurs. La première exécution dans WebKit — le moteur de
+ *   Safari, donc de tout navigateur sur iPhone — a trouvé en trois minutes ce
+ *   qu'aucune n'avait vu : le voile dit « global » n'atteignait que quinze
+ *   planches sur trente-deux. Il ne l'a pas trouvé en étant plus strict, mais
+ *   en étant plus LENT : un délai fixe qui tenait dans Chromium ne tenait plus,
+ *   le cas a échoué, et en le rendant honnête il a nommé une planche nue.
+ *
+ *   CE QUE WEBKIT NE PROUVE PAS : que l'export vidéo marche sur un iPhone. La
+ *   compilation de Playwright n'embarque ni `canvas.captureStream` ni
+ *   `MediaRecorder` — ce sont ses modules media qui manquent, pas ceux de
+ *   Safari. Un échec ici n'est pas un verdict sur iOS, et le présenter
+ *   autrement serait exactement le contrôle qui ne contrôle pas ce qu'il dit.
  *
  * POURQUOI PLAYWRIGHT ALORS QUE LE PROJET N'A AUCUNE DÉPENDANCE
  *   « Zéro dépendance » est une règle du PRODUIT : ce que télécharge un
@@ -43,6 +60,8 @@ const PORT = 8791;
 const iUrl = process.argv.indexOf('--url');
 const URL_EXTERNE = iUrl > 0 ? process.argv[iUrl + 1] : null;
 const BAVARD = process.argv.indexOf('--bavard') > 0;
+const iMoteur = process.argv.indexOf('--moteur');
+const MOTEUR = iMoteur > 0 ? process.argv[iMoteur + 1] : 'chromium';
 
 const ECRANS = [
   { nom: 'bureau',    largeur: 1280, hauteur: 900 },
@@ -147,7 +166,12 @@ async function passe(navigateur, base, ecran, interception) {
    * produit alors qu'il est dans le lanceur. */
   let pourquoi = null;
   const arrive = await page.waitForFunction(function () { return !!window.__acceptation; },
-                                            null, { timeout: 120000, polling: 250 })
+                                            /* WEBKIT EST PLUS LENT, ET UN DEPASSEMENT
+                                             * N'EST PAS UN DEFAUT DU PRODUIT : le
+                                             * budget est large pour que l'echec, quand
+                                             * il arrive, parle du studio et non de la
+                                             * machine. */
+                                            null, { timeout: 300000, polling: 250 })
     .then(function () { return true; })
     .catch(function (e) { pourquoi = String(e.message || e).split('\n')[0]; return false; });
 
@@ -159,7 +183,15 @@ async function passe(navigateur, base, ecran, interception) {
 }
 
 (async function () {
-  const { chromium } = playwright();
+  const pw = playwright();
+  const moteurs = MOTEUR === 'tous' ? ['chromium', 'webkit']
+                : MOTEUR === 'webkit' ? ['webkit'] : ['chromium'];
+  moteurs.forEach(function (m) {
+    if (!pw[m]) {
+      console.log('moteur inconnu : ' + m + '  (chromium, webkit, ou tous)');
+      process.exit(1);
+    }
+  });
   let serveur = null;
   let base = URL_EXTERNE;
 
@@ -175,12 +207,17 @@ async function passe(navigateur, base, ecran, interception) {
     }
   }
 
-  console.log('Acceptation tête nue — ' + base + '\n');
+  console.log('Acceptation tête nue — ' + base +
+              '  ·  ' + moteurs.join(' + ') + '\n');
 
-  const navigateur = await chromium.launch();
   let echecs = 0, cas = 0, sautes = 0;
+  let navigateur = null;
 
   try {
+    for (const nomMoteur of moteurs) {
+    if (navigateur) await navigateur.close();
+    navigateur = await pw[nomMoteur].launch();
+    if (moteurs.length > 1) console.log('=== ' + nomMoteur.toUpperCase() + ' ===');
     for (const ecran of ECRANS) {
       const r = await passe(navigateur, base, ecran, !URL_EXTERNE);
       console.log(ecran.nom + '  ' + ecran.largeur + ' × ' + ecran.hauteur);
@@ -205,8 +242,9 @@ async function passe(navigateur, base, ecran, interception) {
       console.log('  ' + r.resultats.filter(function (x) { return x.verdict === 'ok'; }).length +
                   ' cas passés\n');
     }
+    }
   } finally {
-    await navigateur.close();
+    if (navigateur) await navigateur.close();
     if (serveur) serveur.kill();
   }
 

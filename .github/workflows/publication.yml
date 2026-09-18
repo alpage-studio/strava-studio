@@ -69,7 +69,7 @@ jobs:
           node tools/garde-version.js "$BASE" "${{ github.sha }}"
 
   acceptation:
-    name: Acceptation (Chromium sans fenêtre)
+    name: Acceptation (Chromium et WebKit, sans fenêtre)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -81,18 +81,23 @@ jobs:
       # Playwright s'installe HORS du dépôt, dans le répertoire temporaire du
       # runner : « zéro dépendance » est une règle du produit — ce que
       # télécharge un visiteur — et rien ici n'atterrit dans un fichier servi.
-      - name: Chromium
+      # DEUX MOTEURS. Chromium ET WebKit — celui de Safari, donc de tout
+      # navigateur sur iPhone. Ce n'est pas une precaution de principe : la
+      # premiere execution dans WebKit a trouve en trois minutes ce que
+      # cinquante-trois cas n'avaient pas vu en plusieurs semaines de Chromium,
+      # parce qu'il est plus LENT et qu'un delai fixe y a cede.
+      - name: Chromium et WebKit
         run: |
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
           npm install --no-audit --no-fund playwright@1.63.0 > /dev/null
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
 
-      - name: Le parcours réel, à 1280 px puis à 390 px
+      - name: Le parcours réel, deux moteurs, 1280 px puis 390 px
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
-        run: node tools/acceptation-tete-nue.js
+        run: node tools/acceptation-tete-nue.js --moteur tous
 
   publication:
     name: Publication sur Pages
@@ -157,15 +162,16 @@ jobs:
           fi
           echo "en ligne : $SERVI"
 
-      - name: Chromium
+      - name: Chromium et WebKit
         run: |
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
           npm install --no-audit --no-fund playwright@1.63.0 > /dev/null
-          npx playwright install --with-deps chromium
+          npx playwright install --with-deps chromium webkit
 
-      - name: Le parcours réel, sur le site publié
+      - name: Le parcours réel, sur le site publié, dans les deux moteurs
         env:
           NODE_PATH: ${{ runner.temp }}/pw/node_modules
-        run: node tools/acceptation-tete-nue.js --url https://alpage-studio.github.io/strava-studio/
+        run: |
+          node tools/acceptation-tete-nue.js --moteur tous --url https://alpage-studio.github.io/strava-studio/

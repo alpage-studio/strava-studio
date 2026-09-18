@@ -257,17 +257,59 @@
     for (var k = 3; k < dd.length; k += 4 * 61) { t++; if (dd[k] > 12) n++; }
     return n / t;
   }
-  $('#voile').value = 'aucun';
-  $('#voile').dispatchEvent(new Event('change'));
-  await attends(700);
-  var nu = couverture();
-  $('#voile').value = 'bas';
-  $('#voile').dispatchEvent(new Event('change'));
-  await attends(700);
-  var voile = couverture();
-  ok('voile · il couvre réellement le cadre  (' + Math.round(nu * 100) + ' % → ' +
-     Math.round(voile * 100) + ' %)', voile > nu + 0.2,
-     'le réglage ne change rien au rendu');
+  /* LE VOILE, SUR LES TRENTE-DEUX PLANCHES — PAS SUR UN ECHANTILLON.
+   *
+   * Ce cas mesurait la planche qui se trouvait la, au hasard du parcours. Il a
+   * d'abord semble un defaut de WebKit, puis un cas fragile ; une fois qu'il a
+   * nomme son sujet, il a trouve autre chose : « sommet-barres, 6 % → 6 % ».
+   * Le voile dit global n'atteignait en fait que les quinze planches qui
+   * declaraient la cle. J'avais verifie six d'entre elles et conclu pour les
+   * trente-deux — l'erreur exacte qu'on reproche a un controle qui echantillonne
+   * et affirme. Celui-ci les parcourt toutes.
+   *
+   * Deux facons d'etre protege, et les deux comptent : le voile CHANGE la
+   * planche, ou la planche couvre DEJA le cadre (la famille « sur photo »
+   * apporte le sien, Editorial reste une carte). */
+  function couvertureCanvas() {
+    var cvv = $('#canvas');
+    var dd = cvv.getContext('2d').getImageData(0, 0, cvv.width, cvv.height).data;
+    var n = 0, t = 0;
+    for (var k = 3; k < dd.length; k += 4 * 61) { t++; if (dd[k] > 12) n++; }
+    return n / t;
+  }
+  async function couvertureDe(tpl, v) {
+    var avant = $('#canvas').toDataURL();
+    $('#tpl').value = tpl;
+    $('#tpl').dispatchEvent(new Event('change'));
+    $('#voile').value = v;
+    $('#voile').dispatchEvent(new Event('change'));
+    await jusqua(function () { return $('#canvas').toDataURL() !== avant; }, 8000);
+    return couvertureCanvas();
+  }
+
+  /* LE BALAYAGE NE SE FAIT QU'UNE FOIS PAR MOTEUR, sur la passe large.
+   * Trente-deux planches en deux rendus chacune, c'est le cas le plus cher du
+   * fichier ; le refaire en 390 px ne dirait rien de plus — le voile n'est pas
+   * une affaire de mise en page. */
+  var nus = [];
+  var tousIds = petit ? [] : Studio.all().map(function (x) { return x.id; });
+  for (var ti = 0; ti < tousIds.length; ti++) {
+    var sansV = await couvertureDe(tousIds[ti], 'aucun');
+    var avecV = await couvertureDe(tousIds[ti], 'bas');
+    /* protegee si le voile agit, OU si la planche couvre deja le cadre */
+    if (!(avecV > sansV + 0.2 || sansV >= 0.30)) {
+      nus.push(tousIds[ti] + ' ' + Math.round(sansV * 100) + '→' + Math.round(avecV * 100) + ' %');
+    }
+  }
+  if (!tousIds.length) {
+    resultats.push({ cas: 'voile · balayage des planches', verdict: 'sauté',
+                     detail: 'fait sur la passe large' });
+  } else {
+    ok('voile · les ' + tousIds.length + ' planches sont protegeables sur une photo',
+       nus.length === 0,
+       'sans protection : ' + nus.join(' | '));
+  }
+
   $('#voile').value = 'aucun';
   $('#voile').dispatchEvent(new Event('change'));
   $('#support').value = 'papier';
