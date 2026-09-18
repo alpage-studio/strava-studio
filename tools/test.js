@@ -35,6 +35,23 @@ function saute(nom, pourquoi) { ignores++; console.log('  passé ' + nom + ' —
 function arrondi(v) { return Math.round(v * 100) / 100; }
 function titre(t) { console.log('\n' + t); }
 
+/* L'INTERFACE EST DÉSORMAIS EN PLUSIEURS FICHIERS.
+ *
+ * src/app.js portait huit sujets ; il en garde trois et le reste vit dans
+ * src/app/. Les contrôles qui lisaient « src/app.js » lisaient donc, du jour
+ * au lendemain, un tiers du sujet — et repassaient au vert pour la pire des
+ * raisons : ils ne regardaient plus l'endroit où la chose se trouve. Ceux-là
+ * prennent maintenant TOUTE l'interface. */
+function sourceInterface() {
+  const dir = path.join(ROOT, 'src', 'app');
+  let out = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
+  if (fs.existsSync(dir)) {
+    fs.readdirSync(dir).filter(function (f) { return /[.]js$/.test(f); })
+      .forEach(function (f) { out += '\n' + fs.readFileSync(path.join(dir, f), 'utf8'); });
+  }
+  return out;
+}
+
 /* ================= 1. CALCULS ================= */
 
 function chargeActivity() {
@@ -231,7 +248,7 @@ function testsCoherence() {
    * doivent parcourir la même chronologie ; la séquence recopiait autrefois
    * la courbe de la vidéo à la main, avec le commentaire « même courbe que
    * la vidéo » — la définition d'une divergence qui attend son heure. */
-  const app = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
+  const app = sourceInterface();
   const consommateurs = (app.match(/Studio\.chrono\(/g) || []).length;
   ok('une seule horloge · les trois consommateurs passent par Studio.chrono  (' +
      consommateurs + ')', consommateurs >= 3);
@@ -420,7 +437,7 @@ function testsCoherence() {
    * qu'on ne peut pas charger sans un DOM complet, et fabriquer ce DOM
    * coûterait plus cher que la règle qu'on vérifie. */
   (function () {
-    const app = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
+    const app = sourceInterface();
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 
     const mz = app.match(/var ZONES = \{[\s\S]*?\n  \};/);
@@ -614,7 +631,7 @@ function testsCoherence() {
                 : (t.options || []).filter(function (d) { return d.key === k; })
                     .map(function (d) { return d.default; })[0];
         return String(v);
-      }).join(' ');
+      }).join('\u0000');
     }
 
     /* 1. Déclarer `variantes` ne doit RIEN retirer : la liste explicite doit
@@ -1086,6 +1103,48 @@ function testsCoherence() {
      suspects.length === 0, suspects.join(', '));
 }
 
+/* ================= 2 quinquies. L'ORDRE DES MORCEAUX =================
+ *
+ * src/app.js portait huit sujets dans deux mille lignes ; il en garde trois et
+ * le reste vit dans src/app/. Le decoupage tient a un ordre de chargement, et
+ * un ordre de chargement est exactement le genre de chose qu'on casse sans
+ * s'en rendre compte — en rangeant les balises par ordre alphabetique, par
+ * exemple. Ces cas-la le figent.
+ */
+
+function testsMorceaux() {
+  titre("2 quinquies. L'ORDRE DES MORCEAUX");
+
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const ordre = (html.match(/src="(src\/app(?:\.js|\/[\w-]+\.js))"/g) || [])
+    .map(function (m) { return m.slice(5, -1); });
+
+  ok('morceaux · le noyau est charge en premier  (' + ordre.length + ' fichiers)',
+     ordre[0] === 'src/app/noyau.js', ordre.slice(0, 3).join(' '));
+  ok('morceaux · le coeur vient juste apres le noyau',
+     ordre[1] === 'src/app.js', ordre[1]);
+  ok('morceaux · demarrage.js est le DERNIER',
+     ordre[ordre.length - 1] === 'src/app/demarrage.js',
+     'dernier charge : ' + ordre[ordre.length - 1]);
+
+  /* Un module oublie dans index.html ne leve rien au chargement : il est
+   * simplement absent, et la moitie d'une interface manque en silence. */
+  const surDisque = fs.readdirSync(path.join(ROOT, 'src', 'app'))
+    .filter(function (f) { return /[.]js$/.test(f); })
+    .map(function (f) { return 'src/app/' + f; });
+  const oublies = surDisque.filter(function (f) { return ordre.indexOf(f) < 0; });
+  ok('morceaux · tous les fichiers de src/app/ sont charges  (' +
+     surDisque.length + ')', oublies.length === 0, oublies.join(', '));
+
+  /* Le demarrage ne doit exister qu'a UN endroit. Deux appels a A.demarre()
+   * rejoueraient toute la mise en route — ecouteurs poses deux fois compris. */
+  const appels = surDisque.concat(['src/app.js']).reduce(function (n, f) {
+    const t = fs.readFileSync(path.join(ROOT, f), 'utf8');
+    return n + (t.match(/A\.demarre\(\)/g) || []).length;
+  }, 0);
+  ok('morceaux · un seul appel a demarre()  (' + appels + ')', appels === 1);
+}
+
 /* ================= 2 quater. MENUS REMPLIS =================
  *
  * Le défaut réel : `<select id="collection">` était vide dans index.html et
@@ -1101,10 +1160,21 @@ function testsMenus() {
   titre('2 quater. MENUS REMPLIS');
 
   const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-  const js = fs.readdirSync(path.join(ROOT, 'src'))
-    .filter(function (f) { return /\.js$/.test(f); })
-    .map(function (f) { return fs.readFileSync(path.join(ROOT, 'src', f), 'utf8'); })
-    .join('\n');
+  /* TOUT src/, SOUS-DOSSIERS COMPRIS.
+   *
+   * Ce controle ne lisait que le premier niveau. Le jour ou app.js a ete
+   * decoupe et ou le remplissage d'un menu est parti dans src/app/, il a
+   * declare vide un menu parfaitement rempli — un controle devenu rouge non
+   * parce que le produit avait change, mais parce que son PERIMETRE ne
+   * suivait plus le code. C'est la forme la plus courante du controle qui ne
+   * controle plus : il regarde encore la ou la chose n'est plus. */
+  const js = (function collecte(dir) {
+    return fs.readdirSync(dir, { withFileTypes: true }).reduce(function (acc, e) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) return acc.concat(collecte(p));
+      return /[.]js$/.test(e.name) ? acc.concat(fs.readFileSync(p, 'utf8')) : acc;
+    }, []);
+  }(path.join(ROOT, 'src'))).join('\n');
 
   const re = /<select([^>]*)>([\s\S]*?)<\/select>/g;
   let m;
@@ -1396,6 +1466,7 @@ async function testsServeur() {
   console.log('Harnais de régression — ' + new Date().toISOString().slice(0, 16).replace('T', ' '));
   testsCalculs(chargeActivity());
   testsCoherence();
+  testsMorceaux();
   testsMenus();
   testsChaine();
   testsBibliotheque(chargeLibrary());

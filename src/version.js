@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.3';
+var STUDIO_VERSION = '3.3.1';
 var STUDIO_DATE = '16.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,9 @@ var STUDIO_DATE = '16.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.3.1', d: '18.09.2026', points: [
+    'Rien de visible : le cœur de l’interface, qui portait huit sujets dans un seul fichier de deux mille lignes, est désormais en neuf morceaux qui se nomment. Les réglages, eux, n’ont pas bougé.'
+  ] },
   { v: '3.3', d: '17.09.2026', points: [
     'Les collections sont enfin accessibles : le menu existait, il n’avait jamais reçu une seule entrée. Huit palettes nommées, Ascension à Braise.',
     'Les variantes cachées sortent au jour : « Fragment », « Gravity », « Massif · accent » demandaient plusieurs réglages à la fois et n’avaient donc aucune carte. Ce que la galerie montre est désormais atteignable en un clic.',

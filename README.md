@@ -410,6 +410,16 @@ Sur un Mac ou un iPhone le même code afficherait Helvetica Neue.
 ```
 index.html                     interface + liste des templates chargés
 assets/                        la police variable, servie en local
+src/app/noyau.js               le contexte partagé : état, la file de démarrage
+src/app.js                     le cœur de l'interface : rendu, options, période
+src/app/theme.js               papier ou sombre
+src/app/mobile.js              la barre du téléphone et ses panneaux
+src/app/catalogue.js           le choix du style : famille puis variante
+src/app/storyboard.js          la liste de scènes qu'on ordonne
+src/app/collection.js          musée, historique d'exploration, projets
+src/app/exports.js             vidéo de fond, export vidéo, aperçu, séquence PNG
+src/app/sources.js             intervals.icu, Strava, formulaire de clé
+src/app/demarrage.js           EN DERNIER : il lance ce que les autres ont déposé
 src/activity.js                GPX  ->  objet activité (aucun graphisme)
 src/studio.js                  registre, helpers de dessin, rendu, export PNG
 src/design.js                  échelle typographique, grille, carte, histogramme

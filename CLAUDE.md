@@ -36,6 +36,38 @@ Trois rôles, et ils ne se mélangent pas :
 `src/templates/_squelette.js.txt` est le gabarit d'un nouveau template. Le lire
 avant d'en écrire un.
 
+## L'interface est en morceaux, et l'ordre compte
+
+`src/app.js` portait huit sujets en deux mille lignes. Il en garde trois — le
+rendu, les options, la période — et le reste vit dans `src/app/` :
+
+```
+noyau.js       le contexte partagé : état, $, SIZES, la file de démarrage
+app.js         le cœur : rendu, options, période, événements
+theme.js  mobile.js  catalogue.js  storyboard.js
+collection.js  exports.js  sources.js
+demarrage.js   EN DERNIER — il vide la file
+```
+
+**Les frontières ont été mesurées, pas devinées** : pour chaque section, combien
+de noms elle empruntait au reste. Quatorze revenaient partout — ils sont le
+contexte, dans `noyau.js`. Le reste était local, et le découpage a suivi.
+
+**Un module ne s'exécute pas au chargement** : il dépose sa mise en route dans
+`A.auDemarrage()`, et `demarrage.js` la vide quand tout le monde est là. Sans
+cela, l'ordre des balises `<script>` deviendrait une dépendance invisible. Des
+contrôles figent cet ordre.
+
+**Une valeur qui change se partage par `A.etat`, jamais par copie.** Un module
+qui ferait `var enLecture = A.enLecture` garderait la valeur du chargement pour
+toujours. Les fonctions et les constantes, elles, se reprennent en tête de
+fichier.
+
+**Un contrôle qui lisait `src/app.js` lit maintenant tout `src/`.** Trois
+d'entre eux sont passés au vert le jour du découpage — non parce que le produit
+avait changé, mais parce que leur périmètre ne suivait plus le code. C'est la
+forme la plus courante du contrôle qui ne contrôle plus.
+
 ## Les invariants qui cassent en silence
 
 Ceux-là ne produisent pas d'erreur : ils produisent une sortie fausse.
@@ -126,7 +158,7 @@ interdit `eval` et `new Function` dans la page.
 ## Les contrôles
 
 ```bash
-node tools/test.js            # 146 cas, sort en 1 si un seul échoue
+node tools/test.js            # 151 cas, sort en 1 si un seul échoue
 node tools/acceptation-tete-nue.js   # le parcours réel, navigateur headless
 python tools/icones.py        # redessine les icônes depuis la marque
 ```
@@ -147,8 +179,9 @@ harnais ET l'acceptation soient verts.
 
 ## Ce qui est délibérément laissé de côté
 
-- **`src/app.js` fait ~2 000 lignes pour huit sujets.** Le découper demande de
-  décider d'une interface interne, pas de déplacer des lignes. Reporté sciemment.
+- **`src/app.js` garde 986 lignes pour trois sujets** — le rendu, les options,
+  la période. C'est le reste du découpage, et ces trois-là se tiennent : ils
+  partagent l'état du rendu. Les couper demanderait une raison, pas un chiffre.
 - **Médaillon « Topographie » et « Rives »** : il faut une source de terrain, et
   des tuiles d'une autre origine *tainteraient* le canvas — tous les exports
   casseraient. Bloqué, pas oublié.
