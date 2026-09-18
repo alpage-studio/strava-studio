@@ -300,9 +300,17 @@
   .carte-style.on .nom::after {
     content: " ✓"; color: var(--acc);
   }
+  /* LES PUCES DE FAMILLES PASSENT A LA LIGNE PLUTOT QUE DE SORTIR DU CADRE.
+     Le defilement horizontal se justifie sur un telephone, ou la place manque
+     vraiment ; dans une colonne d'ordinateur il coupait « Keepsakes » en deux
+     et rien ne disait qu'il y avait une suite. Une liste dont on ne voit pas
+     la fin est une liste dont on ignore la moitie. */
   .groupes-style {
-    display: flex; gap: 5px; overflow-x: auto; scrollbar-width: none;
+    display: flex; flex-wrap: wrap; gap: 5px;
     margin: 0 0 9px; padding-bottom: 2px;
+  }
+  body.telephone .groupes-style {
+    flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none;
   }
   .groupes-style::-webkit-scrollbar { display: none; }
   .groupes-style button {
@@ -416,8 +424,13 @@
   /* ---------- colonnes ---------- */
   main { flex: 1; display: flex; min-height: 0; }
 
+  /* LA COLONNE RESPIRE QUAND IL Y A DE LA PLACE.
+     Elle etait figee a 330 px, la meme largeur sur un portable de 1024 px et
+     sur un ecran de 1920 : le catalogue y tenait a l'etroit, les puces de
+     familles sortaient du cadre et se coupaient en plein mot. On lui donne un
+     socle et un plafond — au-dela, c'est la planche qui merite l'espace. */
   aside {
-    width: 330px; flex: none; background: var(--panel);
+    width: clamp(330px, 26vw, 460px); flex: none; background: var(--panel);
     border-right: 1px solid var(--line);
     display: flex; flex-direction: column; min-height: 0;
   }

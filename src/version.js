@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.6.3';
+var STUDIO_VERSION = '3.6.4';
 var STUDIO_DATE = '18.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,9 @@ var STUDIO_DATE = '18.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.6.4', d: '18.09.2026', points: [
+    'Sur ordinateur, la colonne de réglages respire selon la place au lieu d’être figée à 330 px, et les familles de styles passent à la ligne au lieu d’être coupées en plein mot.'
+  ] },
   { v: '3.6.3', d: '18.09.2026', points: [
     'Le studio retrouve son apparence au-dessus de 400 px de large — grand iPhone, tablette, ordinateur. Une accolade jamais refermée enfermait toute la feuille de style dans une règle réservée aux petits écrans : au-dessus, la page n’avait ni police, ni couleurs, ni barre du bas.',
     'Dans la galerie, le bouton de retour vers le studio passait sous l’encoche : on ne pouvait plus revenir.'
