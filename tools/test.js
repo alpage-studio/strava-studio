@@ -1231,6 +1231,85 @@ function testsCoherence() {
  * sont ecrits : un controle qui recopierait les valeurs mesurerait sa copie.
  */
 
+/* ================= 2 septies. LA FEUILLE DE STYLE TIENT =================
+ *
+ * LE DEFAUT QUE CES CAS FERMENT, ET IL A VECU TROIS VERSIONS.
+ *
+ * En retirant le selecteur de langue, une expression reguliere a mange
+ * l'accolade fermante du bloc `@media (max-width: 400px)`. Tout le CSS qui
+ * suivait — cent quarante-six regles — s'est retrouve AVALE dans ce bloc.
+ *
+ * Sous 400 px la regle s'applique : la page semblait parfaite, et c'est la
+ * largeur ou tournaient les essais. Au-dessus, plus rien : ni police, ni
+ * couleurs, ni barre du bas. Un iPhone Plus fait 430 pt, un ordinateur bien
+ * davantage. Le studio a donc ete sans style pour une bonne part de ceux qui
+ * l'ouvraient, pendant que cent soixante-dix controles passaient au vert.
+ *
+ * Ils passaient parce qu'ils lisaient le DOM — des identifiants, des classes,
+ * des attributs — et que le DOM etait intact. Un controle qui ne regarde que
+ * la structure ne voit pas une page sans apparence.
+ */
+
+function testsStyle() {
+  titre('2 septies. LA FEUILLE DE STYLE');
+
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const i = html.indexOf('<style>'), j = html.indexOf('</style>', i);
+  if (i < 0 || j < 0) { saute('style · bloc', 'introuvable'); return; }
+  const css = html.slice(i + 7, j);
+
+  let prof = 0, regles = 0, negatif = false;
+  for (let k = 0; k < css.length; k++) {
+    if (css[k] === '{') prof++;
+    else if (css[k] === '}') {
+      prof--;
+      if (prof < 0) negatif = true;
+      if (prof === 0) regles++;
+    }
+  }
+  ok('style · les accolades sont equilibrees  (profondeur ' + prof + ')',
+     prof === 0 && !negatif,
+     prof > 0 ? prof + ' bloc(s) jamais referme(s) : tout ce qui suit est avale dedans'
+              : 'une accolade fermante de trop');
+
+  /* Le NOMBRE compte autant que l'equilibre : une accolade manquante ne rend
+   * pas la feuille invalide, elle la reduit. Seize regles de premier niveau au
+   * lieu de cent soixante-deux, et le navigateur ne signale rien. */
+  ok('style · la feuille porte toutes ses regles  (' + regles + ')', regles >= 100,
+     'seulement ' + regles + ' regles de premier niveau — un bloc en avale sans doute d’autres');
+
+  /* Les memes controles sur la galerie, qui a sa propre feuille. */
+  const gal = path.join(ROOT, 'apercus', 'index.html');
+  if (fs.existsSync(gal)) {
+    const g = fs.readFileSync(gal, 'utf8');
+    const a2 = g.indexOf('<style>'), b2 = g.indexOf('</style>', a2);
+    if (a2 >= 0 && b2 >= 0) {
+      const cg = g.slice(a2 + 7, b2);
+      let pg = 0;
+      for (let k = 0; k < cg.length; k++) {
+        if (cg[k] === '{') pg++; else if (cg[k] === '}') pg--;
+      }
+      ok('style · la galerie aussi est equilibree  (profondeur ' + pg + ')', pg === 0);
+    }
+  }
+
+  /* UNE PAGE EN `viewport-fit=cover` S'ETEND SOUS L'ENCOCHE.
+   *
+   * C'est ce qu'on veut — une planche qui touche les bords — mais il faut
+   * alors ecarter le contenu des quatre cotes soi-meme. La galerie traitait la
+   * gauche, la droite et le bas ; le haut manquait, et son entete passait sous
+   * la barre d'etat avec le bouton de retour vers le studio. On ne pouvait
+   * plus revenir. Trois cotes sur quatre ne se voit pas en relisant. */
+  [['index.html', html], ['apercus/index.html', fs.existsSync(gal) ? fs.readFileSync(gal, 'utf8') : '']]
+    .forEach(function (pr) {
+      if (!pr[1]) return;
+      if (!/viewport-fit=cover/.test(pr[1])) return;
+      ok('style · ' + pr[0] + ' ecarte le contenu de l’encoche',
+         /safe-area-inset-top/.test(pr[1]),
+         'la page s’etend sous l’encoche sans jamais compenser en haut');
+    });
+}
+
 function testsThemes() {
   titre('2 sexies. LES DEUX THEMES');
 
@@ -1666,6 +1745,7 @@ async function testsServeur() {
   console.log('Harnais de régression — ' + new Date().toISOString().slice(0, 16).replace('T', ' '));
   testsCalculs(chargeActivity());
   testsCoherence();
+  testsStyle();
   testsThemes();
   testsMorceaux();
   testsMenus();

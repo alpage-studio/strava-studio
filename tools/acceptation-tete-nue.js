@@ -63,9 +63,17 @@ const BAVARD = process.argv.indexOf('--bavard') > 0;
 const iMoteur = process.argv.indexOf('--moteur');
 const MOTEUR = iMoteur > 0 ? process.argv[iMoteur + 1] : 'chromium';
 
+/* TROIS LARGEURS, ET LA DU MILIEU EST LA PLUS IMPORTANTE.
+ *
+ * Les essais tournaient a 390 et 1280. Une accolade manquante avait enferme
+ * toute la feuille de style dans un `@media (max-width: 400px)` : sous 400 px
+ * elle s'appliquait, au-dessus rien — et 1280 ne le voyait pas parce que les
+ * cas n'y lisaient que le DOM. 430 px est la largeur d'un iPhone Plus ou Pro
+ * Max : juste au-dessus du seuil, et c'est la que le defaut a ete signale. */
 const ECRANS = [
-  { nom: 'bureau',    largeur: 1280, hauteur: 900 },
-  { nom: 'téléphone', largeur: 390,  hauteur: 844 }
+  { nom: 'bureau',         largeur: 1280, hauteur: 900 },
+  { nom: 'grand téléphone', largeur: 430, hauteur: 932 },
+  { nom: 'téléphone',      largeur: 390,  hauteur: 844 }
 ];
 
 function playwright() {

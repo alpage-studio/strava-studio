@@ -79,6 +79,40 @@
     return n;
   }
 
+  /* ---------- 0. LA FEUILLE DE STYLE EST-ELLE APPLIQUEE ? ----------
+   *
+   * Le cas qui manquait, et son absence a coute trois versions.
+   *
+   * Une accolade jamais refermee avait avale cent quarante-six regles dans un
+   * bloc `@media (max-width: 400px)`. Sous 400 px tout s'appliquait — la
+   * largeur des essais — et au-dessus, rien : ni police, ni couleurs, ni barre
+   * du bas. Pendant ce temps, tous les cas passaient : ils lisaient le DOM, et
+   * le DOM etait intact.
+   *
+   * UN CONTROLE QUI NE REGARDE QUE LA STRUCTURE NE VOIT PAS UNE PAGE SANS
+   * APPARENCE. Ceux-ci lisent des styles CALCULES que seule la feuille peut
+   * produire : s'ils tombent, c'est qu'elle n'est pas arrivee. */
+  (function () {
+    var cs = getComputedStyle(document.body);
+    ok('style · la police du studio est appliquee  (' + cs.fontFamily.split(',')[0] + ')',
+       /Archivo/.test(cs.fontFamily));
+    ok('style · le papier est le fond  (' + cs.backgroundColor + ')',
+       cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent');
+    var g = $('.lien-galerie');
+    if (g) {
+      ok('style · les liens ne sont pas soulignés par defaut',
+         getComputedStyle(g).textDecorationLine === 'none',
+         'la feuille de style n’est pas appliquee a cette largeur');
+    }
+    var h = document.querySelector('header');
+    ok('style · l’entete est une rangee', getComputedStyle(h).display === 'flex');
+    /* Le nombre de regles vues par le navigateur : une accolade manquante ne
+     * rend pas la feuille invalide, elle la REDUIT, et sans rien signaler. */
+    var n = 0;
+    try { n = document.styleSheets[0].cssRules.length; } catch (e) { n = -1; }
+    ok('style · la feuille porte toutes ses regles  (' + n + ')', n >= 100 || n === -1);
+  }());
+
   // ---------- 1. l'accueil ----------
   var planche = await jusqua(function () {
     return $('#accueil-planche') && encre($('#accueil-planche')) > 200;

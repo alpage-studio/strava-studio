@@ -61,7 +61,11 @@
   html { -webkit-text-size-adjust: 100%; }
   body {
     margin: 0;
-    padding: 20px var(--marge) calc(60px + var(--sbar));
+    /* LE HAUT AUSSI. La page declare `viewport-fit=cover` : elle s'etend donc
+       sous la barre d'etat et sous l'encoche. Les bords gauche, droit et bas
+       etaient traites ; le haut ne l'etait pas, et l'entete — avec le bouton
+       de retour vers le studio — passait dessous. On ne pouvait plus revenir. */
+    padding: calc(20px + env(safe-area-inset-top, 0px)) var(--marge) calc(60px + var(--sbar));
     padding-left: max(var(--marge), env(safe-area-inset-left, 0px));
     padding-right: max(var(--marge), env(safe-area-inset-right, 0px));
     background: var(--papier); color: var(--encre);
@@ -102,7 +106,9 @@
      Chaque rangée de puces défile horizontalement plutôt que de passer à
      la ligne — sinon la barre mange la moitié de l'écran. */
   .barre {
-    position: sticky; top: 0; z-index: 5;
+    /* Collee sous l'encoche, pas dessous : `top: 0` la ferait passer sous la
+       barre d'etat des qu'on defile. */
+    position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
     margin: 0 calc(-1 * var(--marge)) 18px;
     padding: 9px var(--marge) 9px;
     padding-top: max(9px, env(safe-area-inset-top, 0px));

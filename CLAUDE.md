@@ -117,6 +117,22 @@ a été retiré, mais le moteur i18n reste : c'est lui qui PRODUIT l'anglais, le
 libellés étant écrits en français dans le code. Le retirer voudrait dire
 réécrire six cents libellés dans trente-deux planches.
 
+**Un contrôle qui lit le DOM ne voit pas une page sans apparence.** Une
+accolade jamais refermée a enfermé 146 règles dans un `@media (max-width:
+400px)` : sous 400 px tout s'appliquait — la largeur des essais — et au-dessus,
+rien. Le studio a été sans style pendant trois versions pendant que 170
+contrôles passaient au vert, parce qu'ils lisaient des identifiants et des
+classes, et que le DOM était intact. L'acceptation vérifie maintenant des
+styles **calculés**, et le harnais compte les accolades et les règles.
+
+**Les largeurs d'essai sont 390, 430 et 1280.** 430 px est un iPhone Plus ou
+Pro Max — juste au-dessus du seuil de 400 où le défaut se cachait.
+
+**Une page en `viewport-fit=cover` doit écarter le contenu des QUATRE côtés.**
+La galerie traitait la gauche, la droite et le bas ; son entête passait sous la
+barre d'état avec le bouton de retour. Trois côtés sur quatre ne se voit pas en
+relisant.
+
 **Deux moteurs, pas un.** `node tools/acceptation-tete-nue.js --moteur tous`
 lance le parcours dans Chromium **et** dans WebKit — celui de Safari, donc de
 tout navigateur sur iPhone. La première exécution dans WebKit a trouvé en trois
