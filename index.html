@@ -740,7 +740,21 @@
     #son, #video-state { grid-column: 1 / -1; }
     #video-state { margin-top: 0; }
 
+    /* LA BASELINE DISPARAIT, LE NUMERO DE VERSION RESTE.
+       Les deux portaient la meme classe, et la regle les cachait tous les
+       deux : sur un telephone, aucun moyen de savoir quelle version on
+       regarde. C'est precisement la question qu'on se pose quand l'ecran ne
+       ressemble pas a ce qu'on attend — et la seule reponse etait d'ouvrir
+       les outils de developpement, c'est-a-dire aucune. */
     header .sub { display: none; }
+    header #header-note {
+      display: block; font-size: 10.5px; letter-spacing: .02em;
+      opacity: .75; white-space: nowrap;
+    }
+    /* Sous 360 px, l'entete deborde si elle porte aussi la date. Le NUMERO
+       est ce qu'on vient y chercher ; la date ne repond a aucune question
+       qu'on se pose devant un ecran qui surprend. */
+    @media (max-width: 360px) { header #header-date { display: none; } }
   }
 </style>
 </head>
@@ -756,7 +770,7 @@
   </span>
   <span class="sub">tes données, tes templates, ton code</span>
   <div class="spacer"></div>
-  <span class="sub" id="header-note"></span>
+  <span class="sub" id="header-note"><span id="header-date"></span></span>
   <!-- La revue des compositions. Elle vit à côté du studio et non dedans :
        c'est une page de contact, pas un écran de l'outil. -->
   <a class="lien-galerie" href="apercus/">Galerie</a>

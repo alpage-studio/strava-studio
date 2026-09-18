@@ -805,7 +805,17 @@
      * d'un coup d'œil, si la page ouverte est bien la dernière déployée. */
     if (typeof STUDIO_VERSION !== 'undefined') {
       var note = $('#header-note');
-      if (note) note.textContent = 'v' + STUDIO_VERSION + ' · ' + STUDIO_DATE;
+      /* Le numero et la date sont DEUX noeuds : sous 360 px l'entete ne peut
+       * pas porter les deux, et c'est le numero qu'on vient y chercher.
+       * `textContent` sur le parent effacerait l'enfant — on ecrit donc dans
+       * chacun. */
+      if (note) {
+        var quand = note.querySelector('#header-date');
+        note.childNodes[0] && note.childNodes[0].nodeType === 3
+          ? (note.childNodes[0].nodeValue = 'v' + STUDIO_VERSION)
+          : note.insertBefore(document.createTextNode('v' + STUDIO_VERSION), quand || null);
+        if (quand) quand.textContent = ' · ' + STUDIO_DATE;
+      }
     }
 
     var saved = load();

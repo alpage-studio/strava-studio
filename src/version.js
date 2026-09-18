@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.6.1';
+var STUDIO_VERSION = '3.6.2';
 var STUDIO_DATE = '18.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,9 @@ var STUDIO_DATE = '18.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.6.2', d: '18.09.2026', points: [
+    'Le numéro de version s’affiche aussi sur téléphone. Il était caché avec la baseline de l’entête — aucun moyen de savoir quelle version on regardait, ce qui est justement la question qu’on se pose quand l’écran surprend.'
+  ] },
   { v: '3.6.1', d: '18.09.2026', points: [
     'Correction d’un affichage casse sur téléphone : le studio pouvait charger la moitié de ses fichiers dans une version et l’autre moitié dans une autre, et le résultat ne ressemblait à aucune des deux — barre du bas disparue, mise en page du grand écran écrasée sur l’écran du téléphone.'
   ] },

@@ -235,6 +235,23 @@ function testsCoherence() {
    *   · le shell se lit dans le cache de SA version, pas sur le reseau ;
    *   · on n'interroge jamais `caches.match` tout court — il cherche dans TOUS
    *     les caches, y compris ceux des versions precedentes. */
+  /* LE NUMERO DE VERSION DOIT RESTER LISIBLE SUR TELEPHONE.
+   *
+   * Il vivait dans un `<span class="sub">`, et la regle telephone cachait
+   * toute la classe — baseline et numero ensemble. Sur un telephone il n'y
+   * avait donc AUCUN moyen de savoir quelle version on regardait, ce qui est
+   * exactement la question qu'on se pose quand l'ecran ne ressemble pas a ce
+   * qu'on attend. La seule reponse etait les outils de developpement, c'est-a-
+   * dire aucune. */
+  (function () {
+    const h = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const cache = /header \.sub \{ display: none; \}/.test(h);
+    const rendu = /header #header-note \{[^}]*display: block/.test(h);
+    ok('version · le numero reste lisible sur telephone',
+       !cache || rendu,
+       'la regle telephone cache .sub sans rendre #header-note');
+  }());
+
   const swSrc = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
   ok('sw · le shell est servi depuis le cache de sa version',
      /CHEMINS_SHELL\.has\(url\.pathname\)/.test(swSrc) &&
