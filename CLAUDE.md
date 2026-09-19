@@ -99,6 +99,20 @@ les projets exportés et comparés tels quels : les remplacer par
 `Alpage.PALETTE.xxx` casserait la relecture d'un projet enregistré. Partout
 ailleurs, les couleurs viennent de `Alpage.PALETTE`.
 
+**La surcouche est le DEFAUT, pas une option.** Le studio pose une planche sur
+une photo ou une vidéo ; le papier est le cas particulier. Tout en découle : la
+photo se choisit juste après la sortie, l'aperçu montre l'image dessous — vidéo
+comprise —, le catalogue et l'écran d'accueil rendent leurs planches sur une
+image et non sur un damier. Un damier dit « c'est transparent » et rien de plus.
+
+**Un voile par défaut, et UN SEUL peintre.** Les 32 planches ont leur encre
+réglée pour le papier : posées telles quelles, leur titre tombe sur une zone
+sombre et disparaît. Le voile était peint à deux endroits —  pour les
+15 qui déclarent la clé,  pour les 17 autres — avec des courbes
+différentes : un réglage nommé « vers le bas » assombrissait plus ou moins selon
+la planche. Une seule courbe désormais, 0,40 au pied, éteinte à 42 % de la
+hauteur. Un contrôle compare les deux peintres et refuse un pied au-delà de 0,45.
+
 **Le support ET le voile sont globaux.** `fond` est devenu le choix
 « papier / surcouche », `voile` le choix « aucun / bas / haut / centre » — et le
 moteur les transmet au vocabulaire propre de chaque template (`optionsFond()`

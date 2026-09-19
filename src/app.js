@@ -120,6 +120,9 @@
     Studio.setMinimal($('#minimal').checked);
     Studio.setAchromatique($('#rendu').value === 'nb', $('#photo-nb').checked);
     Studio.setSupport($('#support').value === 'surcouche');
+    /* La classe dit au CSS ce que le moteur sait deja : l'ecran d'accueil pose
+     * alors sa planche sur une image, comme le reglage le produira. */
+    document.body.classList.toggle('surcouche', $('#support').value === 'surcouche');
     Studio.setVoile($('#voile') ? $('#voile').value : 'aucun');
   }
 
@@ -313,19 +316,53 @@
    * Il vit derrière le canvas, jamais dedans. Sur une surcouche transparente
    * c'est la seule façon de juger la lisibilité sans aplatir la photo dans
    * le PNG exporté. */
+  /* CE QUI EST SOUS LA PLANCHE.
+   *
+   * La video n'apparaissait nulle part ici : on pouvait en ajouter une et
+   * l'ecran ne montrait rien — elle n'existait que dans le fichier exporte.
+   * Pour une interface faite pour poser une planche sur une image, c'etait le
+   * defaut le plus couteux : on reglait a l'aveugle et on decouvrait a
+   * l'export.
+   *
+   * L'ordre de preference dit la promesse : la VIDEO d'abord, la PHOTO
+   * ensuite, et le damier seulement quand il n'y a ni l'une ni l'autre. */
   function ground() {
     var sheet = $('#sheet');
+    var video = $('#fond-video');
     var mode = $('#ground').value;
     var transparent = transparentCourant();
     sheet.className = '';
     sheet.style.backgroundImage = '';
 
-    if (!transparent) { sheet.style.background = 'none'; return; }
+    function cacheVideo() {
+      if (!video) return;
+      video.hidden = true;
+      if (video.src) { video.pause(); }
+    }
+
+    if (!transparent) { sheet.style.background = 'none'; cacheVideo(); return; }
     sheet.style.background = '';
+
+    if (mode === 'photo' && E.bgVideo && E.bgVideo.src) {
+      /* On REUTILISE la source du <video> deja charge par l'export : deux
+       * elements sur le meme fichier, c'est deux decodages et deux positions
+       * de lecture qui divergent. */
+      if (video.src !== E.bgVideo.src) video.src = E.bgVideo.src;
+      video.hidden = false;
+      var essai = video.play();
+      if (essai && essai.catch) essai.catch(function () { /* geste requis */ });
+      return;
+    }
+    cacheVideo();
+
     if (mode === 'photo' && E.photoURL) {
       sheet.style.backgroundImage = 'url("' + E.photoURL + '")';
+    } else if (mode === 'demo' || (mode === 'photo' && !E.photoURL)) {
+      /* Faute de photo de l'utilisateur, on montre celle de demonstration
+       * plutot qu'un damier : une surcouche se juge sur une image. */
+      sheet.style.backgroundImage = 'url("assets/photo-demo.webp")';
     } else {
-      sheet.className = (mode === 'photo' ? 'damier' : mode);
+      sheet.className = mode;
     }
   }
 

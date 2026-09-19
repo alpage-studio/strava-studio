@@ -1310,6 +1310,50 @@ function testsStyle() {
     });
 }
 
+/* ================= 2 octies. UN SEUL VOILE =================
+ *
+ * Le voile est peint a DEUX endroits : alpage.js pour les quinze planches qui
+ * declarent la cle, src/studio.js pour les dix-sept autres. Les deux courbes
+ * avaient diverge — 0,62 d'un cote, 0,58 de l'autre, avec des etalements
+ * differents — de sorte qu'un reglage portant un seul nom, « vers le bas »,
+ * assombrissait plus ou moins selon la planche choisie. Personne n'aurait su
+ * dire laquelle etait la bonne.
+ */
+
+function testsVoile() {
+  titre('2 octies. UN SEUL VOILE');
+
+  /* Les deux fichiers n'ecrivent pas la couleur de la meme facon : le moteur
+   * pose un litteral `rgba(18,20,16,.40)`, alpage.js concatene `'rgba(' +
+   * teinte + ',.40)'`. Une premiere version du controle ne lisait que le
+   * litteral, ne trouvait qu'un arret sur trois, et declarait une divergence
+   * qui n'existait pas — il mesurait sa propre incapacite a lire. On ne
+   * retient donc que la POSITION et l'OPACITE, quelle que soit l'ecriture. */
+  function stops(src, apres) {
+    const i = src.indexOf(apres);
+    if (i < 0) return null;
+    const bout = src.slice(i, i + 700);
+    const m = [...bout.matchAll(/addColorStop\(\s*([\d.]+)\s*,[^;]*?,\s*\.?([\d.]+)\)'/g)];
+    return m.slice(0, 3).map(function (x) {
+      const op = x[2].charAt(0) === '.' ? x[2] : '.' + x[2];
+      return x[1] + ':' + (x[2] === '0' ? '0' : op);
+    }).join(' ');
+  }
+  const alp = fs.readFileSync(path.join(ROOT, 'src', 'alpage.js'), 'utf8');
+  const stu = fs.readFileSync(path.join(ROOT, 'src', 'studio.js'), 'utf8');
+
+  const a = stops(alp, 'var lg = ctx.createLinearGradient');
+  const b = stops(stu, "mode === 'bas' ? ctx.createLinearGradient");
+  if (!a || !b) { saute('voile · courbes', 'gradients introuvables'); return; }
+  ok('voile · les deux peintres suivent la meme courbe',
+     a === b, 'alpage : ' + a + '   ·   moteur : ' + b);
+
+  /* Discret veut dire mesurable : au-dela de 0,45 au pied, le voile devient le
+   * sujet de l'image au lieu de rendre un titre lisible. */
+  const pied = parseFloat(a.split(' ')[0].split(':')[1]);
+  ok('voile · il reste discret  (' + pied + ' au pied)', pied <= 0.45);
+}
+
 function testsThemes() {
   titre('2 sexies. LES DEUX THEMES');
 
@@ -1745,6 +1789,7 @@ async function testsServeur() {
   console.log('Harnais de régression — ' + new Date().toISOString().slice(0, 16).replace('T', ' '));
   testsCalculs(chargeActivity());
   testsCoherence();
+  testsVoile();
   testsStyle();
   testsThemes();
   testsMorceaux();

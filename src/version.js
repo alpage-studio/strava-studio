@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.6.4';
+var STUDIO_VERSION = '3.7';
 var STUDIO_DATE = '18.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,13 @@ var STUDIO_DATE = '18.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.7', d: '18.09.2026', points: [
+    'Le studio part de ce qu’il est : une planche posée sur une photo ou une vidéo. Le support « sans fond » est le défaut, le papier devient le cas particulier.',
+    'La vidéo de fond s’affiche enfin dans l’aperçu. Elle n’existait que dans le fichier exporté : on réglait à l’aveugle et on découvrait le cadrage après coup.',
+    'La photo se choisit juste après la sortie, avant le style — et non repliée au bas de la colonne.',
+    'Un voile par défaut : sans lui, le titre d’une planche tombe sur une zone sombre de la photo et disparaît.',
+    'Le catalogue et l’écran d’accueil montrent les planches sur une image, plus sur un damier : une surcouche se juge sur une photo.'
+  ] },
   { v: '3.6.4', d: '18.09.2026', points: [
     'Sur ordinateur, la colonne de réglages respire selon la place au lieu d’être figée à 330 px, et les familles de styles passent à la ligne au lieu d’être coupées en plein mot.'
   ] },

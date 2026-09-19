@@ -503,18 +503,29 @@
       // l'encre claire demande un voile sombre, et réciproquement
       var teinte = clair ? '0,0,0' : '255,255,255';
       ctx.save();
+      /* LA COURBE DU VOILE, ET ELLE EST LA SEULE.
+       *
+       * Deux voiles coexistaient pour un meme reglage : celui-ci, et celui que
+       * le moteur peint pour les planches qui n'en declarent pas — avec des
+       * opacites et des etalements differents. Un reglage nomme « vers le bas »
+       * ne peut pas vouloir dire deux choses selon la planche.
+       *
+       * ELLE A ETE ALLEGEE. A 0,62 au pied, le voile devenait le sujet : il
+       * assombrissait la moitie basse de la photo pour rendre lisibles deux
+       * lignes de texte. A 0,40, et en mourant a 42 % de la hauteur au lieu du
+       * sommet, il fait son travail sans prendre la place de l'image. */
       if (voile === 'centre') {
         var g = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.12,
                                          w / 2, h / 2, Math.max(w, h) * 0.62);
-        g.addColorStop(0, 'rgba(' + teinte + ',.52)');
+        g.addColorStop(0, 'rgba(' + teinte + ',.34)');
         g.addColorStop(1, 'rgba(' + teinte + ',0)');
         ctx.fillStyle = g;
       } else {
         var haut = voile === 'haut';
         var lg = ctx.createLinearGradient(0, haut ? 0 : h, 0, haut ? h : 0);
-        lg.addColorStop(0, 'rgba(' + teinte + ',.62)');
-        lg.addColorStop(0.55, 'rgba(' + teinte + ',.22)');
-        lg.addColorStop(1, 'rgba(' + teinte + ',0)');
+        lg.addColorStop(0, 'rgba(' + teinte + ',.40)');
+        lg.addColorStop(0.20, 'rgba(' + teinte + ',.16)');
+        lg.addColorStop(0.42, 'rgba(' + teinte + ',0)');
         ctx.fillStyle = lg;
       }
       ctx.fillRect(0, 0, w, h);

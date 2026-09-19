@@ -42,10 +42,16 @@
       E.bgVideo = v;
       note.textContent = Math.round(v.duration) + ' s · ' + v.videoWidth + '×' + v.videoHeight +
         (v.duration > 20 ? ' — seules les 20 premières secondes seront gravées' : '');
+      /* L'APERCU DOIT LA MONTRER TOUT DE SUITE.
+       * Sans cette ligne, la video n'existait qu'au moment de l'export : on
+       * reglait a l'aveugle et on decouvrait le cadrage dans le fichier. */
+      if ($('#ground').value !== 'photo') $('#ground').value = 'photo';
+      ground();
     };
     v.onerror = function () {
       E.bgVideo = null;
       note.textContent = 'Vidéo illisible par le navigateur.';
+      ground();
     };
   });
 

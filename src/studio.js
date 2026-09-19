@@ -117,12 +117,15 @@
    * son travail. Les planches qui savent mieux faire gardent le leur. */
   function poseVoile(ctx, w, h, mode) {
     var g;
+    /* LA MEME COURBE QUE alpage.js, au chiffre pres. Deux voiles pour un
+     * reglage qui porte un seul nom, c'etait deux comportements selon la
+     * planche — et personne pour dire lequel etait le bon. */
     if (mode === 'bas' || mode === 'haut') {
       g = mode === 'bas' ? ctx.createLinearGradient(0, h, 0, 0)
                          : ctx.createLinearGradient(0, 0, 0, h);
-      g.addColorStop(0, 'rgba(18,20,16,.58)');
-      g.addColorStop(0.30, 'rgba(18,20,16,.20)');
-      g.addColorStop(0.52, 'rgba(18,20,16,0)');
+      g.addColorStop(0, 'rgba(18,20,16,.40)');
+      g.addColorStop(0.20, 'rgba(18,20,16,.16)');
+      g.addColorStop(0.42, 'rgba(18,20,16,0)');
       ctx.save();
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, w, h);
@@ -137,8 +140,8 @@
     var k = h / w;
     ctx.scale(1, k);
     g = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 0.78);
-    g.addColorStop(0, 'rgba(18,20,16,.52)');
-    g.addColorStop(0.62, 'rgba(18,20,16,.24)');
+    g.addColorStop(0, 'rgba(18,20,16,.34)');
+    g.addColorStop(0.62, 'rgba(18,20,16,.14)');
     g.addColorStop(1, 'rgba(18,20,16,0)');
     ctx.fillStyle = g;
     ctx.fillRect(-w * 2, -h * 2 / k, w * 4, h * 4 / k);

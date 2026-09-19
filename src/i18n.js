@@ -72,7 +72,7 @@
     'Sans fond — sur ta photo': 'No ground — over your photo',
     'Ajouter une photo': 'Add a photo',
     'Ajouter une vidéo': 'Add a video',
-    'Aperçu sur': 'Preview over',
+    'Aperçu sur': 'Preview on',
     'Damier (alpha)': 'Checkerboard (alpha)',
     'Fond clair': 'Light ground',
     'Fond sombre': 'Dark ground',

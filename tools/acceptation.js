@@ -396,11 +396,21 @@
     var dansExport = function (sel) {
       return !!document.querySelector('#feuille .zone[data-zone="format"] ' + sel);
     };
-    ok('téléphone · Export porte le support, le fond et le format',
-       dansExport('#opt-support') && dansExport('#section-fond') &&
-       dansExport('#rangee-format'),
-       'support ' + dansExport('#opt-support') + ' · photo ' + dansExport('#section-fond') +
-       ' · format ' + dansExport('#rangee-format'));
+    ok('téléphone · Export ne porte que la sortie',
+       dansExport('#rangee-format') && dansExport('#export-video') &&
+       !dansExport('#section-fond'),
+       'format ' + dansExport('#rangee-format') + ' · video ' + dansExport('#export-video') +
+       ' · photo (ne devrait plus y etre) ' + dansExport('#section-fond'));
+    /* LA PHOTO OUVRE LE PANNEAU STYLE. On choisit l'image, puis la planche qui
+     * va dessus — l'inverse revenait a regler une surcouche sans voir ce qu'il
+     * y avait dessous. */
+    $('#feuille-voile').click();
+    await attends(250);
+    $('#barre button[data-feuille="style"]').click();
+    await attends(300);
+    ok('téléphone · la photo et le support ouvrent le panneau Style',
+       !!document.querySelector('#feuille .zone[data-zone="style"] #section-fond') &&
+       !!document.querySelector('#feuille .zone[data-zone="style"] #opt-support'));
     $('#feuille-voile').click();
     await attends(250);
     ok('téléphone · le voile ferme aussi', $('#feuille').hidden);

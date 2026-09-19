@@ -285,10 +285,14 @@
      carte sombre ne se voit tout simplement pas, et on se retrouve à choisir
      un style à l'aveugle. La vignette reçoit alors le même damier que la
      scène — c'est déjà le signe que quelque chose est transparent. */
+  /* UNE SURCOUCHE SE JUGE SUR UNE IMAGE, PAS SUR UN DAMIER.
+     Le damier disait « c'est transparent » et rien d'autre : une encre claire y
+     paraissait nette alors qu'elle disparait sur une photo claire. Depuis que
+     la surcouche est le DEFAUT, une grille de damiers serait le premier ecran
+     du studio — trente-deux carreaux et aucune planche lisible. La photo de
+     demonstration fait 3,7 ko et vit dans assets/. */
   #choix-style.surcouche .carte-style canvas {
-    background-color: #d9d9d9;
-    background-image: repeating-conic-gradient(#cfcfcf 0% 25%, #f0f0f0 0% 50%);
-    background-size: 14px 14px;
+    background: #cfcfcf url("assets/photo-demo.webp") center/cover;
   }
   .carte-style .nom {
     display: block; padding: 7px 9px 2px; font-size: 12.5px; font-weight: 600;
@@ -644,7 +648,13 @@
   }
   #sheet.claire { background-image: linear-gradient(160deg, #fdfcf8 0%, #e8e4d8 55%, #fbf7ef 100%); }
   #sheet.sombre { background-image: linear-gradient(160deg, #2a3038 0%, #12151a 60%, #0a0c10 100%); }
-  canvas { display: block; position: relative; border-radius: 3px; }
+  /* La video occupe exactement la planche, sous l'encre. `object-fit: cover`
+     cadre comme le fera l'export : ce qu'on voit est ce qu'on obtient. */
+  #fond-video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; border-radius: 2px; z-index: 0;
+  }
+  canvas { display: block; position: relative; border-radius: 3px; z-index: 1; }
   /* État vide : tant qu'aucune sortie n'est chargée, montrer ce qu'il faut
      faire plutôt qu'une activité inventée que personne n'a parcourue. */
   #empty {
@@ -659,6 +669,12 @@
   #empty #accueil-planche {
     width: 190px; height: auto; border-radius: 2px;
     box-shadow: 0 6px 22px rgba(37, 40, 32, .13), 0 0 0 1px var(--line);
+  }
+  /* Le premier ecran montre ce que le studio fabrique VRAIMENT : une planche
+     posee sur une image. Sur du papier, il promettait autre chose que ce que
+     le reglage par defaut produit. */
+  body.vide.surcouche #accueil-planche {
+    background: #cfcfcf url("assets/photo-demo.webp") center/cover;
   }
   #empty .autres { width: 100%; }
   #empty .autres > summary { margin: 4px 0 8px; }
@@ -904,6 +920,74 @@
         </details>
       </section>
 
+      <!-- LA PHOTO EST LA PREMISSE, PAS UN REPLI.
+           Le studio sert d'abord a poser une planche sur une image : elle se
+           choisit donc juste apres la sortie, avant le style. Elle vivait au
+           bas de la colonne, repliee, apres tout le reste — on reglait une
+           surcouche sans jamais voir ce qu'il y avait dessous. -->
+      <section id="section-fond">
+        <h2>Photo ou vidéo</h2>
+        <details open>
+          <summary class="titre" hidden>Photo ou vidéo</summary>
+        <label class="file">
+          <input type="file" id="photo" accept="image/*">
+          <span>Ajouter une photo</span>
+        </label>
+        <label class="file" style="margin-top: 7px">
+          <input type="file" id="bgvideo" accept="video/*">
+          <span>Ajouter une vidéo</span>
+        </label>
+        <div id="bgvideo-state"></div>
+        <label class="opt" style="margin-top: 9px"><span>Aperçu sur</span>
+          <!-- L'APERCU SE POSE SUR UNE IMAGE PAR DEFAUT.
+               Le damier dit « transparent » et rien de plus ; il ne dit pas si
+               le texte restera lisible. Puisque toute planche est une
+               surcouche, l'aperçu par defaut montre une photo. -->
+          <select id="ground">
+            <option value="demo" selected>Photo de démonstration</option>
+            <option value="damier">Damier (alpha)</option>
+            <option value="photo">Photo</option>
+            <option value="claire">Fond clair</option>
+            <option value="sombre">Fond sombre</option>
+          </select>
+        </label>
+        <button class="ghost" id="photo-clear" type="button">Retirer la photo</button>
+        </details>
+      </section>
+      <section id="section-support">
+        <h2>Support</h2>
+        <label class="opt" id="opt-support"><span>Support</span>
+          <!-- SANS FOND PAR DEFAUT.
+               Le studio sert d'abord a poser une planche sur une photo ou une
+               video ; le papier est le cas particulier, pas le point de
+               depart. L'ordre des entrees suit ce choix. -->
+          <select id="support">
+            <option value="surcouche" selected>Sans fond — sur ta photo</option>
+            <option value="papier">Fond plein — affiche</option>
+          </select>
+        </label>
+        <!-- LE VOILE. Sans fond, une planche claire posée sur une photo claire
+             devient illisible. Huit planches — la famille « sur photo » —
+             apportent le leur ; les vingt-cinq autres étaient transparentes
+             sans être utilisables. Le voile est un fait de COMPOSITION, pas de
+             template : le moteur le transmet au voile de chaque planche, et
+             celles qui ont déjà le leur ne le reçoivent pas deux fois. -->
+        <label class="opt" id="opt-voile" hidden><span>Voile — lisibilité sur la photo</span>
+          <!-- UN VOILE PAR DEFAUT, PARCE QUE LE DEFAUT EST LA SURCOUCHE.
+               Les trente-deux planches ont leur encre reglee pour le papier :
+               posees telles quelles sur une photo, leur titre tombe souvent sur
+               une zone sombre et disparait. « Vers le bas » couvre justement le
+               bas, ou les planches ecrivent. Sans fond plein, on le remet a
+               « aucun » en un geste. -->
+          <select id="voile">
+            <option value="bas" selected>Vers le bas</option>
+            <option value="aucun">Aucun</option>
+            <option value="haut">Vers le haut</option>
+            <option value="centre">Au centre</option>
+          </select>
+        </label>
+      </section>
+
       <!-- TROIS SECTIONS, ET CE SONT LES MÊMES QUE LES PANNEAUX DU TÉLÉPHONE.
            Un seul bloc contenait jusqu'ici la composition, les couleurs et les
            mots, dans l'ordre où ils avaient été ajoutés. Sur téléphone ils
@@ -998,55 +1082,11 @@
            section répond à une seule question — papier ou photo — et la photo
            elle-même se choisit juste en dessous, à l'endroit où on vient de
            dire qu'on en voulait une. -->
-      <section id="section-support">
-        <h2>Support</h2>
-        <label class="opt" id="opt-support"><span>Support</span>
-          <select id="support">
-            <option value="papier">Fond plein — affiche</option>
-            <option value="surcouche">Sans fond — sur ta photo</option>
-          </select>
-        </label>
-        <!-- LE VOILE. Sans fond, une planche claire posée sur une photo claire
-             devient illisible. Huit planches — la famille « sur photo » —
-             apportent le leur ; les vingt-cinq autres étaient transparentes
-             sans être utilisables. Le voile est un fait de COMPOSITION, pas de
-             template : le moteur le transmet au voile de chaque planche, et
-             celles qui ont déjà le leur ne le reçoivent pas deux fois. -->
-        <label class="opt" id="opt-voile" hidden><span>Voile — lisibilité sur la photo</span>
-          <select id="voile">
-            <option value="aucun">Aucun</option>
-            <option value="bas">Vers le bas</option>
-            <option value="haut">Vers le haut</option>
-            <option value="centre">Au centre</option>
-          </select>
-        </label>
-      </section>
+
 
       <!-- Repliée par défaut : on ne charge pas une photo à chaque planche,
            et cette section poussait les réglages du template hors de l'écran. -->
-      <section class="pliable" id="section-fond">
-        <details>
-          <summary class="titre">Photo ou vidéo</summary>
-        <label class="file">
-          <input type="file" id="photo" accept="image/*">
-          <span>Ajouter une photo</span>
-        </label>
-        <label class="file" style="margin-top: 7px">
-          <input type="file" id="bgvideo" accept="video/*">
-          <span>Ajouter une vidéo</span>
-        </label>
-        <div id="bgvideo-state"></div>
-        <label class="opt" style="margin-top: 9px"><span>Aperçu sur</span>
-          <select id="ground">
-            <option value="damier">Damier (alpha)</option>
-            <option value="photo">Photo</option>
-            <option value="claire">Fond clair</option>
-            <option value="sombre">Fond sombre</option>
-          </select>
-        </label>
-        <button class="ghost" id="photo-clear" type="button">Retirer la photo</button>
-        </details>
-      </section>
+
 
     </div>
 
@@ -1108,7 +1148,14 @@
               style="width: auto; margin-top: 6px">Deux régions éloignées — Archipel</button>
       </details>
     </div>
-    <div id="sheet"><canvas id="canvas"></canvas></div>
+    <!-- LA VIDEO DE FOND EST UNE COUCHE DE L'APERCU, PAS UN REGLAGE D'EXPORT.
+         Elle n'existait que dans le fichier exporte : on ajoutait une video et
+         l'ecran ne montrait rien. Une interface faite pour poser une planche
+         sur une image doit montrer l'image. -->
+    <div id="sheet">
+      <video id="fond-video" playsinline muted loop autoplay hidden></video>
+      <canvas id="canvas"></canvas>
+    </div>
     <div class="caption" id="stage-caption"></div>
   </div>
 </main>

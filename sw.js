@@ -23,6 +23,7 @@ const SHELL = [
   './assets/archivo-latin-ext.woff2',
   './assets/plexmono-latin.woff2',
   './assets/plexmono-latin-ext.woff2',
+  './assets/photo-demo.webp',
   './assets/icon-192.png',
   './assets/icon-512.png',
   './assets/icon-180.png',

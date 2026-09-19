@@ -31,7 +31,11 @@
     /* La sortie vit dans le panneau Style : sans elle, sur un téléphone où la
      * colonne est masquée, il n'y aurait AUCUN moyen d'importer un GPX ni de
      * choisir une activité — l'application serait jolie et inutilisable. */
-    style:   ['#section-activite', '#choix-style', '#opt-minimal', '#opts'],
+    /* LA PHOTO OUVRE LE PANNEAU. Le studio pose une planche sur une image :
+     * on choisit l'image, puis la planche qui va dessus. L'inverse revenait a
+     * regler une surcouche sans voir ce qu'il y avait dessous. */
+    style:   ['#section-activite', '#section-fond', '#opt-support', '#opt-voile',
+              '#choix-style', '#opt-minimal', '#opts'],
     /* La palette a rejoint les teintes : c'est une affaire de couleur, pas de
      * composition, et elle s'appelait « Collection » au milieu du choix de
      * style — un mot qui designait deja deux autres choses ailleurs. */
@@ -53,9 +57,8 @@
      * les teintes, ou elles n'ont rien a faire : on choisit une image de fond
      * au moment de produire la sortie, pas au moment de regler une couleur.
      * « Garder » aussi : enregistrer un projet est une sortie. */
-    format:  ['#opt-support', '#opt-voile', '#rangee-format', '#section-fond',
-              '#preview-play', '#son', '#export-video', '#export-seq',
-              '#video-state', '#section-garder']
+    format:  ['#rangee-format', '#preview-play', '#son', '#export-video',
+              '#export-seq', '#video-state', '#section-garder']
   };
   var placeOrigine = {};        // sélecteur -> { parent, suivant } avant déplacement
   var feuilleOuverte = null;
