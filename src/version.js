@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.7.1';
+var STUDIO_VERSION = '3.8';
 var STUDIO_DATE = '18.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,11 @@ var STUDIO_DATE = '18.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.8', d: '19.09.2026', points: [
+    'Un réglage de texte commun aux planches Alpage : Sans texte, Signature ou Données. Signature est le défaut — un titre discret et deux mesures.',
+    'Les phrases qui expliquaient la FABRICATION quittent les affiches : « épaisseur : courbure du parcours — effet de style », « parcours tourné, non déformé », le fuseau horaire. Elles restent en « Données ».',
+    'Ce qui empêche de MAL LIRE une donnée reste : une mesure absente, des sorties sans altitude, des contours qu’on prendrait pour des courbes de niveau. Ces phrases raccourcissent, elles ne disparaissent pas.'
+  ] },
   { v: '3.7.1', d: '19.09.2026', points: [
     'Rien de visible : la chaîne de publication ne se trompe plus sur elle-même — elle attend que le site serve la bonne version avant de le contrôler, et trois vérifications qui ne s’exécutaient jamais s’exécutent.'
   ] },

@@ -60,7 +60,7 @@ Studio.template({
     { key: 'accentC', type: 'color', label: 'Accent', default: '#A54F37' }
   /* fond · voile · papier · encre : les quatre réglages communs aux six
    * planches Alpage, déclarés une seule fois pour qu'aucune ne dérive. */
-  ].concat(Alpage.optionsFond()),
+  ].concat(Alpage.optionsTexte(), Alpage.optionsFond()),
 
   inert: function (a, vals) {
     return (vals && vals.couleurs === 'activite') ? ['accent', 'accentC'] : [];
@@ -109,13 +109,23 @@ Studio.template({
     var sansGPS = semaine.filter(function (e) { return avecGPS.indexOf(e) < 0; });
 
     /* ---------- en-tête ---------- */
+    var dit = Alpage.dit(o);
     var noSem = Alpage.semaineISO(lundi);
-    H.text(String(o.titre || '').trim() || ('Semaine ' + noSem), g.left, g.top + u(4.4),
-           H.t('title', { size: 5.2, color: encre, maxWidth: g.w(4) }));
-    H.text(jourMois(lundi) + ' — ' + jourMois(dimanche) + ' ' + dimanche.getFullYear(),
-           g.left, g.top + u(9.4), H.t('label', { color: faint, maxWidth: g.width }));
-    H.text(fuseau(), g.right, g.top + u(4.4),
-           H.t('label', { color: faint, align: 'right' }));
+    if (!dit.rien) {
+      H.text(String(o.titre || '').trim() || ('Semaine ' + noSem), g.left, g.top + u(4.4),
+             H.t('title', { size: 5.2, color: encre, maxWidth: g.w(4) }));
+      H.text(jourMois(lundi) + ' — ' + jourMois(dimanche) + ' ' + dimanche.getFullYear(),
+             g.left, g.top + u(9.4), H.t('label', { color: faint, maxWidth: g.width }));
+      /* LE FUSEAU N'EST PAS UNE INFORMATION D'AFFICHE.
+       * « Europe/Zurich » imprime dans un coin repond a une question que
+       * personne ne se pose devant un mur : il dit comment les dates ont ete
+       * calculees, ce qui interesse celui qui verifie, pas celui qui regarde.
+       * Il reste en « Données », avec le reste de ce que la planche sait. */
+      if (dit.fabrication) {
+        H.text(fuseau(), g.right, g.top + u(4.4),
+               H.t('label', { color: faint, align: 'right' }));
+      }
+    }
 
     if (!semaine.length) {
       H.text('aucune sortie enregistrée cette semaine-là',
@@ -488,8 +498,15 @@ Studio.template({
         H.text(lettre, cx, y + rMax + u(3.6),
                H.t('label', { color: faint, align: 'center' }));
       });
-      H.text('SURFACE DES DISQUES ∝ TEMPS EN MOUVEMENT · CERCLE VIDE = AUCUNE ACTIVITÉ ENREGISTRÉE',
-             colX, y + rMax + u(7.4), H.t('label', { color: melange(encre, 0.34), maxWidth: colW }));
+      /* Une legende qui explique comment LIRE un dessin n'est pas une note de
+       * fabrication : sans elle, la surface des disques ne veut rien dire. On
+       * la raccourcit pour la signature, on la garde entiere en « Données ». */
+      if (!Alpage.dit(o).rien) {
+        H.text(Alpage.dit(o).fabrication
+                 ? 'SURFACE DES DISQUES ∝ TEMPS EN MOUVEMENT · CERCLE VIDE = AUCUNE ACTIVITÉ ENREGISTRÉE'
+                 : 'SURFACE ∝ TEMPS EN MOUVEMENT',
+               colX, y + rMax + u(7.4), H.t('label', { color: melange(encre, 0.34), maxWidth: colW }));
+      }
     }
 
     /* ================= totaux ================= */

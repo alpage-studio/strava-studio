@@ -497,7 +497,13 @@
        * une couleur est une couleur, qu'elle soit déclarée en premier ou en
        * dernier. Sur téléphone ces réceptacles partent dans trois panneaux
        * différents ; sur un écran large ils se suivent. */
-      var dest = def.type === 'color' ? (boiteCouleur || fins)
+      /* UNE EXCEPTION, ET ELLE PORTE UN NOM.
+       * `mentions` decide de CE QUE LA PLANCHE ECRIT : c'est un reglage de
+       * texte, meme si son type est une liste deroulante. Range par sa nature
+       * technique, il tombait dans les reglages fins replies, alors que le
+       * panneau qui porte son sujet s'appelle « Texte ». */
+      var dest = def.key === 'mentions' ? (boiteTexte || box)
+               : def.type === 'color' ? (boiteCouleur || fins)
                : def.type === 'text' ? (boiteTexte || fins)
                : (rang < TETE ? box : fins);
       dest.appendChild(row);

@@ -73,7 +73,7 @@ Studio.template({
     { key: 'titre', type: 'text', label: 'Titre', default: '' }
   /* fond · voile · papier · encre : les quatre réglages communs aux six
    * planches Alpage, déclarés une seule fois pour qu'aucune ne dérive. */
-  ].concat(Alpage.optionsFond()),
+  ].concat(Alpage.optionsTexte(), Alpage.optionsFond()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, o = s.o, H = s.H, u = H.u;
@@ -385,6 +385,11 @@ Studio.template({
     /* ================= pied ================= */
 
     function piedDePlanche() {
+      var dit = Alpage.dit(o);
+      /* « Sans texte » tait le pied — SAUF l'avertissement des sorties sans
+       * altitude : une planche qui en exclut silencieusement ferait croire
+       * qu'elles n'existent pas. Une donnee absente se dit toujours. */
+      if (dit.rien && !sansRelief.length) return;
       var y = g.bottom - (sansRelief.length ? u(5.5) : u(0));
       H.rule(g.left, y - u(4), g.right, { color: hair });
 
@@ -394,11 +399,20 @@ Studio.template({
       var axe = o.altitude === 'absolue'
         ? 'ALTITUDE ABSOLUE · ' + Math.round(vBas) + ' À ' + Math.round(vHaut) + ' M'
         : 'VARIATION DEPUIS LE DÉPART · ±' + Math.round(vHaut) + ' M';
-      var nature = compo === 'continue'
-        ? ' · TRAITEMENT GRAPHIQUE DES PROFILS, PAS UN RELIEF EN TROIS DIMENSIONS'
-        : compo === 'massif' ? ' · COMPOSITION DE PROFILS SUPERPOSÉS' : '';
-      H.text(lecture + ' · ' + axe + nature, g.left, y,
-             H.t('label', { color: faint, maxWidth: g.width }));
+      /* TROIS PHRASES, TROIS STATUTS.
+       *   `lecture` et `axe` disent COMMENT LIRE le dessin : sans eux, des
+       *   largeurs normalisees se comparent a tort. Ils restent en signature.
+       *   `nature` explique la FABRICATION — « traitement graphique des
+       *   profils, pas un relief en trois dimensions ». Elle part en
+       *   « Données », ou elle repond a qui veut savoir ce qu'il a regle. */
+      var nature = !dit.fabrication ? ''
+        : compo === 'continue'
+          ? ' · TRAITEMENT GRAPHIQUE DES PROFILS, PAS UN RELIEF EN TROIS DIMENSIONS'
+          : compo === 'massif' ? ' · COMPOSITION DE PROFILS SUPERPOSÉS' : '';
+      if (!dit.rien) {
+        H.text(lecture + ' · ' + axe + nature, g.left, y,
+               H.t('label', { color: faint, maxWidth: g.width }));
+      }
 
       if (comparer) {
         // une réglette de distance : sans elle, « échelles communes » n'est

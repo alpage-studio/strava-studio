@@ -537,6 +537,46 @@
     return { transparent: true, encre: encre };
   }
 
+  /* ---------- CE QUE LA PLANCHE DIT D'ELLE-MEME ----------
+   *
+   * Les planches portaient des phrases qui expliquent leur FABRICATION :
+   * « épaisseur : courbure du parcours — effet de style », « parcours tourné,
+   * non déformé », « lignes décalées du parcours — ce ne sont pas des courbes
+   * d'altitude ». Elles sont justes, et elles ont leur place — dans l'aide du
+   * réglage qui les produit, pas imprimées sur une affiche qu'on accroche.
+   *
+   * TROIS NIVEAUX, ET LE MILIEU EST LE DEFAUT :
+   *   aucun      le dessin seul ;
+   *   signature  un titre discret et deux mesures — ce qu'on veut lire sur un
+   *              mur, et ce qu'un ami reconnait ;
+   *   donnees    tout ce que la planche sait, notes de fabrication comprises,
+   *              pour qui veut relire ce qu'il a regle.
+   *
+   * CE QUI RESTE DANS TOUS LES CAS — y compris « sans texte » quand la
+   * comprehension en depend : un avertissement qui empeche de MAL LIRE une
+   * donnee. « Geste — la mesure n'est qu'une part de l'épaisseur » n'est pas
+   * une explication de fabrication, c'est ce qui evite de croire qu'on lit
+   * une altitude. Le retirer rendrait la planche jolie et menteuse. */
+  function optionsTexte() {
+    return [
+      { key: 'mentions', type: 'select', label: 'Texte', default: 'signature', reflow: true,
+        choices: [['aucun', 'Sans texte — le dessin seul'],
+                  ['signature', 'Signature — titre et deux mesures'],
+                  ['donnees', 'Données — tout ce que la planche sait']] }
+    ];
+  }
+
+  /* Ce que la planche a le droit d'ecrire, pour le reglage courant. */
+  function dit(o) {
+    var m = o && o.mentions ? o.mentions : 'signature';
+    return {
+      rien: m === 'aucun',
+      titre: m !== 'aucun',
+      mesures: m !== 'aucun',
+      fabrication: m === 'donnees'   // les notes qui expliquent le dessin
+    };
+  }
+
   /* Les réglages de fond, identiques sur les six planches. Les déclarer ici
    * évite qu'une planche propose « centre » et une autre « radial ». */
   function optionsFond(encreParDefaut) {
@@ -684,7 +724,8 @@
     semaineISO: semaineISO,
     fenetre: fenetre,
     dansLaFenetre: dansLaFenetre, lundiDe: lundiDe, positionDansPeriode: positionDansPeriode,
-    socle: socle, optionsFond: optionsFond, luminance: luminance,
+    socle: socle, optionsFond: optionsFond, optionsTexte: optionsTexte,
+    dit: dit, luminance: luminance,
     melange: melange
   };
 }(window));

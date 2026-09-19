@@ -60,6 +60,10 @@
     'Minimaliste — tracé seul': 'Minimal — route only',
     'Teintes': 'Tones',
     'Rendu': 'Rendering',
+    /* ---------- le texte des planches ---------- */
+    'Sans texte — le dessin seul': 'No text — the drawing alone',
+    'Signature — titre et deux mesures': 'Signature — title and two figures',
+    'Données — tout ce que la planche sait': 'Data — everything the plate knows',
     'Export': 'Export',
     'Garder': 'Keep',
     'Photo ou vidéo': 'Photo or video',

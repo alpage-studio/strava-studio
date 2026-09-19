@@ -67,7 +67,7 @@ Studio.template({
     { key: 'grain', type: 'toggle', label: 'Grain du papier', default: true }
   /* fond · voile · papier · encre : les quatre réglages communs aux six
    * planches Alpage, déclarés une seule fois pour qu'aucune ne dérive. */
-  ].concat(Alpage.optionsFond()),
+  ].concat(Alpage.optionsTexte(), Alpage.optionsFond()),
 
   inert: function (a, vals) {
     var morts = [];
@@ -412,6 +412,8 @@ Studio.template({
     }
 
     function legende(coin) {
+      var dit = Alpage.dit(o);
+      if (dit.rien) return;
       var enBas = coin.y > 0;
       var y = enBas ? g.bottom : g.top + u(4.4);
       var titre = String(o.titre || '').trim() || a.name || 'Sortie';
@@ -424,22 +426,47 @@ Studio.template({
        * ALTITUDE · 412 M → 1180 M » sous un trait pareil serait exactement
        * ce que l'en-tête de ce fichier interdit — laisser croire qu'on lit
        * une mesure là où on regarde un effet. La planche le dit donc. */
-      var note;
-      if (mode === 'pinceau') {
-        note = 'GESTE — LA MESURE N’EST QU’UNE PART DE L’ÉPAISSEUR';
-      } else if (estFin) note = 'TRAIT NET — ÉPAISSEUR CONSTANTE';
-      else if (o.source === 'courbure') note = 'ÉPAISSEUR : COURBURE DU PARCOURS — EFFET DE STYLE';
-      else if (o.source === 'egale') note = 'ÉPAISSEUR CONSTANTE';
-      else if (mesureUtilisee) {
-        var lib = { ele: 'ALTITUDE', w: 'PUISSANCE', hr: 'FRÉQUENCE CARDIAQUE', cad: 'CADENCE' }[o.source];
-        var unite = { ele: ' M', w: ' W', hr: ' BPM', cad: ' TR/MIN' }[o.source];
-        note = 'ÉPAISSEUR : ' + lib + ' · ' + Math.round(mesureUtilisee.lo) + unite +
-               ' → ' + Math.round(mesureUtilisee.hi) + unite;
-      } else {
-        note = 'MESURE ABSENTE DE CE FICHIER — ÉPAISSEUR CONSTANTE';
+      /* DEUX SORTES DE NOTES, ET UNE SEULE SURVIT A « SIGNATURE ».
+       *
+       * Celles qui expliquent la FABRICATION — « épaisseur : courbure du
+       * parcours — effet de style », « parcours tourné, non déformé » — ont
+       * leur place dans l'aide du réglage, pas sur une affiche qu'on accroche.
+       *
+       * Celles qui empêchent de MAL LIRE une donnée restent. « Geste — la
+       * mesure n'est qu'une part de l'épaisseur » n'explique pas comment
+       * c'est fait : elle évite de croire qu'on lit une altitude sous un
+       * trait qui n'en est pas une. La retirer rendrait la planche jolie et
+       * menteuse — c'est exactement ce que l'en-tête de ce fichier interdit. */
+      var honnetete = null;
+      if (mode === 'pinceau') honnetete = 'GESTE — LA MESURE N’EST QU’UNE PART';
+      else if (!estFin && o.source !== 'courbure' && o.source !== 'egale' && !mesureUtilisee) {
+        honnetete = 'MESURE ABSENTE DE CE FICHIER';
       }
-      H.text(note, g.left, y + u(4.4), H.t('label', { color: melange(encre, 0.5), maxWidth: g.width }));
-      if (angle) {
+
+      var note = honnetete;
+      if (dit.fabrication) {
+        if (estFin) note = 'TRAIT NET — ÉPAISSEUR CONSTANTE';
+        else if (o.source === 'courbure') note = 'ÉPAISSEUR : COURBURE DU PARCOURS — EFFET DE STYLE';
+        else if (o.source === 'egale') note = 'ÉPAISSEUR CONSTANTE';
+        else if (mesureUtilisee) {
+          var lib = { ele: 'ALTITUDE', w: 'PUISSANCE', hr: 'FRÉQUENCE CARDIAQUE', cad: 'CADENCE' }[o.source];
+          var unite = { ele: ' M', w: ' W', hr: ' BPM', cad: ' TR/MIN' }[o.source];
+          note = 'ÉPAISSEUR : ' + lib + ' · ' + Math.round(mesureUtilisee.lo) + unite +
+                 ' → ' + Math.round(mesureUtilisee.hi) + unite;
+        }
+        if (honnetete && note !== honnetete) note = honnetete + ' · ' + note;
+      } else if (!note) {
+        /* SIGNATURE : ce qu'on veut lire sur un mur. Une mesure absente n'est
+         * jamais remplacee par une valeur inventee — elle est tue. */
+        var bouts = [];
+        if (a.distance_km != null) bouts.push(H.fmt.km(a.distance_km, 1) + ' KM');
+        if (a.elev_gain_m != null) bouts.push(Math.round(a.elev_gain_m) + ' M D+');
+        note = bouts.join('  ·  ');
+      }
+      if (note) {
+        H.text(note, g.left, y + u(4.4), H.t('label', { color: melange(encre, 0.5), maxWidth: g.width }));
+      }
+      if (angle && dit.fabrication) {
         H.text('PARCOURS TOURNÉ, NON DÉFORMÉ', g.right, y + u(4.4),
                H.t('label', { color: melange(encre, 0.32), align: 'right' }));
       }

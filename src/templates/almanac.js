@@ -99,7 +99,7 @@ Studio.template({
     { key: 'titre', type: 'text', label: 'Titre', default: '' }
   /* fond · voile · papier · encre : les quatre réglages communs aux six
    * planches Alpage, déclarés une seule fois pour qu'aucune ne dérive. */
-  ].concat(Alpage.optionsFond()),
+  ].concat(Alpage.optionsTexte(), Alpage.optionsFond()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, o = s.o, H = s.H, u = H.u;
@@ -589,6 +589,8 @@ Studio.template({
     /* ================= légende ================= */
 
     function legende() {
+      var dit = Alpage.dit(o);
+      if (dit.rien) return;
       var y = g.bottom;
 
       /* Les familles présentes SEULEMENT : une légende qui liste le ski

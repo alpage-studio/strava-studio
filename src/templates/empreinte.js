@@ -66,7 +66,7 @@ Studio.template({
     { key: 'titre', type: 'text', label: 'Titre', default: '' }
   /* fond · voile · papier · encre : les quatre réglages communs aux six
    * planches Alpage, déclarés une seule fois pour qu'aucune ne dérive. */
-  ].concat(Alpage.optionsFond()),
+  ].concat(Alpage.optionsTexte(), Alpage.optionsFond()),
 
   inert: function (a, vals) {
     var morts = [];
@@ -374,6 +374,8 @@ Studio.template({
      * Trois lignes, trois hauteurs. Elles partageaient la même avant, et se
      * traversaient dès que l'une s'allongeait. */
     function legende() {
+      var dit = Alpage.dit(o);
+      if (dit.rien) return;
       if (!o.texte) return;
       var yMention = g.bottom;
       var yMeta = o.mention ? yMention - u(4.2) : yMention;
@@ -398,8 +400,19 @@ Studio.template({
       H.text(bouts.join('   ·   '), g.left, yMeta,
              H.t('label', { color: faint, maxWidth: g.width }));
 
-      if (o.mention) {
-        H.text('LIGNES DÉCALÉES DU PARCOURS — CE NE SONT PAS DES COURBES D’ALTITUDE',
+      /* CETTE PHRASE N'EXPLIQUE PAS LA FABRICATION : ELLE EMPECHE UNE ERREUR.
+       *
+       * Les contours ressemblent a des courbes de niveau au point qu'on les
+       * lit comme telles. L'en-tete de ce fichier le dit : « la ressemblance
+       * est reelle et le malentendu serait facile ». La retirer rendrait la
+       * planche plus propre et laisserait croire qu'on lit une altitude.
+       *
+       * Elle raccourcit donc au lieu de disparaitre : six mots suffisent a
+       * eviter l'erreur, et la phrase entiere reste en « Données ». */
+      if (o.mention && !dit.rien) {
+        H.text(dit.fabrication
+                 ? 'LIGNES DÉCALÉES DU PARCOURS — CE NE SONT PAS DES COURBES D’ALTITUDE'
+                 : 'LIGNES DE DISTANCE, NON D’ALTITUDE',
                g.left, yMention, H.t('label', { color: melange(encre, 0.3), maxWidth: g.width }));
       }
     }
