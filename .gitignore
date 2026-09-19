@@ -2,6 +2,11 @@
 tools/preview.png
 tools/frame*.png
 tools/planches-*.png
+# Les planches du banc gravure : on les REGARDE, on ne les publie pas.
+# Elles se refabriquent en une commande, et les versionner ferait entrer
+# huit megaoctets d'images a chaque retouche d'une courbe.
+tools/banc-gravure/*.png
+tools/banc-vtt/*.png
 # La galerie de revue EST publiée — mais en WebP, pas en PNG.
 #
 # Les rendus sortent du studio en PNG sans perte : douze mégaoctets pour
@@ -40,6 +45,10 @@ design/
 !sem-ven.gpx
 !sem-dim.gpx
 !loin-*.gpx
+# le banc de « Gravure d'altitude » : trois profils fabriques a la main pour
+# leurs pieges — un massif de 1083 m, une plaine de 17 m, et une trace sans
+# altitude. Sans eux, le banc n'a rien a mesurer chez qui clone le depot.
+!tools/banc-gravure/*.gpx
 
 # Un projet exporté est un .json qui contient des LATITUDES et des
 # LONGITUDES à six décimales : exactement ce que la règle *.gpx ci-dessus

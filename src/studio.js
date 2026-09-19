@@ -51,8 +51,18 @@
      * s'arrêter au milieu du morceau — la désynchronisation exacte que la
      * chronologie unique est censée rendre impossible. */
     var duree = typeof tpl.duree === 'function' ? tpl.duree(opts || {}) : tpl.duree;
+    /* LA DURÉE PAR DÉFAUT EST UN RÉGLAGE, PLUS UNE CONSTANTE.
+     *
+     * 4200 ms étaient écrits ici et nulle part ailleurs : aucun moyen de dire
+     * qu'un tracé doit apparaître en 1,5 s pour une story, ou en 8 s quand on
+     * veut le voir se faire.
+     *
+     * Elle ne s'applique QU'AUX planches qui n'en déclarent pas. Le film dure
+     * quinze secondes et la partition suit son tempo : chez elles la durée
+     * est le contenu. L'écraser désynchroniserait l'image et le son — c'est
+     * exactement ce que la chronologie unique existe pour empêcher. */
     return {
-      duree: duree || 4200,
+      duree: duree || dureeParDefaut,
       // fraction du temps consacrée à la révélation ; le reste est l'arrêt final
       reveal: lineaire ? 1 : 0.78,
       at: function (k) {                   // k = temps écoulé / durée totale
@@ -84,6 +94,15 @@
    * direct demandent H.surcouche() avant de le faire. */
   var supportSurcouche = false;
   function setSupport(actif) { supportSurcouche = !!actif; }
+
+  /* La durée d'apparition par défaut, en millisecondes. Bornée : une valeur
+   * absente, nulle ou absurde rendrait `chrono()` faux pour tout le studio —
+   * l'aperçu animé, la vidéo et la séquence PNG lisent tous cette valeur. */
+  var dureeParDefaut = 3000;
+  function setDuree(ms) {
+    var v = Number(ms);
+    dureeParDefaut = isFinite(v) && v > 0 ? Math.max(500, Math.min(30000, v)) : 3000;
+  }
 
   /* LE VOILE, RÉGLAGE GLOBAL — EN PASSANT PAR CELUI DU TEMPLATE.
    *
@@ -683,7 +702,7 @@
     render: render, exportPNG: exportPNG, setPhoto: setPhoto, setMinimal: setMinimal,
     setLibrary: setLibrary, setHistorique: setHistorique,
     setAchromatique: setAchromatique,
-    setSupport: setSupport, setVoile: setVoile,
+    setSupport: setSupport, setVoile: setVoile, setDuree: setDuree,
     versGris: versGris, rampeDeGris: rampeDeGris,
     setProgress: setProgress, fmt: fmt
   };

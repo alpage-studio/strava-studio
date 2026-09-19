@@ -11,8 +11,8 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.8';
-var STUDIO_DATE = '18.09.2026';
+var STUDIO_VERSION = '3.9';
+var STUDIO_DATE = '19.09.2026';
 
 /* ---------- le journal ----------
  *
@@ -34,6 +34,21 @@ var STUDIO_DATE = '18.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.9', d: '19.09.2026', points: [
+    'Une planche de plus : « Gravure d’altitude ». Le profil d’une sortie devient le sujet — une crête, et sous elle une vingtaine de lignes qui la reprennent. Deux compositions : Frise, qui traverse la feuille, et Massif, un bloc serré.',
+    'Une sortie plate y reste plate. Le profil du studio est normalisé entre 0 et 1 : dessiné tel quel, une boucle de plaine de dix-sept mètres aurait la même montagne qu’un col de mille. La hauteur se calcule donc sur les MÈTRES réels.',
+    'Les lignes secondaires ne sont PAS des courbes de niveau, et la planche ne le laisse pas croire : ce sont des copies du même profil. De vraies courbes demanderaient l’altitude du terrain autour du chemin, qu’un GPX ne contient pas. Seule la ligne du haut est mesurée — elle est tracée plus sombre.',
+    'Sans altitude, rien n’est inventé : la planche le dit et s’arrête.',
+    'L’export vidéo remarche. Il ne produisait plus rien depuis la 3.3.1 : le bouton se pressait, aucun fichier ne sortait, aucun message ne s’affichait. La séquence PNG tombait de la même façon, et rouvrir un projet perdait son format.',
+    'La durée de l’apparition se règle : 1,5 s, 3 s, 5 s ou 8 s. Elle était figée à 4,2 s dans le moteur. Les planches qui racontent une chronologie — le film, la partition, l’almanach — gardent la leur, et le menu disparaît chez elles.',
+    'Un GPX livre enfin sa PUISSANCE. Le lecteur demandait l’altitude, le cœur et la cadence, jamais les watts : un fichier qui les portait était lu comme s’il n’en avait pas, et Allumettes comptait ses efforts sur la fréquence cardiaque sans le dire.',
+    '« Gravure de puissance » : la sœur de Gravure d’altitude, pour les watts. Même dessin, mêmes deux compositions — et une échelle ABSOLUE, pleine hauteur à 400 W ou à ton FTP quand il est connu. Une sortie facile occupe peu de hauteur, une séance dure en occupe beaucoup, et deux affiches se comparent pour de bon.',
+    'Le pied du dessin est zéro watt, pas le minimum de la sortie : ne pas pédaler est une descente, pas une absence de mesure.',
+    '« Sous-bois » : la sortie en carte déssinée à l’encre, trait fin légèrement tremblé, sapins en marge et beaucoup de papier. Jusqu’à trois repères que TU places — un col, un refuge, un souvenir. Le studio n’en invente aucun : il ne connaît que des coordonnées.',
+    'Les sapins sont décoratifs et la planche le dit. Un GPX ne porte aucune information de couvert végétal ; ils se posent dans les marges, jamais sur le chemin.',
+    '« Versants » : le rythme de la sortie en bloc minéral. Chaque grande montée devient une facette hachurée, chaque descente un aplat, avec les proportions réelles de distance et de dénivelé. Une phase compte à partir de vingt-cinq mètres, réglable — sinon le bruit du baromètre fabriquerait deux cents « montées ».',
+    'La pente serre les hachures, et rien de plus : ni difficulté technique, ni nature du terrain, ni nombre de sauts. Un GPX ne contient ni les racines ni la taille des cailloux.'
+  ] },
   { v: '3.8', d: '19.09.2026', points: [
     'Un réglage de texte commun aux planches Alpage : Sans texte, Signature ou Données. Signature est le défaut — un titre discret et deux mesures.',
     'Les phrases qui expliquaient la FABRICATION quittent les affiches : « épaisseur : courbure du parcours — effet de style », « parcours tourné, non déformé », le fuseau horaire. Elles restent en « Données ».',

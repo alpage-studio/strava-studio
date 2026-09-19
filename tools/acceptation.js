@@ -443,6 +443,99 @@
        document.documentElement.scrollWidth <= innerWidth);
   }
 
+  // ---------- 6 ter. LA PUISSANCE, DEPUIS UN GPX ----------
+  /* Tout existait en aval — la série, les allumettes, le FTP — mais le
+   * parseur GPX ne demandait jamais la puissance. Un fichier qui contenait
+   * ses watts donnait `has_power = false`, et Allumettes retombait sur la
+   * fréquence cardiaque en annonçant quand même ses allumettes : la bonne
+   * réponse à la mauvaise question. */
+  (function () {
+    function trkpt(i, w) {
+      return '<trkpt lat="46.5' + String(i).padStart(3, '0') + '" lon="7.100">' +
+             '<ele>' + (500 + i) + '</ele>' +
+             '<time>2026-06-01T06:00:' + String(i % 60).padStart(2, '0') + 'Z</time>' +
+             '<extensions><power>' + w + '</power></extensions></trkpt>';
+    }
+    var pts = '';
+    for (var i = 0; i < 40; i++) pts += trkpt(i, 200 + (i % 7) * 25);
+    var gpx = '<?xml version="1.0" encoding="UTF-8"?>' +
+      '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">' +
+      '<trk><name>watts</name><trkseg>' + pts + '</trkseg></trk></gpx>';
+    try {
+      var a = Activity.build(Activity.parseGPX(gpx));
+      ok('puissance · un GPX qui porte des watts les livre  (' +
+         (a.power && a.power.max) + ' W max)',
+         a.has_power === true && a.power.data.length === 40 && a.power.max >= 200,
+         'has_power=' + a.has_power + ' points=' + (a.power && a.power.data.length));
+      /* ET LA MESURE DOIT ÊTRE LA BONNE. Sans ce second contrôle, un repli
+       * silencieux sur le cardio passerait pour un succès : c'est exactement
+       * ce qui se produisait. */
+      var f = a.burned ? a.burned({ ftp: 220 }) : null;
+      ok('puissance · les allumettes se comptent sur les watts, pas sur le cœur',
+         !!f && f.source === 'puissance', 'source = ' + (f && f.source));
+    } catch (e) {
+      ok('puissance · un GPX qui porte des watts les livre', false, e.message);
+    }
+    /* Un GPX SANS watts doit rester sans puissance — sinon le contrôle
+     * ci-dessus passerait au vert sur n'importe quoi. */
+    var nu = '<?xml version="1.0" encoding="UTF-8"?>' +
+      '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">' +
+      '<trk><trkseg><trkpt lat="46.5" lon="7.1"><ele>500</ele></trkpt>' +
+      '<trkpt lat="46.6" lon="7.2"><ele>520</ele></trkpt></trkseg></trk></gpx>';
+    try {
+      var b = Activity.build(Activity.parseGPX(nu));
+      ok('puissance · sans watts, rien n’est inventé', b.has_power === false);
+    } catch (e) {
+      ok('puissance · sans watts, rien n’est inventé', false, e.message);
+    }
+  }());
+
+  // ---------- 6 quater. L'EXPORT VIDÉO ----------
+  /* IL N'ÉTAIT PAS COUVERT, ET IL ÉTAIT CASSÉ.
+   *
+   * `exports.js` employait `SIZES` et `canvas` sans les déclarer : depuis le
+   * découpage de app.js, ces deux noms n'existent plus dans la portée d'un
+   * morceau. L'export vidéo et la séquence PNG mouraient sur leur première
+   * ligne, avant même d'écrire un message d'état. Deux cent un cas verts
+   * au-dessus d'un bouton qui ne faisait rien — parce que ce fichier
+   * annonçait lui-même ne pas le couvrir.
+   *
+   * La raison invoquée — « MediaRecorder sur plusieurs secondes » — ne tient
+   * plus : la durée est devenue un réglage, et 1,5 s suffisent à prouver
+   * qu'un fichier sort. Ce qui coûtait trop cher à éprouver, c'était une
+   * constante qu'on ne pouvait pas changer. */
+  if (!window.MediaRecorder || !Video.pickMime()) {
+    resultats.push({ cas: 'vidéo · export', verdict: 'sauté',
+                     detail: 'ce navigateur ne sait pas enregistrer' });
+  } else if (!$('#export-video')) {
+    resultats.push({ cas: 'vidéo · export', verdict: 'sauté', detail: 'bouton absent' });
+  } else {
+    var sauveVraie = Video.save;
+    var sortie = null;
+    Video.save = function (blob, nom) { sortie = { taille: blob.size, nom: nom }; };
+    var dureeAvant = $('#duree') ? $('#duree').value : null;
+    if ($('#duree')) {
+      $('#duree').value = '1500';
+      $('#duree').dispatchEvent(new Event('change'));
+    }
+    $('#export-video').click();
+    var fini = await jusqua(function () { return !!sortie; }, 40000);
+    Video.save = sauveVraie;
+    if (dureeAvant && $('#duree')) {
+      $('#duree').value = dureeAvant;
+      $('#duree').dispatchEvent(new Event('change'));
+    }
+    /* UN FICHIER, ET UN FICHIER QUI PÈSE. Un blob vide s'enregistre aussi
+     * bien qu'un plein : sans le seuil, le contrôle serait vert sur zéro
+     * octet, ce qui est précisément la panne qu'on veut voir. */
+    ok('vidéo · l’export rend un fichier  (' +
+       (sortie ? Math.round(sortie.taille / 1024) + ' ko' : 'rien') + ')',
+       fini && sortie && sortie.taille > 10000,
+       'état : ' + ($('#video-state') ? $('#video-state').textContent : '—'));
+    ok('vidéo · le fichier porte une extension jouable',
+       !!sortie && /[.](mp4|webm)$/.test(sortie.nom), sortie && sortie.nom);
+  }
+
   // ---------- 7. le bandeau ----------
   var bandeau = $('#nouveautes');
   if (bandeau && !bandeau.hidden) {
@@ -460,7 +553,7 @@
   console.log(resultats.length - echecs.length + ' / ' +
               resultats.filter(function (r) { return r.verdict !== 'sauté'; }).length +
               ' cas passés · ' + echecs.length + ' échec(s)');
-  console.log('NON COUVERT ICI : aperçu animé, export vidéo, séquence PNG.');
+  console.log('NON COUVERT ICI : aperçu animé, séquence PNG. L’export vidéo, lui, est éprouvé — il était cassé et personne ne le voyait.');
   window.__acceptation = resultats;
   return resultats;
 }());

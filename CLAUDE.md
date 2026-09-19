@@ -86,7 +86,7 @@ surcouche opaque — visuellement « ça marche », et la photo dessous a dispar
 
 **La chaîne française EST la clé i18n.** `src/i18n.js` traduit depuis le texte
 source. Renommer un libellé français casse sa traduction sans rien signaler ; un
-contrôle du harnais exige que les 32 templates soient traduits. Les libellés
+contrôle du harnais exige que les 36 templates soient traduits. Les libellés
 partagés entre templates (« Cadrage », par exemple) sont une seule entrée : la
 changer pour l'un la change pour tous.
 
@@ -105,7 +105,7 @@ photo se choisit juste après la sortie, l'aperçu montre l'image dessous — vi
 comprise —, le catalogue et l'écran d'accueil rendent leurs planches sur une
 image et non sur un damier. Un damier dit « c'est transparent » et rien de plus.
 
-**Un voile par défaut, et UN SEUL peintre.** Les 32 planches ont leur encre
+**Un voile par défaut, et UN SEUL peintre.** Les 36 planches ont leur encre
 réglée pour le papier : posées telles quelles, leur titre tombe sur une zone
 sombre et disparaît. Le voile était peint à deux endroits —  pour les
 15 qui déclarent la clé,  pour les 17 autres — avec des courbes

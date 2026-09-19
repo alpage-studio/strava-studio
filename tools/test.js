@@ -1468,6 +1468,106 @@ function testsMorceaux() {
   ok('morceaux · un seul appel a demarre()  (' + appels + ')', appels === 1);
 }
 
+/* ================= 2 nonies. CHAQUE MORCEAU DÉCLARE CE QU'IL EMPRUNTE =======
+ *
+ * LE DÉFAUT RÉEL, ET IL A TENU SIX VERSIONS.
+ *
+ * `src/app/exports.js` écrivait `SIZES[$('#size').value]` et `canvas` en
+ * référence nue. Dans l'ancien app.js monolithique c'étaient des variables de
+ * fichier, visibles des vingt fonctions. Depuis le découpage, chaque morceau
+ * est sa propre fermeture : `SIZES` n'y existe plus, et la ligne lève
+ * `SIZES is not defined`.
+ *
+ * Conséquence : l'export vidéo et la séquence PNG mouraient sur leur PREMIÈRE
+ * ligne utile, avant d'afficher quoi que ce soit. `collection.js` avait le
+ * même trou, et un projet rouvert perdait son format. `sources.js`, lui,
+ * déclarait bien ses deux alias — c'est pourquoi l'export PNG marchait, et
+ * c'est ce qui rendait la panne crédible comme « la vidéo ne marche pas ».
+ *
+ * POURQUOI RIEN NE L'A VU
+ *   Le harnais ne charge pas l'interface : il la lit. L'acceptation, elle,
+ *   écrit noir sur blanc que l'export vidéo et la séquence PNG ne sont PAS
+ *   couverts — ils demandent MediaRecorder sur plusieurs secondes. Deux cent
+ *   un cas verts au-dessus d'un chemin que personne n'exécutait jamais.
+ *   L'utilisateur l'a trouvé ; pas nous.
+ *
+ * CE QUE CE CONTRÔLE FAIT
+ *   Il relève ce que `App` porte, puis, pour chaque morceau, cherche ces noms
+ *   employés NUS — ni `A.nom`, ni `.nom`, ni une clé de chaîne. Un nom emprunté
+ *   sans être déclaré est une erreur d'exécution qui attend son tour.
+ *
+ *   Il ne remplace pas un vrai analyseur : il couvre la seule chose qui a
+ *   cassé, et il la couvre entièrement plutôt que par échantillon.
+ */
+{
+  titre('2 nonies. CHAQUE MORCEAU DÉCLARE CE QU’IL EMPRUNTE');
+
+  const dossier = path.join(ROOT, 'src', 'app');
+  const noyau = fs.readFileSync(path.join(dossier, 'noyau.js'), 'utf8');
+
+  /* Ce que `global.App = { ... }` expose, plus tout `A.nom = ` posé ailleurs. */
+  const membres = new Set();
+  const litteral = /global\.App\s*=\s*\{([\s\S]*?)\n\s*\};/.exec(noyau);
+  if (litteral) {
+    (litteral[1].match(/^\s*([A-Za-z_$][\w$]*)\s*:/gm) || []).forEach(function (m) {
+      membres.add(m.replace(/[\s:]/g, ''));
+    });
+  }
+  const tousFichiers = ['app.js'].concat(
+    fs.readdirSync(dossier).filter(function (f) { return /[.]js$/.test(f); })
+      .map(function (f) { return path.join('app', f); }));
+  tousFichiers.forEach(function (rel) {
+    const t = fs.readFileSync(path.join(ROOT, 'src', rel), 'utf8');
+    (t.match(/\bA\.([A-Za-z_$][\w$]*)\s*=[^=]/g) || []).forEach(function (m) {
+      membres.add(/A\.([A-Za-z_$][\w$]*)/.exec(m)[1]);
+    });
+  });
+
+  /* Un compte plausible : si la collecte rate, l'ensemble est vide et le
+   * contrôle passe au vert en n'ayant rien cherché. C'est exactement la
+   * faute qu'on a déjà payée sur le compte des tâches de la chaîne. */
+  ok('morceaux · les membres de App ont été relevés  (' + membres.size + ')',
+     membres.size >= 15 && membres.has('SIZES') && membres.has('canvas'),
+     'relevé : ' + Array.from(membres).slice(0, 8).join(', '));
+
+  /* Les vrais globaux du studio : eux n'ont pas à être empruntés. */
+  const globaux = new Set(['App', 'T', 'I18N', 'Studio', 'Video', 'Zip', 'Share',
+                           'Alpage', 'Collections', 'Library', 'Activity', 'Projet',
+                           'Historique', 'Partition', 'Overlay']);
+
+  const manquants = [];
+  tousFichiers.forEach(function (rel) {
+    const texte = fs.readFileSync(path.join(ROOT, 'src', rel), 'utf8');
+    /* Commentaires retirés : une phrase qui cite « SIZES » n'est pas un appel,
+     * et sans ce nettoyage le contrôle accuserait la documentation. */
+    const code = texte.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+    membres.forEach(function (nom) {
+      if (globaux.has(nom)) return;
+      /* `$` EST UN MÉTACARACTÈRE. Sans échappement, `var\s+$\b` ne peut
+       * matcher AUCUNE déclaration : le membre le plus employé du studio
+       * était accusé dans les dix fichiers à la fois. Un contrôle qui se
+       * trompe de coupable à chaque ligne est aussi inutile qu'un muet. */
+      const ech = nom.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      /* déclaré localement, sous une forme ou une autre ? */
+      /* `\b` NE MARCHE PAS NON PLUS APRÈS `$`. Une frontière de mot demande
+       * une transition mot / non-mot ; `$` et l'espace qui suit sont tous
+       * deux des non-mots, donc `\$\b` ne matche jamais `var $ = A.$;`.
+       * La négation explicite, elle, dit ce qu'on veut vraiment : que le nom
+       * ne soit pas le début d'un nom plus long. */
+      const declare = new RegExp('(var|let|const|function)\\s+' + ech + '(?![\\w$])').test(code);
+      if (declare) return;
+      /* employé nu : pas précédé d'un point, pas une clé `nom:` */
+      const nu = new RegExp('(^|[^.\\w$])' + ech + '\\s*(\\(|\\[|\\.|,|\\)|;|===|!==|\\s\\|\\|)', 'm');
+      if (nu.test(code)) manquants.push('src/' + rel.replace(/\\/g, '/') + ' → ' + nom);
+    });
+  });
+
+  ok('morceaux · aucun n’emprunte un membre de App sans le déclarer  (' +
+     tousFichiers.length + ' fichiers, ' + membres.size + ' membres)',
+     manquants.length === 0,
+     manquants.slice(0, 6).join(' | '));
+}
+
 /* ================= 2 quater. MENUS REMPLIS =================
  *
  * Le défaut réel : `<select id="collection">` était vide dans index.html et

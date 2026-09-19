@@ -335,6 +335,19 @@
         ele: num(n, 'ele'),
         hr: num(n, 'hr'),
         cad: num(n, 'cad'),
+        /* LA PUISSANCE ÉTAIT LA SEULE MESURE QU'UN GPX NE LIVRAIT PAS.
+         *
+         * Tout existe en aval — `powerSeries()`, `burned()`, le FTP, et la
+         * planche Allumettes — mais `p.w` n'était jamais rempli ici. La
+         * puissance n'arrivait donc que par Strava ou intervals.icu : tout
+         * fichier GPX donnait `has_power = false`, et Allumettes retombait
+         * sur la fréquence cardiaque sans qu'on comprenne pourquoi.
+         *
+         * Deux noms circulent : `<power>` chez Garmin, `PowerInWatts` dans
+         * l'extension de certains compteurs. `childByLocalName` descend dans
+         * les extensions et ignore les préfixes — c'est déjà ainsi que `hr`
+         * et `cad` remontent. */
+        w: num(n, 'power') != null ? num(n, 'power') : num(n, 'PowerInWatts'),
         t: null
       };
       var tEl = childByLocalName(n, 'time');

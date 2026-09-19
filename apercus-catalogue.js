@@ -68,6 +68,48 @@
     { f: 'Strates', g: 'Support', n: 'Horizons · paysage', d: 'format large',
       t: 'strates', o: { finition: 'horizons' }, j: 'huit', taille: [1920, 1080] },
 
+    /* ------------- GRAVURE D’ALTITUDE ------------- */
+    /* Sur le jeu « formes », donc sur UNE sortie : c'est une planche a
+     * sortie unique, et la juger sur un jeu multi-sorties ne montrerait
+     * jamais ce qu'elle fait. Deux parcours differents, parce qu'un profil
+     * a deux bosses et un profil monotone ne se composent pas pareil. */
+    { f: 'Gravure d’altitude', g: 'Original', n: 'Frise', d: 'une crête qui traverse, beaucoup de ciel',
+      t: 'gravure', o: {}, j: 'formes', i: 0 },
+    { f: 'Gravure d’altitude', g: 'Original', n: 'Massif', d: 'un bloc compact, lignes serrées',
+      t: 'gravure', o: { composition: 'massif' }, j: 'formes', i: 2 },
+    { f: 'Gravure d’altitude', g: 'Support', n: 'Frise · surcouche', d: 'posée sur une photo',
+      t: 'gravure', o: SURCOUCHE, j: 'formes', i: 0, photo: true },
+    { f: 'Gravure d’altitude', g: 'Support', n: 'Massif · paysage', d: 'format large',
+      t: 'gravure', o: { composition: 'massif' }, j: 'formes', i: 2, taille: [1920, 1080] },
+
+    /* ------------- GRAVURE DE PUISSANCE ------------- */
+    { f: 'Gravure de puissance', g: 'Original', n: 'Frise', d: 'l’effort traverse la feuille',
+      t: 'gravure-puissance', o: {}, j: 'watts' },
+    { f: 'Gravure de puissance', g: 'Original', n: 'Massif', d: 'un bloc compact, lignes serrées',
+      t: 'gravure-puissance', o: { composition: 'massif' }, j: 'watts' },
+    { f: 'Gravure de puissance', g: 'Support', n: 'Frise · surcouche', d: 'posée sur une photo',
+      t: 'gravure-puissance', o: SURCOUCHE, j: 'watts', photo: true },
+
+    /* ---------------- SOUS-BOIS ---------------- */
+    /* Sur « formes » : c'est une carte, elle se juge sur la géométrie. La
+     * boucle montre les lacets, l'ouvert montre les deux extrémités. */
+    { f: 'Sous-bois', g: 'Original', n: 'Carnet', d: 'trait fin, sapins en marge',
+      t: 'sous-bois', o: {}, j: 'formes', i: 0 },
+    { f: 'Sous-bois', g: 'Original', n: 'Clairière', d: 'le chemin seul, beaucoup de papier',
+      t: 'sous-bois', o: { composition: 'clairiere' }, j: 'formes', i: 2 },
+    { f: 'Sous-bois', g: 'Support', n: 'Carnet · surcouche', d: 'posée sur une photo',
+      t: 'sous-bois', o: SURCOUCHE, j: 'formes', i: 0, photo: true },
+
+    /* ---------------- VERSANTS ---------------- */
+    { f: 'Versants', g: 'Original', n: 'Bloc', d: 'facettes hachurées, arêtes claires',
+      t: 'versants', o: {}, j: 'formes', i: 0 },
+    { f: 'Versants', g: 'Original', n: 'Réserve', d: 'les montées seules, descentes en blanc',
+      t: 'versants', o: { composition: 'reserve' }, j: 'formes', i: 2 },
+    { f: 'Versants', g: 'Support', n: 'Bloc · accent', d: 'la plus longue montée en terre cuite',
+      t: 'versants', o: { accent: true }, j: 'formes', i: 0 },
+    { f: 'Versants', g: 'Support', n: 'Bloc · paysage', d: 'format large',
+      t: 'versants', o: {}, j: 'formes', i: 0, taille: [1920, 1080] },
+
     /* ---------------- EMPREINTE ---------------- */
     { f: 'Empreinte', g: 'Original', n: 'Sceau', d: 'disque et contours',
       t: 'empreinte', o: {}, j: 'formes', i: 0 },
@@ -152,6 +194,9 @@
 
   var JEUX = {
     formes:  ['demo-boucle.gpx', 'demo-aller.gpx', 'demo-ouvert.gpx', 'demo-croisements.gpx'],
+    /* le seul jeu qui porte des WATTS : sans lui, la gravure de puissance
+     * ne se jugerait que sur son état vide. */
+    watts:   ['demo-intervalles.gpx'],
     semaine: ['sem-lun.gpx', 'sem-mar.gpx', 'sem-jeu.gpx', 'sem-ven.gpx', 'sem-dim.gpx'],
     regions: ['sem-lun.gpx', 'sem-jeu.gpx', 'loin-a.gpx', 'loin-b.gpx'],
     huit:    ['sem-01.gpx', 'sem-02.gpx', 'sem-03.gpx', 'sem-04.gpx',

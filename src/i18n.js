@@ -197,6 +197,68 @@
     'Cadence — mesurée': 'Cadence — measured',
     'Épaisseur constante': 'Constant thickness',
 
+    /* ---------- durée de l'apparition ---------- */
+    'Durée de l’apparition': 'How long the drawing takes',
+    '1,5 s — bref': '1.5 s — brisk',
+    '3 s': '3 s',
+    '5 s': '5 s',
+    '8 s — on regarde le tracé se faire': '8 s — watch the line being drawn',
+
+    /* ---------- Versants ---------- */
+    'Versants — le rythme de la sortie': 'Slopes — the rhythm of the ride',
+    'Bloc': 'Block',
+    'facettes hachurées, arêtes claires': 'hatched facets, bright edges',
+    'Réserve': 'Reserve',
+    'les montées seules, descentes en blanc': 'climbs only, descents left white',
+    'Bloc · accent': 'Block · accent',
+    'la plus longue montée en terre cuite': 'the longest climb in terracotta',
+    'Original · Bloc — facettes hachurées': 'Original · Block — hatched facets',
+    'Original · Réserve — les montées seules': 'Original · Reserve — climbs only',
+    'Dénivelé minimal d’une phase (m) — en dessous, elle fusionne': 'Smallest climb or descent counted (m) — below this it merges',
+    'Densité des hachures': 'Hatching density',
+    'La plus longue montée en accent': 'Longest climb in the accent colour',
+
+    /* ---------- Sous-bois ---------- */
+    'Sous-bois — le souvenir du lieu': 'Undergrowth — the memory of the place',
+    'Carnet': 'Notebook',
+    'trait fin, sapins en marge': 'a thin line, firs in the margin',
+    'Clairière': 'Clearing',
+    'le chemin seul, beaucoup de papier': 'the path alone, and plenty of paper',
+    'Charbon': 'Charcoal',
+    'encre sombre plutôt que verte': 'dark ink rather than green',
+    'Original · Carnet — la carte et ses sapins': 'Original · Notebook — the map and its firs',
+    'Original · Clairière — le chemin seul': 'Original · Clearing — the path alone',
+    'Sapins en marge': 'Firs in the margin',
+    'Tremblé du trait': 'Wobble of the line',
+    'Épaisseur du trait': 'Line weight',
+    'Repère 1 — col, refuge, souvenir': 'Marker 1 — a pass, a hut, a memory',
+    'Repère 1 · où sur le parcours': 'Marker 1 · where along the route',
+    'Repère 2': 'Marker 2',
+    'Repère 2 · où sur le parcours': 'Marker 2 · where along the route',
+    'Repère 3': 'Marker 3',
+    'Repère 3 · où sur le parcours': 'Marker 3 · where along the route',
+
+    /* ---------- Gravure de puissance ---------- */
+    'Gravure de puissance — l’effort en watts': 'Power engraving — the effort in watts',
+    'l’effort traverse la feuille': 'the effort crosses the sheet',
+    'Original · Frise — l’effort traverse la feuille': 'Original · Frieze — the effort crosses the sheet',
+    'Échelle verticale': 'Vertical scale',
+    'Automatique — ton FTP s’il est connu, sinon 400 W': 'Automatic — your FTP when known, otherwise 400 W',
+    'Pleine hauteur à 250 W': 'Full height at 250 W',
+    'Pleine hauteur à 400 W': 'Full height at 400 W',
+    'Pleine hauteur à 600 W': 'Full height at 600 W',
+    'Marquer le pic de puissance': 'Mark the power peak',
+
+    /* ---------- Gravure d’altitude ---------- */
+    'Gravure d’altitude — le relief parcouru': 'Altitude engraving — the relief you rode',
+    'Frise': 'Frieze',
+    'une crête qui traverse, beaucoup de ciel': 'a ridge across, and plenty of sky',
+    'un bloc compact, lignes serrées': 'a compact block, lines packed tight',
+    'Original · Frise — une crête qui traverse': 'Original · Frieze — a ridge across the sheet',
+    'Original · Massif — un bloc de lignes serrées': 'Original · Massif — a block of packed lines',
+    'Amplitude verticale — exagérée, comme toute affiche de relief': 'Vertical amplitude — exaggerated, as on any relief poster',
+    'Marquer le point culminant': 'Mark the high point',
+
     /* ---------- Strates ---------- */
     'Strates — les profils en massif': 'Strata — profiles as a massif',
     'Original · Gravure — reliefs en tiges': 'Original · Engraving — relief in stems',

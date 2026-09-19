@@ -21,6 +21,7 @@
         collection: $('#collection').value, minimal: $('#minimal').checked,
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
         support: $('#support').value, voile: $('#voile').value,
+        duree: $('#duree') ? $('#duree').value : null,
         periode: $('#periode').value
       }));
     } catch (e) { /* mode privé : tant pis */ }
@@ -124,6 +125,7 @@
      * alors sa planche sur une image, comme le reglage le produira. */
     document.body.classList.toggle('surcouche', $('#support').value === 'surcouche');
     Studio.setVoile($('#voile') ? $('#voile').value : 'aucun');
+    if ($('#duree')) Studio.setDuree($('#duree').value);
   }
 
   function syncBibliotheque() {
@@ -285,7 +287,7 @@
      * bloque que les gestes de l'utilisateur, pas un dispatchEvent. On le
      * neutralise donc par un drapeau, lu au moment du clic. */
     ['#size', '#tpl', '#collection', '#voile', '#minimal',
-     '#rendu', '#support', '#photo-nb', '#periode'].forEach(function (sel) {
+     '#rendu', '#support', '#photo-nb', '#periode', '#duree'].forEach(function (sel) {
       var el = $(sel); if (el) el.disabled = E.exportEnCours;
     });
     var cat = $('#choix-style');
@@ -919,6 +921,7 @@
     if (saved.photoNb) $('#photo-nb').checked = true;
     if (saved.support) $('#support').value = saved.support;
     if (saved.voile) $('#voile').value = saved.voile;
+    if (saved.duree && $('#duree')) $('#duree').value = saved.duree;
     /* le menu part caché dans le HTML : au chargement, c'est le support
      * relu qui décide s'il doit apparaître */
     $('#opt-voile').hidden = $('#support').value !== 'surcouche';
@@ -933,6 +936,10 @@
     $('#opt-photo-nb').hidden = $('#rendu').value !== 'nb';
 
     majPeriode();
+    /* Le menu part visible dans le HTML : au chargement, c'est le template
+     * relu qui décide s'il doit disparaître — même mécanique que le voile
+     * juste au-dessus. */
+    if (A.majDuree) A.majDuree();
     A.construitChoixStyle();
     A.majDisposition();
 

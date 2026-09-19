@@ -68,9 +68,17 @@ function meandre(axe, opts) {
 function gpx(nom, type, depart, pts, secondesParPoint, sansEle) {
   const t0 = new Date(depart).getTime();
   const corps = pts.map(function (p, i) {
+    /* LES WATTS, QUAND LE PARCOURS EN PORTE.
+     * Aucun démo n'en avait : les planches qui lisent la puissance se
+     * jugeaient donc sur leur état vide, ou sur un repli silencieux vers la
+     * fréquence cardiaque. Un jeu de démonstration qui n'exerce pas une
+     * grandeur laisse les planches qui la lisent sans relecture. */
+    const w = p.w == null ? '' :
+      '        <extensions><power>' + Math.round(p.w) + '</power></extensions>\n';
     return '      <trkpt lat="' + p.lat.toFixed(6) + '" lon="' + p.lon.toFixed(6) + '">\n' +
            (sansEle ? '' : '        <ele>' + p.ele.toFixed(1) + '</ele>\n') +
            '        <time>' + new Date(t0 + i * secondesParPoint * 1000).toISOString() + '</time>\n' +
+           w +
            '      </trkpt>';
   }).join('\n');
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +
@@ -186,7 +194,40 @@ const LOIN = [
    }, { points: 520, graine: 73, amplitude: 0.0026, periode1: 9, periode2: 23, periode3: 51 }), 5]
 ];
 
-[].concat(FAMILLES, SEMAINE, LOIN).forEach(function (j) {
+/* 5. SÉANCE À INTERVALLES — le seul démo qui porte des WATTS.
+ *
+ * Six relances dures sur un fond de tempo. C'est ce qu'il faut pour juger une
+ * planche de puissance : une sortie régulière ne montre rien, et une sortie
+ * sans capteur ne montre que l'état vide.
+ *
+ * Les pics sont des gaussiennes étroites — c'est la forme d'une relance, et
+ * c'est aussi ce qui met à l'épreuve le rééchantillonnage, qui doit les
+ * garder plutôt que les moyenner jusqu'à les effacer.
+ */
+function seanceIntervalles() {
+  const pts = meandre(function (t) {
+    return { lat: 46.5210 + t * 0.052, lon: 6.5900 + t * 0.068,
+             ele: 480 + 260 * Math.sin(t * Math.PI * 1.3) };
+  }, { points: 900, graine: 41, amplitude: 0.0031, periode1: 11, periode2: 27, periode3: 63 });
+  const n = pts.length;
+  pts.forEach(function (p, i) {
+    const t = n > 1 ? i / (n - 1) : 0;
+    let w = 168 + 22 * Math.sin(t * 9.4) + 14 * Math.sin(t * 23.1);
+    for (let k = 0; k < 6; k++) {
+      const centre = 0.13 + k * 0.145;
+      w += 350 * Math.exp(-Math.pow((t - centre) / 0.018, 2));
+    }
+    p.w = Math.max(0, w);
+  });
+  return pts;
+}
+
+const PUISSANCE = [
+  ['demo-intervalles.gpx', 'Séance à intervalles', 'ride', '2026-09-09T17:30:00Z',
+   seanceIntervalles(), 4]
+];
+
+[].concat(FAMILLES, SEMAINE, LOIN, PUISSANCE).forEach(function (j) {
   fs.writeFileSync(path.join(OUT, j[0]), gpx(j[1], j[2], j[3], j[4], j[5]), 'utf8');
   console.log(j[0] + ' · ' + j[4].length + ' points · ' + j[1]);
 });

@@ -320,7 +320,7 @@ async function passe(navigateur, base, ecran, interception) {
 
   console.log((cas - echecs) + ' / ' + cas + ' cas · ' + echecs + ' échec(s)' +
               (sautes ? ' · ' + sautes + ' sautés' : ''));
-  console.log('NON COUVERT ICI : aperçu animé, export vidéo, séquence PNG — ils ' +
-              'demandent MediaRecorder sur plusieurs secondes.');
+  console.log('NON COUVERT ICI : aperçu animé, séquence PNG. L’export vidéo, lui, ' +
+              'est désormais éprouvé — il était cassé et cette ligne disait de ne pas regarder.');
   process.exitCode = echecs ? 1 : 0;
 }());

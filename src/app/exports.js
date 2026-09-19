@@ -8,6 +8,24 @@
 
   var $ = A.$;
   var E = A.etat;
+  /* LE CANVAS ET LES FORMATS VIENNENT DE `A`, ILS NE SONT PAS GLOBAUX.
+   *
+   * Ces deux lignes manquaient depuis le découpage de app.js. Dans le fichier
+   * monolithique, `SIZES` et `canvas` étaient de simples variables de fichier
+   * et les vingt fonctions les voyaient ; chaque module est désormais sa
+   * propre fermeture, et une référence nue y lève `SIZES is not defined`.
+   *
+   * Conséquence : l'export vidéo ET la séquence PNG mouraient sur leur
+   * PREMIÈRE ligne utile, avant même d'afficher un message. L'export PNG,
+   * lui, marchait — `sources.js` déclarait bien ses deux alias. C'est ce qui
+   * rendait la panne crédible comme « problème de vidéo ».
+   *
+   * Aucun contrôle ne l'a vu : l'acceptation écrit noir sur blanc que
+   * l'export vidéo et la séquence PNG ne sont PAS couverts, parce qu'ils
+   * demandent MediaRecorder sur plusieurs secondes. Deux cent un cas verts
+   * au-dessus d'un chemin que personne n'exécutait. */
+  var canvas = A.canvas;
+  var SIZES = A.SIZES;
   var save = A.save;
   var effective = A.effective;
   var resolvedOptions = A.resolvedOptions;
@@ -71,8 +89,27 @@
 
   $('#minimal').addEventListener('change', changement);
   $('#tpl').addEventListener('change', function () {
-    buildOptions(); majPeriode(); changement();
+    buildOptions(); majPeriode(); majDuree(); changement();
   });
+
+  /* LE RÉGLAGE DE DURÉE NE SE MONTRE QUE S'IL FAIT QUELQUE CHOSE.
+   *
+   * Cinq planches portent leur propre durée — le film, la partition,
+   * l'almanach, la fresque, les saisons — parce qu'elles racontent une
+   * chronologie. `Studio.chrono()` ne leur applique pas le réglage global ;
+   * le laisser visible chez elles afficherait un menu qui ne change rien.
+   *
+   * On interroge le moteur plutôt que de tenir une liste ici : une liste de
+   * cinq identifiants recopiée dans l'interface est une sixième planche en
+   * attente d'être oubliée. */
+  function majDuree() {
+    var bloc = $('#opt-duree');
+    if (!bloc) return;
+    var tpl = Studio.get($('#tpl').value);
+    bloc.hidden = !!(tpl && tpl.duree);
+  }
+  A.majDuree = majDuree;
+  $('#duree').addEventListener('change', function () { save(); changement(); });
   /* Le catalogue se reconstruit quand la sortie change : les vignettes sont
    * des rendus de CETTE sortie, pas des images d'illustration.
    *

@@ -8,6 +8,10 @@
 
   var $ = A.$;
   var E = A.etat;
+  /* Même oubli qu'`exports.js` : `SIZES` n'est pas global. Ici il ne tombait
+   * qu'en rouvrant un projet enregistré — le format sauvegardé ne pouvait
+   * pas être restauré, et la lecture du projet s'arrêtait là. */
+  var SIZES = A.SIZES;
   var effective = A.effective;
   var bouton = A.bouton;
   var apresChangement = A.apresChangement;
@@ -69,6 +73,7 @@
         collection: $('#collection').value, minimal: $('#minimal').checked,
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
         support: $('#support').value, voile: $('#voile').value,
+        duree: $('#duree') ? $('#duree').value : null,
         periode: $('#periode').value,
         opts: E.optionValues
       }, 'projet-' + slug() + '.json');
@@ -103,6 +108,7 @@
     if (p.reglages.rendu) $('#rendu').value = p.reglages.rendu;
     if (p.reglages.support) $('#support').value = p.reglages.support;
     if (p.reglages.voile) $('#voile').value = p.reglages.voile;
+    if (p.reglages.duree && $('#duree')) $('#duree').value = p.reglages.duree;
     /* La période décide QUELLES sorties composent la planche : sans elle, un
      * projet multi-sorties se rouvrait sur une autre sélection que celle
      * qu'on avait enregistrée. C'est le réglage qui change le plus ce qu'on

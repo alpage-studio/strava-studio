@@ -712,8 +712,110 @@
     };
   }
 
+  /* ---------- la gravure en lignes ----------
+   *
+   * Une courbe mesurée, et sous elle une vingtaine de copies qui la reprennent
+   * en s'aplatissant. Deux planches s'en servent — l'altitude et la puissance —
+   * et elles ne partagent QUE le dessin : l'échelle, l'ancrage et ce qu'on a le
+   * droit d'affirmer leur appartiennent, parce que ces trois choses-là diffèrent
+   * vraiment d'une grandeur à l'autre.
+   *
+   * L'altitude se lit entre son minimum et son maximum ; la puissance se lit
+   * depuis ZÉRO, parce que ne pas pédaler est une valeur et non une absence.
+   * Fondre les deux dans une fonction à drapeaux aurait produit une planche qui
+   * ment sur l'une des deux.
+   *
+   * CE QUE LES COPIES SONT : des copies. Pas des courbes de niveau, pas des
+   * sorties voisines, pas des tolérances. La ligne du haut est la seule
+   * mesurée — elle est posée EN DERNIER et garde son encre pleine.
+   *
+   *   serie   [{x: 0..1, h: hauteur en pixels}]  déjà rééchantillonnée
+   *   zone    {x, w, base}  base = la ligne de pied du paquet
+   *   renvoie rien ; l'appelant garde `serie` pour pointer ce qu'il veut.
+   */
+  function graveLignes(ctx, serie, opt) {
+    if (!serie || serie.length < 2) return;
+    var zone = opt.zone, n = Math.max(2, Math.round(opt.lignes || 26));
+    var ecart = opt.ecart || 0;
+    var encre = opt.encre;
+    var minOp = opt.opacite && opt.opacite.min != null ? opt.opacite.min : 0.12;
+    var maxOp = opt.opacite && opt.opacite.max != null ? opt.opacite.max : 0.50;
+
+    /* Le dégradé qui éteint les copies sur les deux bords. Sans lui, un profil
+     * qui se termine haut laisse trente-cinq bouts de ligne échelonnés à la
+     * même abscisse : le bord devient un escalier net, et cela se lit comme
+     * une image coupée plutôt que comme un parti pris. */
+    function fondu(couleur) {
+      var rien = melange(encre, 0);
+      var gr = ctx.createLinearGradient(zone.x, 0, zone.x + zone.w, 0);
+      gr.addColorStop(0, rien);
+      gr.addColorStop(0.07, couleur);
+      gr.addColorStop(0.93, couleur);
+      gr.addColorStop(1, rien);
+      return gr;
+    }
+
+    ctx.save();
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    /* DU BAS VERS LE HAUT : la ligne mesurée est posée en dernier. Dans
+     * l'autre sens les copies repassaient par-dessus elle au fond des
+     * creux, et la seule ligne vraie était la seule à être recouverte. */
+    for (var L = 0; L < n; L++) {
+      var f = L / (n - 1);                       // 1 = la courbe mesurée
+      var y0 = zone.base + (1 - f) * ecart;
+      var ecrase = 0.25 + 0.75 * f;
+      ctx.beginPath();
+      for (var k = 0; k < serie.length; k++) {
+        var y = y0 - serie[k].h * ecrase;
+        if (k === 0) ctx.moveTo(serie[k].x, y); else ctx.lineTo(serie[k].x, y);
+      }
+      if (L === n - 1) {
+        ctx.strokeStyle = encre;
+        ctx.lineWidth = opt.traitMesure || 1.1;
+      } else {
+        ctx.strokeStyle = fondu(melange(encre, minOp + (maxOp - minOp) * f));
+        ctx.lineWidth = opt.traitCopie || 0.5;
+      }
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  /* Rééchantillonner une série le long de la planche.
+   *
+   * `valeur(p)` rend la grandeur brute d'un point ; `hauteur(v)` la convertit
+   * en pixels. Le regroupement est une MOYENNE par casier, jamais « un point
+   * sur N » : prendre un point sur N fait de l'aliasing, et sur une trace de
+   * puissance un sprint de cinq secondes disparaît ou se répète selon la
+   * phase d'échantillonnage. Sur l'altitude cela ne se voyait pas ; sur les
+   * watts, c'est la moitié de l'information.
+   */
+  function graveSerie(brut, zone, valeur, hauteur) {
+    var cases = Math.max(24, Math.min(1400, Math.round(zone.w / 2)));
+    var somme = new Array(cases), compte = new Array(cases), i;
+    for (i = 0; i < cases; i++) { somme[i] = 0; compte[i] = 0; }
+    brut.forEach(function (p) {
+      var c = Math.min(cases - 1, Math.max(0, Math.floor(p.x * cases)));
+      var v = valeur(p);
+      if (v == null || !isFinite(v)) return;
+      somme[c] += v; compte[c]++;
+    });
+    var out = [], dernier = null;
+    for (i = 0; i < cases; i++) {
+      /* Un casier vide reprend le précédent : un trou de capteur ne doit pas
+       * dessiner une chute à zéro qui n'a pas eu lieu. */
+      var v2 = compte[i] ? somme[i] / compte[i] : dernier;
+      if (v2 == null) continue;
+      dernier = v2;
+      out.push({ x: zone.x + (i + 0.5) / cases * zone.w, h: hauteur(v2), v: v2 });
+    }
+    return out;
+  }
+
   global.Alpage = {
     PALETTE: PALETTE,
+    graveLignes: graveLignes, graveSerie: graveSerie,
     projette: projette, reechantillonne: reechantillonne, lisse: lisse,
     courbure: courbure, normales: normales, decale: decale, ruban: ruban,
     lisseDirections: lisseDirections, rayonsDeCourbure: rayonsDeCourbure,
