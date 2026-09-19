@@ -110,6 +110,21 @@ async function passe(navigateur, base, ecran, interception) {
   const contexte = await navigateur.newContext({
     viewport: { width: ecran.largeur, height: ecran.hauteur }
   });
+  /* ON POSE LA CONDITION QUE LE CAS EXIGE.
+   *
+   * Le bandeau « depuis ta dernière visite » ne s'affiche PAS au premier
+   * passage — c'est voulu : accueillir un nouveau venu par la liste de ce
+   * qu'il a manqué n'a aucun sens. Mais chaque execution part d'un navigateur
+   * neuf : le cas qui verifie que sa croix ferme vraiment etait donc SAUTE a
+   * tous les coups, et il l'a ete pendant des semaines.
+   *
+   * C'est le defaut qu'OZ avait signale a la main — « je n'arrive pas a
+   * fermer Since your last visit ». Un controle qui ne s'execute jamais ne
+   * protege de rien ; on lui donne la visite precedente qu'il lui faut. */
+  await contexte.addInitScript(function () {
+    try { localStorage.setItem('strava-studio-vu', '1.4'); } catch (e) { /* mode prive */ }
+  });
+
   const page = await contexte.newPage();
 
   const erreurs = [];
@@ -215,6 +230,53 @@ async function passe(navigateur, base, ecran, interception) {
     }
   }
 
+  /* ATTENDRE QUE LE SITE SERVE LA BONNE VERSION.
+   *
+   * En `--url`, ce lanceur tourne juste apres un deploiement, quand le reseau
+   * de diffusion de Pages n'a pas fini de propager : il recoit alors un
+   * melange d'ancien et de nouveau et rapporte des echecs qui ne parlent que
+   * de propagation. Le studio, lui, allait bien — verifie a la main juste
+   * apres, 195 cas sur 195.
+   *
+   * Un controle qui echoue une fois sur deux sans que rien ne soit casse est
+   * pire qu'absent : on apprend a ignorer sa couleur.
+   *
+   * C'est la MEME faute que les delais fixes deja corriges dans ce fichier,
+   * et c'est la troisieme fois qu'elle se paie : attendre une CONDITION,
+   * jamais une duree. La condition, ici, est que le numero servi soit celui
+   * du depot. */
+  if (URL_EXTERNE) {
+    const attendue = (/STUDIO_VERSION = '([\d.]+)'/
+      .exec(fs.readFileSync(path.join(RACINE, 'src', 'version.js'), 'utf8')) || [])[1];
+    if (attendue) {
+      const t0 = Date.now();
+      let servie = null;
+      while (Date.now() - t0 < 180000) {
+        servie = await new Promise(function (r) {
+          const u = base.replace(/\/?$/, '/') + 'src/version.js?ci=' + Date.now();
+          const mod = u.indexOf('https:') === 0 ? require('https') : http;
+          mod.get(u, function (res) {
+            let t = '';
+            res.on('data', function (c) { t += c; });
+            res.on('end', function () {
+              const m = /STUDIO_VERSION = '([\d.]+)'/.exec(t);
+              r(m ? m[1] : null);
+            });
+          }).on('error', function () { r(null); });
+        });
+        if (servie === attendue) break;
+        await attends(5000);
+      }
+      if (servie !== attendue) {
+        console.log('le site sert ' + servie + ' alors que le depot est en ' +
+                    attendue + " — la propagation n'a pas abouti en trois minutes");
+        process.exitCode = 1;
+        return;
+      }
+      console.log('version servie : ' + servie + '  (obtenue apres ' +
+                  Math.round((Date.now() - t0) / 1000) + ' s)');
+    }
+  }
   console.log('Acceptation tête nue — ' + base +
               '  ·  ' + moteurs.join(' + ') + '\n');
 

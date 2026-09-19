@@ -34,10 +34,23 @@ on:
 permissions:
   contents: read
 
+# UNE CHAINE A LA FOIS PAR BRANCHE.
+#   Deux poussees rapprochees lancaient deux chaines completes de dix-huit
+#   minutes chacune, pour un resultat dont seule la derniere compte. Sur une
+#   proposition, on annule la precedente ; sur main, JAMAIS — interrompre une
+#   chaine qui publie laisserait le site dans un etat qu'on n'a pas choisi.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   harnais:
     name: Harnais et gardes
     runs-on: ubuntu-latest
+    # Sans plafond, une tache bloquee tourne six heures — le defaut de GitHub —
+    # et garde le verrou de publication tout ce temps. Dix minutes suffisent
+    # largement : la derniere execution a pris dix secondes.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -71,6 +84,7 @@ jobs:
   acceptation:
     name: Acceptation (Chromium et WebKit, sans fenêtre)
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -86,12 +100,26 @@ jobs:
       # premiere execution dans WebKit a trouve en trois minutes ce que
       # cinquante-trois cas n'avaient pas vu en plusieurs semaines de Chromium,
       # parce qu'il est plus LENT et qu'un delai fixe y a cede.
+      # LES NAVIGATEURS SE GARDENT D'UNE EXECUTION A L'AUTRE.
+      #   Chromium et WebKit etaient retelecharges a chaque tache — deux fois
+      #   par chaine, environ quatre cents megaoctets — et c'est l'essentiel
+      #   des dix-huit minutes. La cle porte le numero de Playwright : changer
+      #   de version invalide le cache, ce qui est exactement ce qu'on veut.
+      - name: Navigateurs en cache
+        id: cache-pw
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.63.0-${{ runner.os }}
+
       - name: Chromium et WebKit
         run: |
           mkdir -p "$RUNNER_TEMP/pw"
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
           npm install --no-audit --no-fund playwright@1.63.0 > /dev/null
+          # `--with-deps` installe les bibliotheques systeme, que le cache ne
+          # porte pas : on l'appelle meme quand les navigateurs sont deja la.
           npx playwright install --with-deps chromium webkit
 
       - name: Le parcours réel, deux moteurs, 1280 px puis 390 px
@@ -104,6 +132,7 @@ jobs:
     needs: [harnais, acceptation]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     # Une publication à la fois, et on ne coupe pas celle qui est en cours :
     # interrompre un déploiement de Pages au milieu laisse le site dans un état
     # qu'on n'a pas choisi. La contrainte porte sur CETTE tâche — au niveau du
@@ -136,6 +165,7 @@ jobs:
     name: Vérifier ce qui est réellement servi
     needs: publication
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -143,24 +173,24 @@ jobs:
         with:
           node-version: '22'
 
-      # Le seul contrôle qui parle de la production. Tout le reste éprouve un
-      # dépôt ; celui-ci éprouve ce qu'un visiteur reçoit — y compris le cache
-      # du service worker et la version réellement servie.
-      - name: Le numéro servi est celui qu'on vient de publier
-        run: |
-          ATTENDU=$(grep -o "STUDIO_VERSION = '[^']*'" src/version.js | grep -o "[0-9][0-9.]*")
-          for i in 1 2 3 4 5 6 7 8 9 10; do
-            SERVI=$(curl -sf "https://alpage-studio.github.io/strava-studio/src/version.js?ci=$GITHUB_SHA" \
-                    | grep -o "STUDIO_VERSION = '[^']*'" | grep -o "[0-9][0-9.]*" || true)
-            [ "$SERVI" = "$ATTENDU" ] && break
-            echo "servi : ${SERVI:-rien} — attendu : $ATTENDU (tentative $i)"
-            sleep 15
-          done
-          if [ "$SERVI" != "$ATTENDU" ]; then
-            echo "le site sert encore $SERVI après la publication de $ATTENDU"
-            exit 1
-          fi
-          echo "en ligne : $SERVI"
+      # LE CONTROLE DE LA VERSION SERVIE A DEMENAGE DANS LE LANCEUR.
+      # Il vivait ici, en dix lignes de shell qui bouclaient sur curl : la
+      # meme regle — « attendre que le site serve la version du depot » —
+      # ecrite une seconde fois, dans un second langage. Deux ecritures d'une
+      # regle finissent par dire deux choses. Le lanceur l'applique avant de
+      # lancer le moindre navigateur, et echoue avec un message clair si la
+      # propagation n'aboutit pas.
+      # LES NAVIGATEURS SE GARDENT D'UNE EXECUTION A L'AUTRE.
+      #   Chromium et WebKit etaient retelecharges a chaque tache — deux fois
+      #   par chaine, environ quatre cents megaoctets — et c'est l'essentiel
+      #   des dix-huit minutes. La cle porte le numero de Playwright : changer
+      #   de version invalide le cache, ce qui est exactement ce qu'on veut.
+      - name: Navigateurs en cache
+        id: cache-pw
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-1.63.0-${{ runner.os }}
 
       - name: Chromium et WebKit
         run: |
@@ -168,6 +198,8 @@ jobs:
           cd "$RUNNER_TEMP/pw"
           npm init -y > /dev/null
           npm install --no-audit --no-fund playwright@1.63.0 > /dev/null
+          # `--with-deps` installe les bibliotheques systeme, que le cache ne
+          # porte pas : on l'appelle meme quand les navigateurs sont deja la.
           npx playwright install --with-deps chromium webkit
 
       - name: Le parcours réel, sur le site publié, dans les deux moteurs

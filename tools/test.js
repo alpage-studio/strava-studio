@@ -1630,6 +1630,44 @@ function testsChaine() {
   ok('chaîne · seule la branche main publie',
      /github\.ref == 'refs\/heads\/main'/.test(wf));
 
+  /* UNE TACHE SANS PLAFOND TOURNE SIX HEURES — le defaut de GitHub — et garde
+   * le verrou de publication tout ce temps. */
+  /* UNE TACHE SE COMPTE EN LISANT LES LIGNES, pas avec une expression a
+   * cheval sur deux d'entre elles.
+   *
+   * Deux versions fausses avant celle-ci, et la seconde est la pire : elle
+   * comptait ZERO tache et passait au vert, puisque « zero plafond suffit
+   * pour zero tache ». Un controle qui compte doit donc verifier que son
+   * compte est PLAUSIBLE — sans quoi une erreur de comptage se lit comme un
+   * succes, ce qui est la pire facon d'echouer. */
+  /* On coupe les retours chariot avant de comparer : les outils d'edition
+   * laissent parfois des CRLF dans le repertoire de travail, et `jobs:\r` ne
+   * s'egale pas a `jobs:`. Le compte tombait alors a zero — et sans la
+   * verification de plausibilite juste en dessous, ce zero serait passe pour
+   * un succes, puisque zero plafond suffit pour zero tache. */
+  const lignes = wf.split('\n').map(function (l) { return l.replace(/\r$/, ''); });
+  const iJobs = lignes.indexOf('jobs:');
+  let taches = 0;
+  for (let k = iJobs + 1; k < lignes.length && iJobs >= 0; k++) {
+    if (/^  [a-z-]+:\s*$/.test(lignes[k])) taches++;
+  }
+  const plafonds = (wf.match(/timeout-minutes:/g) || []).length;
+  ok('chaîne · le compte des taches est plausible  (' + taches + ')', taches >= 3);
+  ok('chaîne · chaque tache a un plafond de duree  (' + plafonds + '/' + taches + ')',
+     taches >= 3 && plafonds >= taches, (taches - plafonds) + ' tache(s) sans plafond');
+
+  /* On n'annule JAMAIS une chaine qui publie : l'interrompre laisserait le
+   * site dans un etat qu'on n'a pas choisi. */
+  ok('chaîne · on n’annule que les propositions',
+     /cancel-in-progress: \$\{\{ github\.event_name == 'pull_request' \}\}/.test(wf));
+
+  /* Le cache des navigateurs porte le numero de Playwright : sans lui, une
+   * montee de version servirait les anciens binaires depuis le cache. */
+  const versionPw = (/playwright@([\d.]+)/.exec(wf) || [])[1];
+  ok('chaîne · le cache des navigateurs suit la version  (' + versionPw + ')',
+     !!versionPw && wf.indexOf('playwright-' + versionPw + '-') > 0,
+     'la cle de cache ne mentionne pas la version installee');
+
   /* La mémoire du dépôt et les agents : leur absence ne casse rien, leur
    * dérive si. Un agent sans outils déclarés reçoit tout, ce qu'on ne veut pas
    * pour une revue qui ne doit rien modifier. */
