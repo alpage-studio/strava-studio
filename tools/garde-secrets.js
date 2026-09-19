@@ -45,6 +45,26 @@ const POSITIONS_AUTORISEES = new Set([
   'sem-lun.gpx', 'sem-mar.gpx', 'sem-jeu.gpx', 'sem-ven.gpx', 'sem-dim.gpx',
   'sem-01.gpx', 'sem-02.gpx', 'sem-03.gpx', 'sem-04.gpx',
   'sem-05.gpx', 'sem-06.gpx', 'sem-07.gpx', 'sem-08.gpx',
+  /* la séance à intervalles : le seul démo qui porte des WATTS, sorti du même
+   * tools/make-demos.js que les quatre autres */
+  'demo-intervalles.gpx',
+  /* LES TRACES DU BANC, toutes fabriquées à la main.
+   *
+   * Elles ne sortent pas d'un GPS : chacune est une sinusoïde évaluée point
+   * par point autour de 46,5° / 7,1°, écrite pour piéger un calcul précis —
+   * 1083 m d'amplitude contre 17 m, des watts contre pas de watts, une trace
+   * sans altitude du tout. Personne n'a roulé là.
+   *
+   * Elles sont versionnées parce qu'un banc dont les données manquent ne
+   * mesure rien chez qui clone le dépôt ; et elles sont déclarées ici parce
+   * que ce contrôle a raison d'exiger qu'on le dise plutôt que de le deviner
+   * à la forme du fichier. */
+  'tools/banc-gravure/montagne.gpx',
+  'tools/banc-gravure/plate.gpx',
+  'tools/banc-gravure/sans-altitude.gpx',
+  'tools/banc-gravure/avec-puissance.gpx',
+  'tools/banc-gravure/watts-facile.gpx',
+  'tools/banc-gravure/watts-durs.gpx',
   /* la géométrie extraite des templates : des coordonnées de dessin, pas de
    * terrain — aucune latitude là-dedans */
   'tools/geometry.json'
@@ -89,9 +109,27 @@ function estBinaire(buf) {
   return false;
 }
 
+/* CE QUI EST SUIVI, ET CE QUI VA L'ÊTRE.
+ *
+ * `git ls-files` seul ne montre que les fichiers DÉJÀ commités. Lancé avant
+ * un commit — c'est-à-dire au moment où il servirait le plus — ce contrôle
+ * passait donc au vert sans avoir regardé les fichiers qu'on s'apprête à
+ * ajouter. Sept traces sont ainsi parties jusqu'à la chaîne de publication,
+ * qui les a refusées ; le garde avait raison, mais il l'a dit trop tard.
+ *
+ * `--others --exclude-standard` ajoute les fichiers non suivis QUE .gitignore
+ * n'écarte pas — exactement ceux qu'un `git add -A` emporterait. Le contrôle
+ * voit ainsi la même chose avant et après le commit.
+ */
 function suivis() {
-  const sortie = execFileSync('git', ['ls-files', '-z'], { cwd: RACINE });
-  return sortie.toString('utf8').split('\0').filter(Boolean);
+  const sortie = execFileSync('git',
+    ['ls-files', '-z', '--cached', '--others', '--exclude-standard'], { cwd: RACINE });
+  const vus = Object.create(null);
+  return sortie.toString('utf8').split('\0').filter(function (f) {
+    if (!f || vus[f]) return false;
+    vus[f] = 1;
+    return true;
+  });
 }
 
 function echec(quoi, ou, extrait) {
