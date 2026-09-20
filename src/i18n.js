@@ -210,6 +210,11 @@
     'Séquence PNG — pour le montage': 'PNG sequence — for editing',
     'Exporter': 'Export',
 
+    'Placement sur la photo': 'Where it sits on the photo',
+    'Fais glisser la planche pour la déplacer.': 'Drag the artwork to move it.',
+    'Recentrer': 'Recentre',
+    'Taille de la planche': 'Artwork size',
+
     /* ---------- Versants ---------- */
     'Versants — le rythme de la sortie': 'Slopes — the rhythm of the ride',
     'Bloc': 'Block',

@@ -542,6 +542,94 @@
        !!sortie && /[.](mp4|webm)$/.test(sortie.nom), sortie && sortie.nom);
   }
 
+  // ---------- 6 quinquies. PLACER LA PLANCHE SUR LA PHOTO ----------
+  /* Une transformation posee autour de `draw` deplace l'encre des trente-six
+   * planches. Trois choses doivent rester vraies, et chacune s'est deja
+   * trompee une fois pendant l'ecriture :
+   *
+   *   1. en surcouche, le placement DEPLACE ;
+   *   2. sur papier, il ne fait RIEN — sinon il emporterait le fond avec lui
+   *      et laisserait une bande vide au bord ;
+   *   3. le VOILE reste ancre au cadre. Quinze planches le peignent dans
+   *      `Alpage.socle()`, donc dans la transformation : la premiere version
+   *      le promenait avec l'encre et posait un rectangle sombre de travers
+   *      sur la photo. Ce n'est pas un controle qui l'a vu, c'est l'image.
+   */
+  (function () {
+    /* Le barycentre de l'encre, en fractions du cadre : comparable d'un
+     * format a l'autre, ce qu'une mesure en pixels ne serait pas. */
+    function centre(o, place) {
+      window.Studio.setVoile('aucun');
+      window.Studio.setPlacement(place);
+      var cv = document.createElement('canvas');
+      window.Studio.render(cv, 'encre', window.App.etat.base, o || {}, [540, 960]);
+      var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      var sx = 0, sy = 0, n = 0;
+      for (var y = 0; y < cv.height; y += 2) {
+        for (var x = 0; x < cv.width; x += 2) {
+          if (d[(y * cv.width + x) * 4 + 3] > 40) { sx += x / cv.width; sy += y / cv.height; n++; }
+        }
+      }
+      return n ? { x: sx / n, y: sy / n, n: n } : null;
+    }
+
+    var supportAvant = document.querySelector('#support').value;
+
+    window.Studio.setSupport(true);
+    var a = centre({}, { x: 0, y: 0, echelle: 1 });
+    var b = centre({}, { x: -0.25, y: -0.2, echelle: 1 });
+    ok('placement · en surcouche, la planche se deplace  (' +
+       (a && b ? (a.x - b.x).toFixed(2) + ' / ' + (a.y - b.y).toFixed(2) : '—') + ')',
+       !!a && !!b && (a.x - b.x) > 0.1 && (a.y - b.y) > 0.08);
+
+    var petit = centre({}, { x: 0, y: 0, echelle: 0.6 });
+    /* L'aire suit le CARRE de l'echelle : 0,6 doit rendre environ 36 % de
+     * l'encre. Sans cette borne haute, une echelle ignoree passerait au vert. */
+    ok('placement · l’echelle reduit vraiment  (' +
+       (a && petit ? Math.round(100 * petit.n / a.n) + ' %' : '—') + ')',
+       !!a && !!petit && petit.n < a.n * 0.55 && petit.n > a.n * 0.2);
+
+    /* LE VOILE RESTE EN BAS DU CADRE. On compare l'obscurite de la bande
+     * basse a celle de la bande haute : un voile « vers le bas » doit
+     * assombrir le bas, meme quand la planche est montee a gauche. */
+    window.Studio.setSupport(true);
+    window.Studio.setVoile('bas');
+    window.Studio.setPlacement({ x: -0.25, y: -0.2, echelle: 1 });
+    var cv2 = document.createElement('canvas');
+    window.Studio.render(cv2, 'encre', window.App.etat.base, {}, [540, 960]);
+    var d2 = cv2.getContext('2d').getImageData(0, 0, cv2.width, cv2.height).data;
+    function alphaMoyen(y0, y1) {
+      var s = 0, k = 0;
+      for (var y = y0; y < y1; y += 2) {
+        for (var x = 0; x < cv2.width; x += 3) { s += d2[(y * cv2.width + x) * 4 + 3]; k++; }
+      }
+      return k ? s / k : 0;
+    }
+    var bas = alphaMoyen(Math.floor(cv2.height * 0.86), cv2.height);
+    var haut = alphaMoyen(0, Math.floor(cv2.height * 0.14));
+    ok('placement · le voile reste ancre au cadre, planche deplacee  (bas ' +
+       bas.toFixed(0) + ' contre haut ' + haut.toFixed(0) + ')',
+       bas > haut + 12,
+       'un voile qui suit la planche laisse un rectangle de travers sur la photo');
+
+    /* SUR PAPIER, RIEN. Deux rendus identiques a l'octet pres. */
+    window.Studio.setSupport(false);
+    window.Studio.setVoile('aucun');
+    function papier(place) {
+      window.Studio.setPlacement(place);
+      var cv = document.createElement('canvas');
+      window.Studio.render(cv, 'encre', window.App.etat.base, {}, [420, 525]);
+      return cv.toDataURL('image/png');
+    }
+    ok('placement · sur papier, il n’a aucun effet',
+       papier({ x: 0, y: 0, echelle: 1 }) === papier({ x: -0.25, y: -0.2, echelle: 0.6 }),
+       'le deplacer emporterait le fond et laisserait une bande vide au bord');
+
+    /* On rend l'etat au reste du parcours. */
+    window.Studio.setPlacement({ x: 0, y: 0, echelle: 1 });
+    window.Studio.setSupport(supportAvant === 'surcouche');
+  }());
+
   // ---------- 7. le bandeau ----------
   var bandeau = $('#nouveautes');
   if (bandeau && !bandeau.hidden) {

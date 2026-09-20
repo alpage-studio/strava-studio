@@ -22,6 +22,8 @@
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
         support: $('#support').value, voile: $('#voile').value,
         duree: $('#duree') ? $('#duree').value : null,
+        placement: E.placement,
+        echelle: $('#echelle') ? $('#echelle').value : null,
         periode: $('#periode').value
       }));
     } catch (e) { /* mode privé : tant pis */ }
@@ -126,6 +128,7 @@
     document.body.classList.toggle('surcouche', $('#support').value === 'surcouche');
     Studio.setVoile($('#voile') ? $('#voile').value : 'aucun');
     if ($('#duree')) Studio.setDuree($('#duree').value);
+    if (A.poseLePlacement) A.poseLePlacement();
   }
 
   function syncBibliotheque() {
@@ -922,6 +925,11 @@
     if (saved.support) $('#support').value = saved.support;
     if (saved.voile) $('#voile').value = saved.voile;
     if (saved.duree && $('#duree')) $('#duree').value = saved.duree;
+    if (saved.placement) {
+      E.placement.x = Number(saved.placement.x) || 0;
+      E.placement.y = Number(saved.placement.y) || 0;
+    }
+    if (saved.echelle && $('#echelle')) $('#echelle').value = saved.echelle;
     /* le menu part caché dans le HTML : au chargement, c'est le support
      * relu qui décide s'il doit apparaître */
     $('#opt-voile').hidden = $('#support').value !== 'surcouche';
@@ -940,6 +948,7 @@
      * relu qui décide s'il doit disparaître — même mécanique que le voile
      * juste au-dessus. */
     if (A.majDuree) A.majDuree();
+    if (A.majPlacement) A.majPlacement();
     A.construitChoixStyle();
     A.majDisposition();
 

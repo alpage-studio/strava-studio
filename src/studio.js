@@ -95,6 +95,29 @@
   var supportSurcouche = false;
   function setSupport(actif) { supportSurcouche = !!actif; }
 
+  /* OU LA PLANCHE SE POSE SUR LA PHOTO.
+   *
+   * `x` et `y` sont des fractions du cadre — 0 au centre, ±0,5 au bord — et
+   * `echelle` un facteur autour du centre. Bornés : un placement hors du
+   * cadre rendrait une planche invisible sans rien dire, et une échelle nulle
+   * donnerait une page blanche qu'on prendrait pour une panne. */
+  var placement = { x: 0, y: 0, echelle: 1 };
+  function setPlacement(p) {
+    p = p || {};
+    function borne(v, max, def) {
+      var n = Number(v);
+      return isFinite(n) ? Math.max(-max, Math.min(max, n)) : def;
+    }
+    placement = {
+      x: borne(p.x, 0.75, 0),
+      y: borne(p.y, 0.75, 0),
+      echelle: Math.max(0.25, Math.min(3, isFinite(Number(p.echelle)) ? Number(p.echelle) : 1))
+    };
+  }
+  function getPlacement() {
+    return { x: placement.x, y: placement.y, echelle: placement.echelle };
+  }
+
   /* La durée d'apparition par défaut, en millisecondes. Bornée : une valeur
    * absente, nulle ou absurde rendrait `chrono()` faux pour tout le studio —
    * l'aperçu animé, la vidéo et la séquence PNG lisent tous cette valeur. */
@@ -619,19 +642,40 @@
      * propre vocabulaire plutot que de leur retirer le fond sous les pieds.
      * Leur voile — le degrade qui rend le texte lisible sur une photo —
      * continue ainsi de fonctionner. */
+    /* LE VOILE NE SUIT PAS LA PLANCHE QUAND ON LA DÉPLACE.
+     *
+     * Le voile protège une ZONE DE L'IMAGE, pas une zone de la planche : il
+     * assombrit le bas de la photo pour que le texte s'y lise. Il est donc
+     * ancré au cadre, comme la photo.
+     *
+     * Or quinze planches le peignent elles-mêmes, dans `Alpage.socle()` —
+     * donc DANS le template, donc dans la transformation de placement. La
+     * première version déplaçait le voile avec l'encre : il en résultait un
+     * rectangle sombre aux arêtes franches posé de travers sur la photo, et
+     * ça se voyait au premier coup d'œil. C'est l'image qui l'a dit, pas un
+     * contrôle.
+     *
+     * Dès qu'un placement est actif, on retire donc le voile au template et
+     * c'est le moteur qui le peint, hors transformation. Les deux chemins
+     * partagent déjà la même courbe — voir `poseVoile` et `alpage.js`. */
+    var placeeAilleurs = supportSurcouche &&
+      (placement.x || placement.y || placement.echelle !== 1);
+
     if (supportSurcouche) {
       tpl.options.forEach(function (def) {
         if (def.key !== 'fond' || !def.choices) return;
         var aTransparent = def.choices.some(function (c) { return c[0] === 'transparent'; });
         if (aTransparent) o.fond = 'transparent';
       });
-      transmetVoile(tpl, o, voileGlobal);
+      if (placeeAilleurs) o.voile = 'aucun';
+      else transmetVoile(tpl, o, voileGlobal);
     }
 
     /* Le voile du moteur, pour les planches qui n'en declarent pas : AVANT le
-     * template, puisqu'il se pose entre la photo et l'encre. */
+     * template, puisqu'il se pose entre la photo et l'encre. Et pour TOUTES
+     * dès que la planche est déplacée, par ce qui précède. */
     if (supportSurcouche && voileGlobal && voileGlobal !== 'aucun' &&
-        !tpl.options.some(function (d) { return d.key === 'voile'; })) {
+        (placeeAilleurs || !tpl.options.some(function (d) { return d.key === 'voile'; }))) {
       poseVoile(ctx, w, h, voileGlobal);
     }
 
@@ -654,9 +698,43 @@
           return copie;
         });
       }
-      tpl.draw({ ctx: ctx, w: w, h: h, a: activity, o: o, H: H, library: biblio,
-                 historique: state.historique,
-                 progress: state.progress, fade: state.textFade });
+      /* LE PLACEMENT SUR LA PHOTO — ici, et nulle part ailleurs.
+       *
+       * Une seule transformation posée autour de `draw` déplace et
+       * redimensionne TOUTE l'encre des trente-six planches, sans qu'aucune
+       * n'ait à le savoir. Le contraire — demander à chaque template de
+       * décaler ses éléments — aurait été trente-six occasions d'oublier.
+       *
+       * ELLE N'EXISTE QU'EN SURCOUCHE, et pour une raison mécanique : sur
+       * papier, `Alpage.socle()` peint le fond DANS le template. Le décaler
+       * déplacerait la feuille elle-même et laisserait une bande vide au
+       * bord. En surcouche, le moteur neutralise déjà `H.fill` et le grain :
+       * il ne reste que l'encre, qui est exactement ce qu'on veut bouger.
+       *
+       * Le voile, lui, reste ancré au cadre — il est posé AVANT, et il
+       * protège la lisibilité d'une zone de l'image, pas de la planche.
+       *
+       * Les valeurs sont des FRACTIONS du cadre, jamais des pixels : le même
+       * placement vaut pour l'aperçu, la story et l'A3 à 300 dpi. En pixels,
+       * une planche calée dans un coin aurait saute ailleurs au changement
+       * de format. */
+      var bouge = placeeAilleurs;
+      if (bouge) {
+        ctx.save();
+        ctx.translate(w / 2 + placement.x * w, h / 2 + placement.y * h);
+        ctx.scale(placement.echelle, placement.echelle);
+        ctx.translate(-w / 2, -h / 2);
+      }
+      try {
+        tpl.draw({ ctx: ctx, w: w, h: h, a: activity, o: o, H: H, library: biblio,
+                   historique: state.historique,
+                   progress: state.progress, fade: state.textFade });
+      } finally {
+        /* `finally` et non une ligne apres l'appel : un template qui leve
+         * laisserait sinon le contexte transforme, et tout ce qui dessine
+         * ensuite — la carte d'erreur comprise — sortirait decale. */
+        if (bouge) ctx.restore();
+      }
     } catch (e) {
       ctx.fillStyle = '#111'; ctx.fillRect(0, 0, w, h);
       ctx.fillStyle = '#ff5a5a';
@@ -703,6 +781,7 @@
     setLibrary: setLibrary, setHistorique: setHistorique,
     setAchromatique: setAchromatique,
     setSupport: setSupport, setVoile: setVoile, setDuree: setDuree,
+    setPlacement: setPlacement, getPlacement: getPlacement,
     versGris: versGris, rampeDeGris: rampeDeGris,
     setProgress: setProgress, fmt: fmt
   };

@@ -534,6 +534,13 @@
   .warn { color: #FFB454; }
   #gpx-err { color: var(--danger); font-size: 12px; margin-top: 7px; }
   #video-state, #bgvideo-state { font-size: 11.5px; color: var(--mut); margin-top: 7px; }
+  #placement-note { font-size: 11.5px; color: var(--mut); margin-top: 6px; }
+  #opt-placement .rangee { display: flex; gap: 8px; align-items: center; }
+  #opt-placement #echelle { flex: 1; min-width: 0; }
+  /* Le curseur de saisie dit que la planche se prend : sans lui, rien
+     n'indique qu'on peut la deplacer. */
+  body.placable #canvas { cursor: grab; touch-action: none; }
+  body.placable #canvas.prise { cursor: grabbing; }
   /* Les vignettes se rendent sur l'exemple embarqué tant que rien n'est
      chargé : la note le dit, sinon on prend ces chiffres pour les siens. */
   .note-exemple {
@@ -1115,6 +1122,21 @@
            voisinait avec « enregistrer un projet », qui ne fait pas du tout la
            même chose.
            Ce qu'on produit est une QUESTION ; l'exporter est une ACTION. -->
+      <!-- OU LA PLANCHE SE POSE SUR LA PHOTO.
+           Le titre d'une planche tombe parfois sur la zone la plus chargée de
+           l'image. Le voile la rend lisible ; la déplacer règle le problème
+           autrement, et permet aussi de la réduire pour la caler dans un coin.
+           Masqué sur fond plein : sur papier il n'y a rien à côté de quoi se
+           placer, et le fond se déplacerait avec l'encre. -->
+      <div class="opt" id="opt-placement" hidden>
+        <span>Placement sur la photo</span>
+        <div class="rangee">
+          <input type="range" id="echelle" min="40" max="180" step="5" value="100"
+                 aria-label="Taille de la planche">
+          <button class="ghost" id="recentrer" type="button">Recentrer</button>
+        </div>
+        <div id="placement-note">Fais glisser la planche pour la déplacer.</div>
+      </div>
       <label class="opt" id="opt-sortie"><span>Ce qu’on produit</span>
         <select id="sortie">
           <option value="image" selected>Image — PNG</option>

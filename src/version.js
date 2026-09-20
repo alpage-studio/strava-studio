@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.10';
+var STUDIO_VERSION = '3.11';
 var STUDIO_DATE = '20.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,13 @@ var STUDIO_DATE = '20.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.11', d: '20.09.2026', points: [
+    'La planche se PLACE sur la photo : tu la prends, tu la poses où tu veux, un curseur la redimensionne et un bouton la recentre. Le titre tombait parfois sur la zone la plus chargée de l’image — le voile la rendait lisible, la déplacer règle le problème autrement.',
+    'Le placement vaut pour les trente-six planches : il est posé par le moteur, une fois, et aucune n’a eu à être modifiée.',
+    'Il se garde en fractions du cadre, jamais en pixels : le même placement décidé sur l’aperçu vaut en story et en A3 à 300 dpi. En pixels, une planche calée dans un coin aurait sauté ailleurs au changement de format.',
+    'Le voile, lui, reste ancré au cadre : il protège une zone de l’IMAGE, pas de la planche. Sans cela il partait avec elle et posait un rectangle sombre de travers sur la photo.',
+    'Sur fond plein, le réglage n’apparaît pas : la feuille se déplacerait avec l’encre et laisserait une bande vide au bord.'
+  ] },
   { v: '3.10', d: '20.09.2026', points: [
     'UN SEUL bouton pour exporter, et le format devient un choix : image, vidéo ou séquence PNG. Ils étaient trois boutons côte à côte, dont un seul en couleur — trois façons de produire LA MÊME planche présentées comme trois fonctions différentes. Et « Enregistrer l’image » voisinait avec « Enregistrer un projet », qui ne fait pas du tout la même chose.',
     'Le réglage de durée disparaît quand on choisit l’image fixe : il n’y a rien à animer, et un réglage sans effet apprend à ne plus lire les réglages.',

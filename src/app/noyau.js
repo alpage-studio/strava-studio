@@ -75,7 +75,11 @@
     /* L'exemple embarque, parse une fois au demarrage. Il sert de modele
      * aux vignettes du catalogue tant qu'aucune sortie n'est chargee ; il
      * n'entre jamais dans la bibliotheque. */
-    exemple: null
+    exemple: null,
+    /* Ou la planche se pose sur la photo, en fractions du cadre. Le moteur
+     * en est la reference ; ceci n'est que ce que le geste construit entre
+     * deux rendus. Voir Studio.setPlacement. */
+    placement: { x: 0, y: 0 }
   };
 
   var file = [];

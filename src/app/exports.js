@@ -162,6 +162,7 @@
      * temps apprend à l'utilisateur à ne plus le lire. */
     var opt = $('#opt-voile');
     if (opt) opt.hidden = $('#support').value !== 'surcouche';
+    majPlacement();
     buildOptions();
     A.construitChoixStyle();
     changement();
@@ -329,6 +330,86 @@
     Studio.setProgress(1, 1);
     verrouiller(false);
     draw();
+  }
+
+  /* ---------- PLACER LA PLANCHE SUR LA PHOTO ----------
+   *
+   * Le geste est direct : on prend la planche et on la pose. Le moteur, lui,
+   * ne connaît que des FRACTIONS du cadre — c'est ce qui fait qu'un placement
+   * décidé sur l'aperçu vaut encore en story et en A3 à 300 dpi.
+   *
+   * La conversion passe donc par la taille AFFICHÉE du canvas, pas par sa
+   * taille en pixels : les deux diffèrent d'un facteur qui change avec la
+   * fenêtre. En travaillant en pixels de canvas, un même déplacement du doigt
+   * aurait bougé la planche deux fois plus sur un grand écran.
+   */
+  var prise = null;
+
+  function placementActif() {
+    return $('#support').value === 'surcouche';
+  }
+
+  function majPlacement() {
+    var bloc = $('#opt-placement');
+    if (bloc) bloc.hidden = !placementActif();
+    document.body.classList.toggle('placable', placementActif());
+  }
+  A.majPlacement = majPlacement;
+
+  function poseLePlacement() {
+    Studio.setPlacement({
+      x: E.placement.x, y: E.placement.y,
+      echelle: ($('#echelle') ? Number($('#echelle').value) : 100) / 100
+    });
+  }
+  A.poseLePlacement = poseLePlacement;
+
+  canvas.addEventListener('pointerdown', function (ev) {
+    if (!placementActif() || E.exportEnCours) return;
+    var r = canvas.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    prise = { id: ev.pointerId, x: ev.clientX, y: ev.clientY,
+              x0: E.placement.x, y0: E.placement.y, w: r.width, h: r.height };
+    canvas.classList.add('prise');
+    /* On capture le pointeur : sans cela, sortir du canvas en glissant —
+     * ce qui arrive dès qu'on pousse la planche vers un bord — coupait le
+     * geste au milieu et la planche restait à mi-chemin. */
+    if (canvas.setPointerCapture) canvas.setPointerCapture(ev.pointerId);
+    ev.preventDefault();
+  });
+
+  canvas.addEventListener('pointermove', function (ev) {
+    if (!prise || ev.pointerId !== prise.id) return;
+    E.placement.x = prise.x0 + (ev.clientX - prise.x) / prise.w;
+    E.placement.y = prise.y0 + (ev.clientY - prise.y) / prise.h;
+    draw();
+  });
+
+  function lache(ev) {
+    if (!prise || (ev && ev.pointerId !== prise.id)) return;
+    prise = null;
+    canvas.classList.remove('prise');
+    /* On relit ce que le moteur a RETENU : il borne le placement, et garder
+     * en mémoire une valeur qu'il a refusée ferait repartir le geste suivant
+     * d'un endroit où la planche n'est pas. */
+    var p = Studio.getPlacement();
+    E.placement.x = p.x; E.placement.y = p.y;
+    save();
+  }
+  canvas.addEventListener('pointerup', lache);
+  canvas.addEventListener('pointercancel', lache);
+
+  if ($('#echelle')) {
+    $('#echelle').addEventListener('input', function () { draw(); });
+    $('#echelle').addEventListener('change', function () { save(); });
+  }
+  if ($('#recentrer')) {
+    $('#recentrer').addEventListener('click', function () {
+      E.placement.x = 0; E.placement.y = 0;
+      if ($('#echelle')) $('#echelle').value = 100;
+      draw();
+      save();
+    });
   }
 
   /* ---------- UN SEUL BOUTON D'EXPORT ----------
