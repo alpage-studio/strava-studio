@@ -57,8 +57,8 @@
      * les teintes, ou elles n'ont rien a faire : on choisit une image de fond
      * au moment de produire la sortie, pas au moment de regler une couleur.
      * « Garder » aussi : enregistrer un projet est une sortie. */
-    format:  ['#rangee-format', '#preview-play', '#son', '#export-video',
-              '#export-seq', '#video-state', '#section-garder']
+    format:  ['#rangee-format', '#opt-sortie', '#preview-play', '#son',
+              '#opt-duree', '#video-state', '#section-garder']
   };
   var placeOrigine = {};        // sélecteur -> { parent, suivant } avant déplacement
   var feuilleOuverte = null;

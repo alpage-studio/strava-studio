@@ -87,7 +87,6 @@
     'Paysage — 1920 × 1080': 'Landscape — 1920 × 1080',
     'Impression A4 — 2480 × 3508 (300 dpi)': 'Print A4 — 2480 × 3508 (300 dpi)',
     'Impression A3 — 3508 × 4961 (300 dpi)': 'Print A3 — 3508 × 4961 (300 dpi)',
-    'Enregistrer l’image': 'Save the image',
     'Enregistrer': 'Save',
     'Lire l’aperçu': 'Play the preview',
     'Arrêter l’aperçu': 'Stop the preview',
@@ -203,6 +202,13 @@
     '3 s': '3 s',
     '5 s': '5 s',
     '8 s — on regarde le tracé se faire': '8 s — watch the line being drawn',
+
+    'Exemple — charge une sortie pour voir la tienne': 'Example — load a ride to see your own',
+
+    'Ce qu’on produit': 'Output',
+    'Image — PNG': 'Image — PNG',
+    'Séquence PNG — pour le montage': 'PNG sequence — for editing',
+    'Exporter': 'Export',
 
     /* ---------- Versants ---------- */
     'Versants — le rythme de la sortie': 'Slopes — the rhythm of the ride',

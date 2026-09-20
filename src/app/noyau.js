@@ -71,7 +71,11 @@
      * croirait ne jamais tourner. Une valeur qui change se partage par
      * l'objet, jamais par copie. */
     enLecture: false,         // l'aperçu animé tourne
-    familleOuverte: null      // catalogue : null = on regarde les familles
+    familleOuverte: null,     // catalogue : null = on regarde les familles
+    /* L'exemple embarque, parse une fois au demarrage. Il sert de modele
+     * aux vignettes du catalogue tant qu'aucune sortie n'est chargee ; il
+     * n'entre jamais dans la bibliotheque. */
+    exemple: null
   };
 
   var file = [];

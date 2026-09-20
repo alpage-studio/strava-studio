@@ -106,7 +106,8 @@
     var bloc = $('#opt-duree');
     if (!bloc) return;
     var tpl = Studio.get($('#tpl').value);
-    bloc.hidden = !!(tpl && tpl.duree);
+    var anime = $('#sortie') ? $('#sortie').value !== 'image' : true;
+    bloc.hidden = !anime || !!(tpl && tpl.duree);
   }
   A.majDuree = majDuree;
   $('#duree').addEventListener('change', function () { save(); changement(); });
@@ -217,7 +218,7 @@
   });
   $('#tpl').addEventListener('change', function () { majPanneauSon(); });
 
-  $('#export-video').addEventListener('click', function () {
+  function exporteVideo() {
     var note = $('#video-state');
     var size = SIZES[$('#size').value];
     var tplId = $('#tpl').value;
@@ -286,14 +287,14 @@
       verrouiller(false);
       note.textContent = err.message;
     });
-  });
+  }
 
   /* ---------- séquence PNG ----------
    * La seule façon de porter une animation TRANSPARENTE dans un montage :
    * une image par instant, chacune avec son canal alpha. Le montage
    * (CapCut, Premiere, Resolve) l'importe comme une piste et la pose sur
    * ta vidéo. Aucun format vidéo ne sait faire ça. */
-  $('#export-seq').addEventListener('click', async function () {
+  async function exporteSequence() {
     var note = $('#video-state');
     var size = SIZES[$('#size').value];
     var tplId = $('#tpl').value;
@@ -328,7 +329,47 @@
     Studio.setProgress(1, 1);
     verrouiller(false);
     draw();
+  }
+
+  /* ---------- UN SEUL BOUTON D'EXPORT ----------
+   *
+   * Trois boutons se partageaient la sortie, dont un seul en couleur :
+   * « Enregistrer l'image », « Vidéo », « Séquence PNG ». Trois manières de
+   * produire LA MÊME planche, présentées comme trois fonctions différentes —
+   * et « Enregistrer l'image » voisinait avec « Enregistrer un projet », qui
+   * ne fait pas du tout la même chose.
+   *
+   * Le format est une QUESTION, l'export une ACTION. Le menu pose la
+   * question, le bouton fait l'action.
+   *
+   * L'export PNG vivait dans sources.js ; il rejoint ses deux frères, parce
+   * que deux écouteurs sur le même bouton se seraient déclenchés tous les
+   * deux le jour où l'un aurait cessé de décider seul. */
+  function exporteImage() {
+    var size = SIZES[$('#size').value];
+    Studio.exportPNG(canvas, slug() + '_' + E.current.id + '_' +
+                     size[0] + 'x' + size[1] + '.png');
+  }
+
+  $('#export').addEventListener('click', function () {
+    var quoi = $('#sortie') ? $('#sortie').value : 'image';
+    if (quoi === 'video') return exporteVideo();
+    if (quoi === 'sequence') return exporteSequence();
+    return exporteImage();
   });
+
+  /* La durée ne concerne que ce qui BOUGE. Sur une image fixe le menu ne
+   * ferait rien — et un réglage sans effet apprend à ne plus lire les
+   * réglages, ce que ce studio se répète depuis le voile. */
+  function majSortie() {
+    majDuree();
+    var note = $('#video-state');
+    if (note) note.textContent = '';
+  }
+  if ($('#sortie')) {
+    $('#sortie').addEventListener('change', function () { majSortie(); save(); });
+  }
+  A.majSortie = majSortie;
 
   /* Remplit la boîte sans déformer — photo ou image de vidéo. */
   function cover(g2, src, size) {

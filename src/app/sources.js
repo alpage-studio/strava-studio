@@ -202,13 +202,12 @@
     }
   });
 
-  $('#export').addEventListener('click', function () {
-    var size = SIZES[$('#size').value];
-    /* `var slug = …` masquait ici la fonction `slug()` du même nom, avec
-     * le même corps à une écriture près. Deux assainissements de nom de
-     * fichier, c'est deux comportements qui finiront par diverger. */
-    Studio.exportPNG(canvas, slug() + '_' + E.current.id + '_' + size[0] + 'x' + size[1] + '.png');
-  });
+  /* L'EXPORT PNG A DEMENAGE dans src/app/exports.js.
+   *
+   * Il y rejoint la video et la sequence : les trois sont desormais des
+   * formats d'un MEME bouton, et le choix se fait dans un menu. Le garder ici
+   * aurait pose un second ecouteur sur `#export`, donc deux exports pour un
+   * clic le jour ou l'un des deux aurait cesse de decider seul. */
 
   /* Le démarrage l'appelle : il doit repasser par A. */
   A.stravaInit = stravaInit;

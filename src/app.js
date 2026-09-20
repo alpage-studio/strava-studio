@@ -264,16 +264,16 @@
   function majLibelles() {
     if (E.enLecture) return;               // une lecture en cours a son propre libellé
     $('#preview-play').textContent = libelle('Lire l\u2019aper\u00e7u', 'Aper\u00e7u');
-    $('#export-video').textContent = libelle('Vid\u00e9o \u2014 le trac\u00e9 s\u2019anime', 'Vid\u00e9o');
-    $('#export-seq').textContent = libelle('S\u00e9quence PNG \u2014 pour le montage', 'S\u00e9quence');
-    $('#export').textContent = libelle('Enregistrer l’image', 'Enregistrer');
+    /* Un seul bouton : le format est un choix, plus une rangee de boutons.
+     * « Exporter » ne se raccourcit pas — il tient deja sur un telephone. */
+    $('#export').textContent = T('Exporter');
   }
   ETROIT.addEventListener('change', majLibelles);
   majLibelles();
 
   function majBoutons() {
     var bloque = !E.chargee || E.exportEnCours;
-    ['#export', '#export-video', '#export-seq', '#preview-play'].forEach(function (sel) {
+    ['#export', '#sortie', '#preview-play'].forEach(function (sel) {
       $(sel).disabled = bloque;
     });
     /* Pendant un export, ce qui définit l'image ne doit plus bouger.
@@ -954,9 +954,24 @@
         .then(function (r) { return r.ok ? r.text() : null; })
         .then(function (txt) {
           if (!txt) return;
-          var act = Activity.parseGPX(txt);
+          var act = Activity.build(Activity.parseGPX(txt));
           Studio.setLibrary([]);
           Studio.render(cv, 'encre', act, { interpretation: 'trait' }, [300, 533]);
+
+          /* LE CATALOGUE A BESOIN D'UNE SORTIE, MEME QUAND IL N'Y EN A PAS.
+           *
+           * Sans fichier charge, les trente-six vignettes se rendaient sur une
+           * activite VIDE : des tirets a la place des chiffres et un parcours
+           * absent. On ne peut pas choisir un style sur des tirets, et c'est
+           * le premier ecran que voit quelqu'un qui arrive.
+           *
+           * L'exemple embarque sert donc de modele au catalogue tant que rien
+           * n'est charge. Il n'entre PAS dans la bibliotheque — l'application
+           * reste vide, le studio ne pretend pas qu'on a pedale quelque part —
+           * et les cartes le disent en toutes lettres. */
+          E.exemple = act;
+          if (A.construitChoixStyle && $('#choix-style')) A.construitChoixStyle();
+
           syncBibliotheque();        // la scène retrouve son état réel
         })
         .catch(function () { cv.hidden = true; });

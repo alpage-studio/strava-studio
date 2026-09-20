@@ -397,9 +397,9 @@
       return !!document.querySelector('#feuille .zone[data-zone="format"] ' + sel);
     };
     ok('téléphone · Export ne porte que la sortie',
-       dansExport('#rangee-format') && dansExport('#export-video') &&
+       dansExport('#rangee-format') && dansExport('#opt-sortie') &&
        !dansExport('#section-fond'),
-       'format ' + dansExport('#rangee-format') + ' · video ' + dansExport('#export-video') +
+       'format ' + dansExport('#rangee-format') + ' · sortie ' + dansExport('#opt-sortie') +
        ' · photo (ne devrait plus y etre) ' + dansExport('#section-fond'));
     /* LA PHOTO OUVRE LE PANNEAU STYLE. On choisit l'image, puis la planche qui
      * va dessus — l'inverse revenait a regler une surcouche sans voir ce qu'il
@@ -507,7 +507,7 @@
   if (!window.MediaRecorder || !Video.pickMime()) {
     resultats.push({ cas: 'vidéo · export', verdict: 'sauté',
                      detail: 'ce navigateur ne sait pas enregistrer' });
-  } else if (!$('#export-video')) {
+  } else if (!$('#export') || !$('#sortie')) {
     resultats.push({ cas: 'vidéo · export', verdict: 'sauté', detail: 'bouton absent' });
   } else {
     var sauveVraie = Video.save;
@@ -518,7 +518,13 @@
       $('#duree').value = '1500';
       $('#duree').dispatchEvent(new Event('change'));
     }
-    $('#export-video').click();
+    /* UN SEUL BOUTON : le format se choisit dans le menu. Ce cas cliquait
+     * `#export-video`, qui n'existe plus — et sans cette mise a jour il se
+     * serait SAUTE en silence, en annoncant « bouton absent ». Un cas qui
+     * s'esquive proprement est un cas qui ne prouve plus rien. */
+    $('#sortie').value = 'video';
+    $('#sortie').dispatchEvent(new Event('change'));
+    $('#export').click();
     var fini = await jusqua(function () { return !!sortie; }, 40000);
     Video.save = sauveVraie;
     if (dureeAvant && $('#duree')) {

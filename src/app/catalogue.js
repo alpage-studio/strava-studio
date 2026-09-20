@@ -146,7 +146,14 @@
      * Studio.render attrape déjà toute exception et peint une carte d'erreur :
      * pas de try/catch ici, il ne pourrait rien attraper. */
     poseEtatGlobal();
-    Studio.render(cv, tplId, effective(), resolvedOptions(tplId, valeurs), [L, H2]);
+    Studio.render(cv, tplId, modele(), resolvedOptions(tplId, valeurs), [L, H2]);
+  }
+
+  /* La sortie sur laquelle les vignettes se rendent : la tienne, ou l'exemple
+   * embarqué tant que rien n'est chargé. Voir plancheAccueil() dans app.js. */
+  function modele() {
+    if (E.chargee) return effective();
+    return E.exemple || effective();
   }
 
   function construitChoixStyle() {
@@ -156,6 +163,19 @@
     /* Le damier derrière les vignettes quand le support est transparent :
      * sans lui, une encre sombre sur une carte sombre est invisible. */
     boite.classList.toggle('surcouche', $('#support').value === 'surcouche');
+
+    /* CE QU'ON REGARDE APPARTIENT A QUI ?
+     *
+     * Les vignettes se rendent sur l'exemple embarque tant que rien n'est
+     * charge. Sans cette ligne, elles montreraient un parcours et des chiffres
+     * qu'on prendrait pour les siens : un studio qui affiche 23,5 km a
+     * quelqu'un qui n'a rien donne raconte une sortie qui n'existe pas. */
+    if (!E.chargee && E.exemple) {
+      var note = document.createElement('p');
+      note.className = 'note-exemple';
+      note.textContent = T('Exemple — charge une sortie pour voir la tienne');
+      boite.appendChild(note);
+    }
     var tousIds = Studio.all().map(function (t) { return t.id; });
     var ranges = {};
     GROUPES_STYLE.forEach(function (g) {

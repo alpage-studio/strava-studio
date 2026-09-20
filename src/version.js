@@ -11,8 +11,8 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.9';
-var STUDIO_DATE = '19.09.2026';
+var STUDIO_VERSION = '3.10';
+var STUDIO_DATE = '20.09.2026';
 
 /* ---------- le journal ----------
  *
@@ -34,6 +34,12 @@ var STUDIO_DATE = '19.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.10', d: '20.09.2026', points: [
+    'UN SEUL bouton pour exporter, et le format devient un choix : image, vidéo ou séquence PNG. Ils étaient trois boutons côte à côte, dont un seul en couleur — trois façons de produire LA MÊME planche présentées comme trois fonctions différentes. Et « Enregistrer l’image » voisinait avec « Enregistrer un projet », qui ne fait pas du tout la même chose.',
+    'Le réglage de durée disparaît quand on choisit l’image fixe : il n’y a rien à animer, et un réglage sans effet apprend à ne plus lire les réglages.',
+    'Le catalogue montre enfin quelque chose avant qu’on ait chargé un fichier. Les trente-six vignettes se rendaient sur une sortie VIDE — des tirets à la place des chiffres, aucun parcours — alors que c’est le premier écran qu’on voit. Elles utilisent désormais l’exemple embarqué.',
+    'Cet exemple n’entre pas dans ta bibliothèque et les cartes le disent : « Exemple — charge une sortie pour voir la tienne ». Sans cette ligne, on prendrait ses 60 km pour les siens.'
+  ] },
   { v: '3.9', d: '19.09.2026', points: [
     'Une planche de plus : « Gravure d’altitude ». Le profil d’une sortie devient le sujet — une crête, et sous elle une vingtaine de lignes qui la reprennent. Deux compositions : Frise, qui traverse la feuille, et Massif, un bloc serré.',
     'Une sortie plate y reste plate. Le profil du studio est normalisé entre 0 et 1 : dessiné tel quel, une boucle de plaine de dix-sept mètres aurait la même montagne qu’un col de mille. La hauteur se calcule donc sur les MÈTRES réels.',
