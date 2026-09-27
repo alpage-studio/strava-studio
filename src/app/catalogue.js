@@ -11,6 +11,7 @@
   var save = A.save;
   var effective = A.effective;
   var resolvedOptions = A.resolvedOptions;
+  var SIZES = A.SIZES;
   var poseEtatGlobal = A.poseEtatGlobal;
   var draw = A.draw;
   var buildOptions = A.buildOptions;
@@ -134,7 +135,19 @@
    * laisse le CSS réduire — en dessous, les textes des planches deviennent
    * des taches grises et toutes les familles se ressemblent. */
   function vignette(cv, tplId, valeurs) {
-    var L = 300, H2 = Math.round(L * 16 / 9);
+    /* LA VIGNETTE A LA FORME DE CE QU'ON VA EXPORTER.
+     *
+     * Elle était toujours en 9:16, quel que soit le format choisi : en
+     * paysage ou en carré, elle mentait sur la forme de la planche — et
+     * surtout, une carte de 583 px de haut ne tenait pas dans une fenêtre de
+     * 519 px. Aucune carte n'entrait à l'écran, et il fallait trente-trois
+     * crans de molette pour atteindre une planche.
+     *
+     * Le rapport vient donc du format retenu. Il est borné : un A3 très
+     * allongé redonnerait des cartes qu'on ne voit pas entières. */
+    var fmt = SIZES[$('#size').value] || [1080, 1920];
+    var L = 300;
+    var H2 = Math.round(L * Math.max(0.7, Math.min(1.5, fmt[1] / fmt[0])));
     /* Les réglages posés avant de peindre, comme pour la scène — sinon la
      * vignette ment d'un cran sur le noir & blanc et le support.
      *

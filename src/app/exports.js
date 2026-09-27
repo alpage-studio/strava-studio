@@ -122,7 +122,13 @@
     A.construitChoixStyle();
     draw();
   });
-  $('#size').addEventListener('change', changement);
+  /* Les vignettes ont desormais la forme du format retenu : changer de
+   * format doit donc les refaire, sinon elles gardent la silhouette de
+   * l'ancien et recommencent a mentir sur ce qu'on va exporter. */
+  $('#size').addEventListener('change', function () {
+    A.construitChoixStyle();
+    changement();
+  });
   /* AMORTI. Sous 900 px la page défile, donc la barre d'adresse du
    * navigateur apparaît et disparaît au défilement — et chaque apparition
    * émet un `resize`. Sans amortissement, chacune relançait un rendu complet
@@ -432,7 +438,28 @@
                      size[0] + 'x' + size[1] + '.png');
   }
 
+  /* RIEN A EXPORTER N'EST PAS UN FICHIER VIDE.
+   *
+   * Une planche multi-sorties dont le filtre de periode ne retient AUCUNE
+   * sortie dessine une page blanche. Le bouton l'exportait quand meme : on
+   * recevait un PNG de 1080x1920 sans rien dedans, sans un mot. Le filtre
+   * annonce pourtant « 0 / 3 » juste au-dessus — l'information existait,
+   * l'export ne la lisait pas.
+   *
+   * On refuse et on DIT pourquoi, plutot que de livrer le vide. */
+  function rienAExporter() {
+    var tpl = Studio.get($('#tpl').value);
+    if (!tpl || !tpl.multi) return null;
+    if (!A.entreesRetenues) return null;
+    if (A.entreesRetenues().length) return null;
+    return Library.count()
+      ? T('Cette periode ne retient aucune sortie — change la periode ou charge d’autres sorties.')
+      : T('Charge au moins une sortie avant d’exporter.');
+  }
+
   $('#export').addEventListener('click', function () {
+    var vide = rienAExporter();
+    if (vide) { $('#video-state').textContent = vide; return; }
     var quoi = $('#sortie') ? $('#sortie').value : 'image';
     if (quoi === 'video') return exporteVideo();
     if (quoi === 'sequence') return exporteSequence();
@@ -442,10 +469,44 @@
   /* La durée ne concerne que ce qui BOUGE. Sur une image fixe le menu ne
    * ferait rien — et un réglage sans effet apprend à ne plus lire les
    * réglages, ce que ce studio se répète depuis le voile. */
+  /* LA VIDÉO EST IMPOSSIBLE SUR iPhone, ET IL FAUT LE DIRE AVANT.
+   *
+   * Safari et iOS n'ont ni `MediaRecorder` ni `canvas.captureStream` :
+   * l'enregistrement vidéo ne peut pas exister sur ce moteur. Le studio le
+   * disait — mais APRÈS le clic, au moment où l'on croyait avoir lancé un
+   * export. On presse un bouton, on attend, et un message arrive.
+   *
+   * On le dit donc à l'avance, et surtout on indique ce qui MARCHE ici : la
+   * séquence PNG ne demande que `toBlob`, et sort bien ses trente-six images
+   * sur ce même moteur. Annoncer une impossibilité sans donner l'issue laisse
+   * quelqu'un devant un mur. */
+  function videoPossible() {
+    return !!(window.Video && Video.pickMime && Video.pickMime());
+  }
+
+  function majSortiePossible() {
+    var menu = $('#sortie');
+    if (!menu || videoPossible()) return;
+    var opt = null;
+    for (var i = 0; i < menu.options.length; i++) {
+      if (menu.options[i].value === 'video') opt = menu.options[i];
+    }
+    if (!opt) return;
+    opt.disabled = true;
+    opt.textContent = T('Vidéo — impossible sur ce navigateur');
+    /* Si elle était retenue de la session précédente, on n'y laisse personne :
+     * le bouton exporterait dans le vide. */
+    if (menu.value === 'video') menu.value = 'image';
+  }
+  A.majSortiePossible = majSortiePossible;
+
   function majSortie() {
     majDuree();
     var note = $('#video-state');
-    if (note) note.textContent = '';
+    if (!note) return;
+    note.textContent = ($('#sortie') && $('#sortie').value === 'sequence' && !videoPossible())
+      ? T('Sur iPhone la vidéo n’existe pas : cette séquence d’images s’importe dans ton montage.')
+      : '';
   }
   if ($('#sortie')) {
     $('#sortie').addEventListener('change', function () { majSortie(); save(); });

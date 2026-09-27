@@ -630,6 +630,74 @@
     window.Studio.setSupport(supportAvant === 'surcouche');
   }());
 
+  // ---------- 6 sexies. LE CATALOGUE MONTRE LA SORTIE CHARGEE ----------
+  /* LE DEFAUT REEL : des qu'on importait sa sortie, les trente-six vignettes
+   * se vidaient — tirets a la place des chiffres, aucun parcours. La cause
+   * etait un ORDRE : `syncBibliotheque()` reconstruisait le catalogue AVANT
+   * de poser `E.base` et `E.chargee`, donc les vignettes se rendaient sur une
+   * activite vide, au moment precis ou l'on venait de donner son fichier.
+   *
+   * Trois relecteurs l'ont trouve. Aucun controle ne le voyait : ils
+   * verifiaient que le catalogue se reconstruit, jamais AVEC QUOI. */
+  (function () {
+    var cartes = document.querySelectorAll('#choix-style canvas');
+    if (!cartes.length) {
+      resultats.push({ cas: 'catalogue · vignettes apres import', verdict: 'sauté',
+                       detail: 'catalogue absent a cette largeur' });
+      return;
+    }
+    /* On compare la vignette a ce que la MEME planche donne sur une activite
+     * VIDE. Si les deux se ressemblent, c'est que la vignette ne voit pas la
+     * sortie — quel que soit le nombre de pixels qu'elle affiche. */
+    var id = $('#tpl') ? $('#tpl').value : 'encre';
+    var cv = document.createElement('canvas');
+    window.Studio.render(cv, id, Activity.build({}), {}, [300, 400]);
+    var vide = cv.toDataURL().length;
+    var cv2 = document.createElement('canvas');
+    window.Studio.render(cv2, id, window.App.etat.base, {}, [300, 400]);
+    var pleine = cv2.toDataURL().length;
+    ok('catalogue · la vignette se rend sur la sortie chargee, pas sur du vide  (' +
+       pleine + ' contre ' + vide + ')',
+       window.App.etat.chargee && pleine > vide * 1.15,
+       'une vignette aussi pauvre qu’une activite vide n’a pas vu la sortie');
+
+    /* ET L'ORDRE, nommement : l'etat doit etre pose avant la reconstruction. */
+    ok('catalogue · l’etat est pose avant que les vignettes se refassent',
+       !!(window.App.etat.base && (window.App.etat.base.track || []).length > 50),
+       'E.base doit porter la trace au moment ou le catalogue se reconstruit');
+  }());
+
+  // ---------- 6 septies. L'EXPORT NE LIVRE PAS LE VIDE ----------
+  /* Une planche multi-sorties dont le filtre de periode ne retient AUCUNE
+   * sortie dessine une page blanche. Le bouton l'exportait quand meme : un
+   * PNG de 1080x1920 sans rien dedans, sans un mot — alors que le filtre
+   * annonce « 0 / 3 » juste au-dessus. */
+  (function () {
+    if (!$('#periode') || !$('#tpl')) {
+      resultats.push({ cas: 'export · refus du vide', verdict: 'sauté', detail: 'reglages absents' });
+      return;
+    }
+    var tplAvant = $('#tpl').value, perAvant = $('#periode').value;
+    var sorti = null;
+    var vraiPNG = window.Studio.exportPNG;
+    window.Studio.exportPNG = function (cv, nom) { sorti = nom; };
+    $('#tpl').value = 'serie';
+    $('#tpl').dispatchEvent(new Event('change'));
+    $('#periode').value = 'annee:1';          // une annee sans aucune sortie
+    $('#periode').dispatchEvent(new Event('change'));
+    var retenues = window.App.entreesRetenues ? window.App.entreesRetenues().length : -1;
+    $('#export').click();
+    var message = $('#video-state') ? $('#video-state').textContent : '';
+    window.Studio.exportPNG = vraiPNG;
+    ok('export · aucune sortie retenue ⇒ aucun fichier, et on dit pourquoi  (' +
+       retenues + ' retenue(s))',
+       retenues === 0 && sorti === null && /aucune sortie|no ride/i.test(message),
+       'fichier=' + sorti + ' · message « ' + String(message).slice(0, 70) + ' »');
+    /* on rend l'etat au reste du parcours */
+    $('#periode').value = perAvant; $('#periode').dispatchEvent(new Event('change'));
+    $('#tpl').value = tplAvant; $('#tpl').dispatchEvent(new Event('change'));
+  }());
+
   // ---------- 7. le bandeau ----------
   var bandeau = $('#nouveautes');
   if (bandeau && !bandeau.hidden) {

@@ -622,7 +622,21 @@ function testsCoherence() {
        'sans traduction : ' + vraiesManquantes.slice(0, 8).join(' | ') +
        (vraiesManquantes.length > 8 ? ' … et ' + (vraiesManquantes.length - 8) + ' autres' : ''));
 
-    ok('langue · l\u2019anglais est la langue par d\u00e9faut', bac.I18N.langue() === 'en');
+    /* LE STUDIO EST EN FRANÇAIS, et ce contrôle dit pourquoi.
+     *
+     * Il a vérifié l'anglais de la 3.5 à la 3.11. Mais les trente-six planches
+     * gravent leur texte en français — aucune n'appelle T() — et douze
+     * relecteurs sur douze ont vu le mélange, jusque dans les PNG exportés.
+     * Une interface française n'a, par construction, aucun écart à rattraper :
+     * la chaîne source EST la clé i18n. */
+    ok('langue · le studio est en français, comme ses planches',
+       bac.I18N.langue() === 'fr');
+    /* Le dictionnaire anglais reste COMPLET et sous la garde ci-dessus : il
+     * ne sert plus à l'affichage, il garde une version anglaise possible le
+     * jour où les planches le seront aussi. */
+    ok('langue · le dictionnaire anglais reste complet  (' +
+       Object.keys(bac.I18N.DICOS.en || {}).length + ' entrées)',
+       Object.keys(bac.I18N.DICOS.en || {}).length > 400);
 
     /* ---------- LES ENTREES QUE PLUS RIEN N'AFFICHE ----------
      *
@@ -818,7 +832,11 @@ function testsCoherence() {
          /src="\.\.\/src\/i18n\.js"/.test(html));
       ok('galerie · elle applique la traduction au chargement',
          /I18N\.appliquer\(/.test(html));
-      ok('galerie · elle se declare en anglais', /<html lang="en">/.test(html));
+      /* La galerie suit le studio : meme dictionnaire, donc meme langue.
+       * Deux pages du meme produit qui ne parlent pas la meme langue, c'est
+       * exactement le defaut qu'on vient de fermer. */
+      ok('galerie · elle se declare dans la langue du studio',
+         /<html lang="fr">/.test(html));
       /* Une seconde table de traduction dans la page serait la copie qu'on
        * refuse : on la reconnait a un objet de correspondances francais →
        * anglais declare sur place. */
@@ -1466,6 +1484,96 @@ function testsMorceaux() {
     return n + (t.match(/A\.demarre\(\)/g) || []).length;
   }, 0);
   ok('morceaux · un seul appel a demarre()  (' + appels + ')', appels === 1);
+}
+
+/* ================= 2 decies. UN PROJET REND CE QU'IL A PRIS ================
+ *
+ * LE DÉFAUT RÉEL : le fichier projet ne portait ni le cadrage ni l'échelle.
+ * Une composition rouverte reprenait donc le placement de la session en
+ * cours — on retrouvait sa planche à un endroit qu'on n'avait pas choisi.
+ *
+ * C'est mon oubli : j'avais ajouté le placement à la session (`save()`) et à
+ * sa restauration, et pas au format projet. Les deux vivent dans deux
+ * fichiers différents, et rien ne les reliait.
+ *
+ * CE QUE CE CONTRÔLE FAIT, ET POURQUOI IL EST STATIQUE
+ *   `appliqueProjet()` lit `p.reglages.X` ; `Projet.exporter()` écrit `X:`.
+ *   Tout ce qui est LU doit avoir été ÉCRIT, sinon la restauration porte sur
+ *   une clé que le fichier ne contient pas — silencieusement, puisqu'une
+ *   valeur absente passe simplement la garde `if (…)`.
+ *
+ *   Le vérifier en lisant le code plutôt qu'en rejouant un enregistrement
+ *   attrape la classe entière : le jour où l'on ajoute un réglage, l'oubli se
+ *   voit au commit et non six versions plus tard chez quelqu'un qui a perdu
+ *   son travail.
+ */
+{
+  titre('2 decies. UN PROJET REND CE QU’IL A PRIS');
+
+  const src = fs.readFileSync(path.join(ROOT, 'src', 'app', 'collection.js'), 'utf8');
+
+  /* Ce que le fichier projet EMPORTE : les clés de l'objet passé à
+   * Projet.exporter(). On borne la lecture à cet appel pour ne pas ramasser
+   * les clés d'un autre objet du fichier. */
+  const bloc = /Projet\.exporter\(\s*Library\.list\(\)\s*,\s*\{([\s\S]*?)\}\s*,/.exec(src);
+  const ecrites = new Set();
+  if (bloc) {
+    /* LES COMMENTAIRES D'ABORD. Sans ce nettoyage, « l'échelle de la session
+     * en cours : » — une phrase de commentaire à l'intérieur de l'objet —
+     * livrait une clé nommée « cours », et le contrôle accusait le code d'un
+     * réglage qui n'existe pas. Troisième fois qu'un contrôle qui lit du
+     * texte se fait piéger par sa propre documentation. */
+    const propre = bloc[1].replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
+    (propre.match(/(^|[\s,{])([A-Za-z_$][\w$]*)\s*:/g) || []).forEach(function (m) {
+      ecrites.add(m.replace(/[\s,{:]/g, ''));
+    });
+  }
+
+  /* Ce que la réouverture RELIT. */
+  const lues = new Set();
+  (src.match(/p\.reglages\.([A-Za-z_$][\w$]*)/g) || []).forEach(function (m) {
+    lues.add(m.split('.')[2]);
+  });
+
+  /* Les deux comptes doivent être plausibles : à zéro, ce contrôle serait
+   * vert en n'ayant rien trouvé — la faute déjà payée sur le compte des
+   * tâches de la chaîne de publication. */
+  ok('projet · les deux listes ont été relevées  (' + ecrites.size +
+     ' écrites, ' + lues.size + ' relues)',
+     ecrites.size >= 8 && lues.size >= 8,
+     'écrites : ' + Array.from(ecrites).join(', ') +
+     ' | relues : ' + Array.from(lues).join(', '));
+
+  const orphelines = Array.from(lues).filter(function (k) { return !ecrites.has(k); });
+  ok('projet · tout réglage relu est aussi enregistré',
+     orphelines.length === 0,
+     'relu sans jamais être écrit : ' + orphelines.join(', ') +
+     ' — la réouverture garde alors la valeur de la session en cours');
+
+  /* L'INVERSE COMPTE AUSSI, mais il est moins grave : une clé écrite et
+   * jamais relue alourdit le fichier sans rien casser. On le signale sans en
+   * faire un échec — sauf pour celles qui décrivent la PLANCHE, où l'oubli
+   * de relecture produit exactement le même symptôme que l'oubli d'écriture. */
+  const jamaisRelues = Array.from(ecrites).filter(function (k) {
+    return !lues.has(k) && k !== 'opts';
+  });
+  ok('projet · tout réglage enregistré est aussi relu',
+     jamaisRelues.length === 0,
+     'écrit sans jamais être relu : ' + jamaisRelues.join(', ') +
+     ' — le fichier le porte, la réouverture l’ignore');
+
+  /* ET LE PLACEMENT NOMMÉMENT. Les deux contrôles ci-dessus sont des règles ;
+   * celui-ci est le cas qui les a fait écrire, et il vaut qu'on le nomme. */
+  ok('projet · il porte le cadrage et l’échelle de la planche',
+     ecrites.has('placement') && ecrites.has('echelle') &&
+     lues.has('placement') && lues.has('echelle'));
+
+  /* ROUVRIR DOIT ÊTRE RETENU. `apresChangement()` redessine mais n'enregistre
+   * pas : sans un `save()` derrière, un rechargement juste après avoir rouvert
+   * un projet restituait la planche d'AVANT. */
+  ok('projet · rouvrir enregistre l’état',
+     /apresChangement\(\);[\s\S]{0,500}A\.save\(\)/.test(src),
+     'sans cela, un rechargement juste après restitue la planche précédente');
 }
 
 /* ================= 2 nonies. CHAQUE MORCEAU DÉCLARE CE QU'IL EMPRUNTE =======

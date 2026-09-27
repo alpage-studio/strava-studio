@@ -265,9 +265,15 @@
      une tablette de 768 px, deux cartes de trois cent soixante-dix pixels
      montraient deux familles là où quatre tiennent. `min(…, 100%)` évite
      qu'une colonne plus large que l'écran ne déborde. */
+  /* DEUX COLONNES DES 280 px DE LARGE, et non 308.
+     A 150 px de colonne minimum, un panneau de telephone de 300 px n'en
+     tenait qu'UNE : la carte faisait alors 300 px de large, donc 583 px de
+     haut, dans une fenetre qui en montre 519. Il fallait trente-trois crans
+     de molette pour traverser une famille. A 128 px, la meme largeur en
+     donne deux, et la carte tombe sous la moitie. */
   .familles, .variantes {
     display: grid; gap: 8px;
-    grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(128px, 100%), 1fr));
   }
   .carte-style {
     display: block; width: 100%; text-align: left; padding: 0;
@@ -1144,17 +1150,6 @@
           <option value="sequence">Séquence PNG — pour le montage</option>
         </select>
       </label>
-      <button id="export" type="button">Exporter</button>
-      <button class="ghost" id="preview-play" type="button">Lire l’aperçu</button>
-      <div id="son" hidden>
-        <div class="rangee">
-          <button class="ghost" id="son-play" type="button">▶ Écouter</button>
-          <button class="ghost" id="son-pause" type="button">Pause</button>
-          <button class="ghost" id="son-stop" type="button">Stop</button>
-        </div>
-        <button class="ghost" id="son-wav" type="button">Exporter le son (WAV)</button>
-        <div id="son-state"></div>
-      </div>
       <!-- COMBIEN DE TEMPS LE TRACÉ MET À APPARAÎTRE.
            La durée était figée à 4,2 s dans le moteur, sans moyen d'y toucher :
            trop long pour une story qu'on fait défiler, trop court pour un
@@ -1171,6 +1166,17 @@
           <option value="8000">8 s — on regarde le tracé se faire</option>
         </select>
       </label>
+      <button id="export" type="button">Exporter</button>
+      <button class="ghost" id="preview-play" type="button">Lire l’aperçu</button>
+      <div id="son" hidden>
+        <div class="rangee">
+          <button class="ghost" id="son-play" type="button">▶ Écouter</button>
+          <button class="ghost" id="son-pause" type="button">Pause</button>
+          <button class="ghost" id="son-stop" type="button">Stop</button>
+        </div>
+        <button class="ghost" id="son-wav" type="button">Exporter le son (WAV)</button>
+        <div id="son-state"></div>
+      </div>
       <div id="video-state"></div>
     </div>
   </aside>

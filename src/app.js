@@ -144,10 +144,22 @@
      * hoistee — puis sur la liste des groupes, declaree en `var` plus bas.
      * Depuis le decoupage, le catalogue est un module charge APRES ce
      * fichier : ce qui peut manquer, c'est lui. */
-    if (A.construitChoixStyle && $('#choix-style')) A.construitChoixStyle();
+    /* L'ÉTAT D'ABORD, LE CATALOGUE ENSUITE. L'ORDRE EST LE SUJET.
+     *
+     * Ces deux lignes étaient APRÈS la reconstruction du catalogue. Les
+     * vignettes se rendaient donc sur `E.base` d'avant — vide au premier
+     * import — et affichaient des tirets à la place des chiffres, sans
+     * parcours, au moment précis où l'on vient de donner sa sortie. La note
+     * « charge une sortie pour voir la tienne » disparaissait bien, de sorte
+     * que l'application AFFIRMAIT montrer la sortie qu'elle n'utilisait pas.
+     *
+     * Trois personas l'ont trouvé, chacun avec ses mots ; aucun de nos
+     * contrôles ne le voyait, parce qu'ils vérifiaient que le catalogue se
+     * reconstruit, jamais avec QUELLES données. */
     var cur = Library.current();
     if (cur) E.base = cur;
     E.chargee = Library.count() > 0 || E.chargee;
+    if (A.construitChoixStyle && $('#choix-style')) A.construitChoixStyle();
     rendLibrary();
   }
 
@@ -819,6 +831,7 @@
    * qui y sont, et pourquoi. */
   A.draw = draw;
   A.save = save;
+  A.entreesRetenues = entreesRetenues;
   A.effective = effective;
   A.resolvedOptions = resolvedOptions;
   A.poseEtatGlobal = poseEtatGlobal;
@@ -949,6 +962,7 @@
      * juste au-dessus. */
     if (A.majDuree) A.majDuree();
     if (A.majPlacement) A.majPlacement();
+    if (A.majSortiePossible) A.majSortiePossible();
     A.construitChoixStyle();
     A.majDisposition();
 

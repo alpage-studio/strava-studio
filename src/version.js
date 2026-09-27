@@ -11,8 +11,8 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.11';
-var STUDIO_DATE = '20.09.2026';
+var STUDIO_VERSION = '3.12';
+var STUDIO_DATE = '27.09.2026';
 
 /* ---------- le journal ----------
  *
@@ -34,6 +34,15 @@ var STUDIO_DATE = '20.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.12', d: '27.09.2026', points: [
+    'LE STUDIO EST EN FRANÇAIS. Il parlait anglais depuis la 3.5, mais les trente-six planches, elles, gravaient leur texte en français — jusque dans le PNG exporté. Douze relecteurs sur douze ont vu le mélange. L’interface rejoint donc la langue dans laquelle tout est écrit.',
+    'Le catalogue ne se vide plus quand tu charges ta sortie. Les vignettes se refaisaient AVANT que la sortie soit posée : elles se rendaient sur une activité vide, au moment précis où tu venais de donner ton fichier.',
+    'Les vignettes ont la forme du format choisi. Toujours en 9:16, elles mentaient sur la silhouette de l’affiche — et une carte de 583 px ne tenait pas dans une fenêtre de 519. Sur téléphone : deux colonnes, cartes de 314 px, et 1 828 px à faire défiler au lieu de 6 643.',
+    'Un projet enregistre enfin le cadrage et l’échelle de la planche, et le rouvrir est retenu — un rechargement juste après restituait la planche précédente.',
+    'L’export refuse de livrer une page blanche : quand la période ne retient aucune sortie, il le dit au lieu de télécharger un PNG vide.',
+    'Sur iPhone, la vidéo s’annonce impossible AVANT qu’on la tente : Safari n’a ni MediaRecorder ni captureStream. L’image et la séquence PNG, elles, fonctionnent — et le studio t’y renvoie.',
+    'La durée d’apparition remonte au-dessus du bouton Exporter, là où on la cherche.'
+  ] },
   { v: '3.11', d: '20.09.2026', points: [
     'La planche se PLACE sur la photo : tu la prends, tu la poses où tu veux, un curseur la redimensionne et un bouton la recentre. Le titre tombait parfois sur la zone la plus chargée de l’image — le voile la rendait lisible, la déplacer règle le problème autrement.',
     'Le placement vaut pour les trente-six planches : il est posé par le moteur, une fois, et aucune n’a eu à être modifiée.',

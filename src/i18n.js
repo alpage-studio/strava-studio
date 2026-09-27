@@ -215,6 +215,12 @@
     'Recentrer': 'Recentre',
     'Taille de la planche': 'Artwork size',
 
+    'Cette periode ne retient aucune sortie — change la periode ou charge d’autres sorties.': 'This period holds no ride — change the period, or load other rides.',
+    'Charge au moins une sortie avant d’exporter.': 'Load at least one ride before exporting.',
+
+    'Vidéo — impossible sur ce navigateur': 'Video — not possible in this browser',
+    'Sur iPhone la vidéo n’existe pas : cette séquence d’images s’importe dans ton montage.': 'On iPhone video is not available: this image sequence imports into your editor.',
+
     /* ---------- Versants ---------- */
     'Versants — le rythme de la sortie': 'Slopes — the rhythm of the ride',
     'Bloc': 'Block',
@@ -715,17 +721,24 @@
    * finit par etre lue comme une possibilite. */
   var DICOS = { en: EN };
 
-  /* UNE SEULE LANGUE, ET PLUS DE CHOIX.
+  /* LE STUDIO EST EN FRANÇAIS, ET IL L'EST PARTOUT.
    *
-   * Le sélecteur FR/EN a été retiré : il proposait une alternative que
-   * personne ne prenait et qu'il fallait tenir dans deux états. Le moteur,
-   * lui, reste — c'est lui qui PRODUIT l'anglais, puisque les libellés sont
-   * écrits en français dans le code et traduits à l'affichage.
+   * Il a parlé anglais de la 3.5 à la 3.11, avec un défaut que douze
+   * relecteurs sur douze ont vu : les PLANCHES, elles, sont restées en
+   * français. Aucun template n'appelle T() — le texte gravé sur une affiche
+   * est écrit en dur dans son fichier. On lisait donc une interface anglaise
+   * qui produisait des affiches françaises, jusque dans le PNG exporté.
    *
-   * Le choix retenu dans les navigateurs qui avaient dit « FR » est efface :
-   * sans cela ils resteraient en francais pour toujours, devant une interface
-   * qui n'offre plus le moyen d'en sortir. */
-  var langue = 'en';
+   * Deux issues existaient : traduire les trente-six planches, ou rendre
+   * l'interface à la langue dans laquelle tout est écrit. La seconde est
+   * celle qui ne peut pas dériver : la chaîne source EST la clé i18n, donc
+   * une interface française n'a par construction aucun écart à rattraper.
+   *
+   * `DICOS` n'a pas de 'fr' : T() rend alors la chaîne telle quelle, c'est-à-
+   * dire le français du code. Le dictionnaire anglais reste complet et sous
+   * garde du harnais — il coûte peu et rend une version anglaise possible
+   * le jour où les planches le seront aussi. */
+  var langue = 'fr';
   try { localStorage.removeItem(CLE); } catch (e) { /* mode privé : rien à oublier */ }
 
   /* La traduction d'UNE chaîne. Absente du dictionnaire : on rend le

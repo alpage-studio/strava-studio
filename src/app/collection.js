@@ -74,6 +74,12 @@
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
         support: $('#support').value, voile: $('#voile').value,
         duree: $('#duree') ? $('#duree').value : null,
+        /* LE PLACEMENT FAIT PARTIE DE LA PLANCHE, pas de la session.
+         * Sans ces deux lignes, un projet rouvert reprenait le cadrage et
+         * l'echelle de la session en cours : on retrouvait sa composition
+         * a un endroit qu'on n'avait pas choisi. */
+        placement: E.placement,
+        echelle: $('#echelle') ? $('#echelle').value : null,
         periode: $('#periode').value,
         opts: E.optionValues
       }, 'projet-' + slug() + '.json');
@@ -109,6 +115,11 @@
     if (p.reglages.support) $('#support').value = p.reglages.support;
     if (p.reglages.voile) $('#voile').value = p.reglages.voile;
     if (p.reglages.duree && $('#duree')) $('#duree').value = p.reglages.duree;
+    if (p.reglages.placement) {
+      E.placement.x = Number(p.reglages.placement.x) || 0;
+      E.placement.y = Number(p.reglages.placement.y) || 0;
+    }
+    if (p.reglages.echelle && $('#echelle')) $('#echelle').value = p.reglages.echelle;
     /* La période décide QUELLES sorties composent la planche : sans elle, un
      * projet multi-sorties se rouvrait sur une autre sélection que celle
      * qu'on avait enregistrée. C'est le réglage qui change le plus ce qu'on
@@ -122,6 +133,10 @@
     E.overrides = {};
     E.chargee = Library.count() > 0;
     apresChangement();
+    /* ET ON RETIENT. `apresChangement()` redessine mais n'enregistre pas :
+     * un rechargement juste apres avoir rouvert un projet restituait donc
+     * la planche d'AVANT, avec le sentiment d'avoir perdu son travail. */
+    if (A.save) A.save();
   }
 
   /* Une année entière, pour Almanac : 106 sorties avec leurs creux, leurs
