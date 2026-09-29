@@ -73,6 +73,8 @@
         collection: $('#collection').value, minimal: $('#minimal').checked,
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
         support: $('#support').value, voile: $('#voile').value,
+        bain: $('#bain') ? $('#bain').value : null,
+        halo: $('#halo') ? $('#halo').checked : false,
         duree: $('#duree') ? $('#duree').value : null,
         /* LE PLACEMENT FAIT PARTIE DE LA PLANCHE, pas de la session.
          * Sans ces deux lignes, un projet rouvert reprenait le cadrage et
@@ -113,6 +115,8 @@
     if (p.reglages.minimal != null) $('#minimal').checked = !!p.reglages.minimal;
     if (p.reglages.rendu) $('#rendu').value = p.reglages.rendu;
     if (p.reglages.support) $('#support').value = p.reglages.support;
+    if (p.reglages.bain && $('#bain')) $('#bain').value = p.reglages.bain;
+    if ($('#halo')) $('#halo').checked = !!p.reglages.halo;
     if (p.reglages.voile) $('#voile').value = p.reglages.voile;
     if (p.reglages.duree && $('#duree')) $('#duree').value = p.reglages.duree;
     if (p.reglages.placement) {

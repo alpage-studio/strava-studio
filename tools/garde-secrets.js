@@ -48,6 +48,9 @@ const POSITIONS_AUTORISEES = new Set([
   /* la séance à intervalles : le seul démo qui porte des WATTS, sorti du même
    * tools/make-demos.js que les quatre autres */
   'demo-intervalles.gpx',
+  /* la boucle à cadence et pauses : même générateur, une sinusoïde autour de
+   * 46,58° / 6,52°, avec deux arrêts écrits dans l'horodatage */
+  'demo-cadence.gpx',
   /* LES TRACES DU BANC, toutes fabriquées à la main.
    *
    * Elles ne sortent pas d'un GPS : chacune est une sinusoïde évaluée point

@@ -120,6 +120,18 @@ dans `src/alpage.js`), il ne peint rien lui-même. Si le menu global et les
 `choices` d'un template divergent d'un seul mot, la transmission échoue **en
 silence** : aucune erreur, aucun voile. Un contrôle compare les deux listes.
 
+**Une SURFACE n'est pas une planche.** Le cyanotype est un procédé
+d'impression : il s'applique à ce qu'on imprime, donc aux 37 compositions, et
+non à une trente-huitième. Il vit dans `src/cyanotype.js`, se pose par
+`Studio.setSurface()` comme le support et le voile, et relit la planche finie
+pour retraduire sa luminance en bleu de Prusse. Trois règles le bornent : il ne
+s'applique **jamais sur une surcouche** — un tirage est un papier, et repeindre
+la photo de quelqu'un n'appartient pas au studio ; il **cède au noir & blanc**,
+parce que deux réglages qui se contredisent doivent en laisser un gagner
+explicitement ; et son halo **n'encode rien**, ce que son intitulé dit. Le
+passage coûte ~35 ms sur 2 Mpx — sans conséquence pour une image, mais un export
+vidéo avec tirage sort à une quinzaine d'images par seconde.
+
 **Une variante est un JEU d'options, pas une valeur.** Le catalogue montre par
 défaut les valeurs de la première liste déroulante. Quand cet axe unique ment —
 « Fragment » de Médaillon est un cadrage *et* un décalage, « Gravity » d'Almanac

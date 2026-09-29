@@ -95,6 +95,22 @@
   var supportSurcouche = false;
   function setSupport(actif) { supportSurcouche = !!actif; }
 
+  /* LA SURFACE — papier nu ou tirage cyanotype.
+   *
+   * Elle est distincte du support : le support dit s'il y a un fond, la
+   * surface dit de quoi ce fond est fait. Les deux auraient pu tenir dans un
+   * seul réglage à trois valeurs ; ils sont séparés ici parce que tout le
+   * code existant demande « est-ce une surcouche » et qu'une troisième valeur
+   * dans cette question-là aurait répondu « non » partout, en silence. */
+  var surface = 'papier';
+  var bainCyano = 'profond';
+  var haloCyano = false;
+  function setSurface(nom, bain, halo) {
+    surface = nom === 'cyanotype' ? 'cyanotype' : 'papier';
+    if (bain) bainCyano = bain;
+    haloCyano = !!halo;
+  }
+
   /* OU LA PLANCHE SE POSE SUR LA PHOTO.
    *
    * `x` et `y` sont des fractions du cadre — 0 au centre, ±0,5 au bord — et
@@ -746,6 +762,23 @@
       wrap(ctx, e.message, w / 2, h / 2, w * 0.85, w / 30);
       console.error(e);
     }
+
+    /* LE TIRAGE, EN DERNIER — il relit la planche entière.
+     *
+     * Après le template et après la carte d'erreur : un message d'erreur en
+     * bleu de Prusse reste lisible, et une planche à moitié peinte ne doit
+     * pas échapper au procédé qui s'applique au reste.
+     *
+     * JAMAIS SUR UNE SURCOUCHE : un tirage est un papier. Posé sur une photo,
+     * il aurait repeint la photo elle-même, que le studio n'a pas à toucher.
+     *
+     * JAMAIS EN NOIR & BLANC : deux réglages qui se contredisent doivent en
+     * laisser un gagner explicitement, et celui que l'on vient de cocher à la
+     * main l'emporte sur celui de la surface. */
+    if (surface === 'cyanotype' && !supportSurcouche && !state.achromatique &&
+        global.Cyanotype) {
+      global.Cyanotype.applique(ctx, w, h, { bain: bainCyano, halo: haloCyano });
+    }
     return tpl;
   }
 
@@ -780,7 +813,8 @@
     render: render, exportPNG: exportPNG, setPhoto: setPhoto, setMinimal: setMinimal,
     setLibrary: setLibrary, setHistorique: setHistorique,
     setAchromatique: setAchromatique,
-    setSupport: setSupport, setVoile: setVoile, setDuree: setDuree,
+    setSupport: setSupport, setSurface: setSurface,
+    setVoile: setVoile, setDuree: setDuree,
     setPlacement: setPlacement, getPlacement: getPlacement,
     versGris: versGris, rampeDeGris: rampeDeGris,
     setProgress: setProgress, fmt: fmt

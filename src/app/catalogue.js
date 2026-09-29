@@ -36,7 +36,7 @@
       ids: ['encre', 'empreinte', 'mots', 'editorial', 'trace', 'chiffres',
             'allumettes', 'pente', 'radiale', 'sommet-ligne', 'sommet-barres'] },
     { id: 'cartes', nom: 'Cartes',
-      ids: ['medaillon', 'atlas', 'metro', 'exploration', 'sous-bois'] },
+      ids: ['medaillon', 'atlas', 'metro', 'exploration', 'sous-bois', 'trame'] },
     { id: 'reliefs', nom: 'Reliefs et données',
       ids: ['strates', 'gravure', 'gravure-puissance', 'versants', 'ressenti', 'almanac', 'tissage'] },
     { id: 'souvenirs', nom: 'Souvenirs',

@@ -110,6 +110,47 @@
     { f: 'Versants', g: 'Support', n: 'Bloc · paysage', d: 'format large',
       t: 'versants', o: {}, j: 'formes', i: 0, taille: [1920, 1080] },
 
+    /* ---------------- TRAME ----------------
+     * Sur la séance à intervalles, et non sur une boucle : c'est l'EFFORT qui
+     * resserre le tissage, et une sortie régulière donnerait une étoffe unie
+     * dont on ne pourrait pas dire si le réglage agit. La variante sans
+     * mesure est montrée exprès, parce que la trame doit alors rester
+     * régulière — et l'écrire. */
+    { f: 'Trame', g: 'Original', n: 'Toile', d: 'chaîne et trame régulières, le fil traverse',
+      t: 'trame', o: {}, j: 'watts' },
+    { f: 'Trame', g: 'Original', n: 'Serré', d: 'une étoffe dense',
+      t: 'trame', o: { composition: 'serre' }, j: 'watts' },
+    { f: 'Trame', g: 'Exploration', n: 'Lâche', d: 'peu de fils, beaucoup de papier',
+      t: 'trame', o: { composition: 'lache' }, j: 'watts' },
+    { f: 'Trame', g: 'Support', n: 'Toile · paysage', d: 'format large',
+      t: 'trame', o: {}, j: 'watts', taille: [1920, 1080] },
+
+    /* ---------------- PARTITION ----------------
+     * Deux jeux, parce que la composition graphique écrit le TEMPS : le
+     * fractionné doit produire un rythme de marques qu'un long col ne produit
+     * pas, et seule la boucle à cadence porte des pauses et une cadence. */
+    { f: 'Partition', g: 'Original', n: 'Graphique', d: 'la sortie écrite dans le temps',
+      t: 'partition', o: { composition: 'graphique' }, j: 'cadence' },
+    { f: 'Partition', g: 'Original', n: 'Graphique · fractionné', d: 'six relances, un rythme de marques',
+      t: 'partition', o: { composition: 'graphique' }, j: 'watts' },
+    { f: 'Partition', g: 'Exploration', n: 'Musicale', d: 'la pièce jouable, sur fond sombre',
+      t: 'partition', o: {}, j: 'cadence' },
+    { f: 'Partition', g: 'Support', n: 'Graphique · paysage', d: 'un seul système, toute la largeur',
+      t: 'partition', o: { composition: 'graphique' }, j: 'cadence',
+      taille: [1920, 1080] },
+
+    /* ---------------- LE CYANOTYPE, SUR TROIS FAMILLES ----------------
+     * Une SURFACE ne se juge pas sur une planche : ce qu'il faut voir, c'est
+     * qu'elle vaut pour toutes. Les trois bains sont donc montrés sur trois
+     * compositions qui n'ont ni la même densité d'encre ni la même palette —
+     * un trait seul, une étoffe, une frise. */
+    { f: 'Encre', g: 'Support', n: 'Trait · cyanotype négatif', d: 'le tracé en réserve blanche',
+      t: 'encre', o: {}, j: 'formes', i: 0, cyano: 'negatif' },
+    { f: 'Trame', g: 'Support', n: 'Toile · cyanotype', d: 'bain profond sur l’étoffe',
+      t: 'trame', o: {}, j: 'watts', cyano: 'profond' },
+    { f: 'Gravure d’altitude', g: 'Support', n: 'Frise · cyanotype voilé', d: 'un tirage lavé',
+      t: 'gravure', o: {}, j: 'formes', i: 0, cyano: 'voile' },
+
     /* ---------------- EMPREINTE ---------------- */
     { f: 'Empreinte', g: 'Original', n: 'Sceau', d: 'disque et contours',
       t: 'empreinte', o: {}, j: 'formes', i: 0 },
@@ -197,6 +238,10 @@
     /* le seul jeu qui porte des WATTS : sans lui, la gravure de puissance
      * ne se jugerait que sur son état vide. */
     watts:   ['demo-intervalles.gpx'],
+    /* le seul jeu qui porte une CADENCE et de vraies PAUSES : sans lui, le
+     * rythme des marques et les interruptions de la partition graphique ne se
+     * jugeraient que sur leur repli. */
+    cadence: ['demo-cadence.gpx'],
     semaine: ['sem-lun.gpx', 'sem-mar.gpx', 'sem-jeu.gpx', 'sem-ven.gpx', 'sem-dim.gpx'],
     regions: ['sem-lun.gpx', 'sem-jeu.gpx', 'loin-a.gpx', 'loin-b.gpx'],
     huit:    ['sem-01.gpx', 'sem-02.gpx', 'sem-03.gpx', 'sem-04.gpx',

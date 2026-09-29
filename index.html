@@ -857,7 +857,10 @@
   <button type="button" data-feuille="teintes">Teintes</button>
   <button type="button" data-feuille="texte">Texte</button>
   <button type="button" data-feuille="format">Export</button>
-  <button type="button" id="barre-enregistrer" class="principal">Enregistrer</button>
+  <!-- LE MOT DU BOUTON EST CELUI DE L'ACTION. Il disait « Enregistrer » et
+       déclenchait l'export ; à deux écrans de là, « Enregistrer le projet » en
+       fait tout autre chose. Un seul geste, un seul verbe. -->
+  <button type="button" id="barre-enregistrer" class="principal">Exporter</button>
 </nav>
 
 <div id="feuille" hidden>
@@ -983,7 +986,28 @@
           <select id="support">
             <option value="surcouche" selected>Sans fond — sur ta photo</option>
             <option value="papier">Fond plein — affiche</option>
+            <!-- LE CYANOTYPE EST UNE SURFACE, PAS UNE PLANCHE.
+                 Un procédé d'impression s'applique à ce qu'on imprime : mis ici,
+                 il vaut pour les trente-sept compositions. Mis dans un template,
+                 il n'aurait valu que pour lui, et il aurait fallu y redessiner
+                 une carte, un profil et un texte pour rien. -->
+            <option value="cyanotype">Cyanotype — tirage bleu</option>
           </select>
+        </label>
+        <label class="opt" id="opt-bain" hidden><span>Bain</span>
+          <select id="bain">
+            <option value="profond" selected>Bain profond — contrasté, bleu dense</option>
+            <option value="voile">Voile — lavé, beaucoup de papier</option>
+            <option value="negatif">Négatif — le tracé en réserve blanche</option>
+          </select>
+        </label>
+        <!-- LE HALO N'ENCODE RIEN, ET L'INTITULÉ LE DIT.
+             C'est la lampe de l'insolation, plus forte au centre du châssis.
+             Le faire varier avec le dénivelé aurait produit une différence
+             visible que personne n'aurait pu lire — un ornement déguisé en
+             mesure, ce que ce studio refuse partout ailleurs. -->
+        <label class="opt" id="opt-halo" hidden><span>Halo d’insolation — un effet de tirage</span>
+          <input type="checkbox" id="halo">
         </label>
         <!-- LE VOILE. Sans fond, une planche claire posée sur une photo claire
              devient illisible. Huit planches — la famille « sur photo » —
@@ -1232,6 +1256,7 @@
 <script src="src/studio.js"></script>
 <script src="src/design.js"></script>
 <script src="src/alpage.js"></script>
+<script src="src/cyanotype.js"></script>
 <script src="src/overlay.js"></script>
 <script src="src/library.js"></script>
 <script src="src/projet.js"></script>
@@ -1250,6 +1275,7 @@
 <script src="src/templates/gravure-puissance.js"></script>
 <script src="src/templates/sous-bois.js"></script>
 <script src="src/templates/versants.js"></script>
+<script src="src/templates/trame.js"></script>
 <script src="src/templates/empreinte.js"></script>
 <script src="src/templates/atlas.js"></script>
 <script src="src/templates/medaillon.js"></script>

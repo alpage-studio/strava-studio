@@ -21,6 +21,8 @@
         collection: $('#collection').value, minimal: $('#minimal').checked,
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
         support: $('#support').value, voile: $('#voile').value,
+        bain: $('#bain') ? $('#bain').value : null,
+        halo: $('#halo') ? $('#halo').checked : false,
         duree: $('#duree') ? $('#duree').value : null,
         placement: E.placement,
         echelle: $('#echelle') ? $('#echelle').value : null,
@@ -123,6 +125,9 @@
     Studio.setMinimal($('#minimal').checked);
     Studio.setAchromatique($('#rendu').value === 'nb', $('#photo-nb').checked);
     Studio.setSupport($('#support').value === 'surcouche');
+    Studio.setSurface($('#support').value,
+                      $('#bain') ? $('#bain').value : 'profond',
+                      $('#halo') ? $('#halo').checked : false);
     /* La classe dit au CSS ce que le moteur sait deja : l'ecran d'accueil pose
      * alors sa planche sur une image, comme le reglage le produira. */
     document.body.classList.toggle('surcouche', $('#support').value === 'surcouche');
@@ -130,6 +135,16 @@
     if ($('#duree')) Studio.setDuree($('#duree').value);
     if (A.poseLePlacement) A.poseLePlacement();
   }
+
+  /* Les réglages du bain n'existent que pour la surface qui les porte : les
+   * laisser visibles sur du papier aurait offert deux menus sans effet, et
+   * un réglage sans effet est indiscernable d'un réglage cassé. */
+  function majCyanotype() {
+    var cyano = $('#support').value === 'cyanotype';
+    if ($('#opt-bain')) $('#opt-bain').hidden = !cyano;
+    if ($('#opt-halo')) $('#opt-halo').hidden = !cyano;
+  }
+  A.majCyanotype = majCyanotype;
 
   function syncBibliotheque() {
     Studio.setLibrary(entreesRetenues());
@@ -302,7 +317,8 @@
      * bloque que les gestes de l'utilisateur, pas un dispatchEvent. On le
      * neutralise donc par un drapeau, lu au moment du clic. */
     ['#size', '#tpl', '#collection', '#voile', '#minimal',
-     '#rendu', '#support', '#photo-nb', '#periode', '#duree'].forEach(function (sel) {
+     '#rendu', '#support', '#photo-nb', '#periode', '#duree',
+     '#bain', '#halo'].forEach(function (sel) {
       var el = $(sel); if (el) el.disabled = E.exportEnCours;
     });
     var cat = $('#choix-style');
@@ -945,7 +961,10 @@
     if (saved.echelle && $('#echelle')) $('#echelle').value = saved.echelle;
     /* le menu part caché dans le HTML : au chargement, c'est le support
      * relu qui décide s'il doit apparaître */
+    if (saved.bain && $('#bain')) $('#bain').value = saved.bain;
+    if (saved.halo && $('#halo')) $('#halo').checked = true;
     $('#opt-voile').hidden = $('#support').value !== 'surcouche';
+    majCyanotype();
     if (saved.periode) $('#periode').value = saved.periode;
     /* La collection était sauvée et jamais relue : c'était le seul réglage
      * global à se perdre au rechargement. */

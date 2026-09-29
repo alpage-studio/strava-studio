@@ -197,6 +197,65 @@
   $('#support').dispatchEvent(new Event('change'));
   await attends(400);
 
+  /* ---------- LE CYANOTYPE, UNE SURFACE ----------
+   *
+   * Quatre questions, et chacune peut échouer séparément :
+   *   le réglage du bain n'apparaît QUE pour la surface qui le porte ;
+   *   la planche vire réellement au bleu — mesuré, pas constaté à l'œil ;
+   *   les trois bains ne donnent pas la même planche ;
+   *   et sur une photo, le tirage ne s'applique PAS, parce qu'un tirage est
+   *   un papier et que le studio n'a pas à repeindre la photo de quelqu'un.
+   *
+   * La bleuité se mesure comme un ÉCART entre canaux, pas comme une valeur
+   * absolue : une planche déjà sombre ferait passer « beaucoup de bleu »
+   * pour un tirage alors qu'elle est simplement noire. */
+  function bleuite() {
+    var c = $('#canvas');
+    var im = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    var r = 0, b = 0, n = 0;
+    for (var q = 0; q < im.length; q += 4 * 97) {
+      if (im[q + 3] < 200) continue;
+      r += im[q]; b += im[q + 2]; n++;
+    }
+    return n ? Math.round((b - r) / n) : 0;
+  }
+
+  var bleuPapier = bleuite();
+  ok('cyanotype · le bain est caché tant qu’on n’a pas choisi le tirage',
+     $('#opt-bain').hidden && $('#opt-halo').hidden);
+
+  $('#support').value = 'cyanotype';
+  $('#support').dispatchEvent(new Event('change'));
+  await attends(700);
+  ok('cyanotype · choisir le tirage fait apparaître le bain et le halo',
+     !$('#opt-bain').hidden && !$('#opt-halo').hidden);
+
+  var bleuProfond = bleuite();
+  ok('cyanotype · la planche vire au bleu  (' + bleuPapier + ' → ' + bleuProfond + ')',
+     bleuProfond - bleuPapier > 15,
+     'le bleu doit dépasser le rouge nettement plus qu’avant le tirage');
+
+  var avantBain = $('#canvas').toDataURL();
+  $('#bain').value = 'negatif';
+  $('#bain').dispatchEvent(new Event('change'));
+  await attends(700);
+  ok('cyanotype · changer de bain change la planche',
+     $('#canvas').toDataURL() !== avantBain);
+
+  /* SUR PHOTO, PAS DE TIRAGE. Sans ce cas, la règle tenait dans un `&&` que
+   * personne n'aurait relu. */
+  $('#support').value = 'surcouche';
+  $('#support').dispatchEvent(new Event('change'));
+  await attends(700);
+  var bleuSurcouche = bleuite();
+  ok('cyanotype · sur une photo, le tirage ne s’applique pas  (' + bleuSurcouche + ')',
+     bleuSurcouche - bleuPapier < 15,
+     'la surcouche est repeinte en bleu alors qu’un tirage est un papier');
+
+  $('#support').value = 'papier';
+  $('#support').dispatchEvent(new Event('change'));
+  await attends(500);
+
 
   // ---------- 4 bis. la collection, les variantes, le voile ----------
 

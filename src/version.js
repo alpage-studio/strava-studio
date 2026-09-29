@@ -11,8 +11,8 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.12';
-var STUDIO_DATE = '27.09.2026';
+var STUDIO_VERSION = '3.13';
+var STUDIO_DATE = '29.09.2026';
 
 /* ---------- le journal ----------
  *
@@ -34,6 +34,19 @@ var STUDIO_DATE = '27.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.13', d: '29.09.2026', points: [
+    'Deux planches de plus. « Trame » tisse la sortie : une chaîne, une trame, et le parcours qui les traverse comme un fil — dessus, dessous, dessus. Le tissage se resserre là où l’effort a été fourni, et seulement si la sortie porte la mesure qui le dit.',
+    'L’entrelacement de Trame était invisible. Il existait — le banc comptait vingt-trois croisements repeints — mais un brin de chaîne est de l’encre à vingt pour cent, et vingt pour cent de gris posés sur un fil rouille ne se voient pas. Le fil est désormais effacé sous le brin, et l’alternance suit le parcours au lieu de suivre les colonnes.',
+    '« Partition » gagne une seconde composition : Graphique. La musicale reste ; celle-ci écrit la sortie dans le TEMPS, sans aucun son, sur papier clair.',
+    'Son axe horizontal est le temps écoulé, jamais la distance. C’est ce qui fait qu’une séance de fractionné ne peut pas ressembler à un long col : une descente de dix kilomètres en huit minutes y occupe huit minutes.',
+    'Elle se plie vraiment au format : un système en paysage, quatre en portrait, comme une portée passe à la ligne. Et chaque système porte son heure de départ — sans elle, on voyait un rythme sans pouvoir dire à quelle minute il tombait.',
+    'Les pauses y sont des trous. Le filet du sol s’interrompt avec le reste : un trait continu dessous recollait le temps que l’arrêt avait coupé.',
+    'Le CYANOTYPE, et ce n’est pas une planche : c’est une SURFACE, au même titre que le papier. Elle s’applique aux trente-sept compositions. Trois bains — profond, voilé, négatif — et un halo d’insolation qui n’encode rien, ce que son intitulé dit.',
+    'Le tirage ne s’applique jamais sur une photo : un cyanotype est un papier, et repeindre ton image en bleu n’appartient pas au studio. Il cède aussi au noir & blanc, parce que deux réglages qui se contredisent doivent en laisser un gagner pour de bon.',
+    'Un export vidéo AVEC tirage sort autour de quinze images par seconde : le procédé relit deux millions de pixels à chaque image. L’image fixe et la séquence PNG n’en souffrent pas.',
+    'Sur téléphone, le bouton principal dit « Exporter » et non plus « Enregistrer » : il déclenchait l’export pendant qu’« Enregistrer le projet », deux écrans plus loin, fait tout autre chose.',
+    'Un sixième parcours de démonstration, le premier à porter une CADENCE et de vrais ARRÊTS écrits dans l’horodatage. Sans lui, le seuil de détection des pauses n’était relu par aucune donnée.'
+  ] },
   { v: '3.12', d: '27.09.2026', points: [
     'LE STUDIO EST EN FRANÇAIS. Il parlait anglais depuis la 3.5, mais les trente-six planches, elles, gravaient leur texte en français — jusque dans le PNG exporté. Douze relecteurs sur douze ont vu le mélange. L’interface rejoint donc la langue dans laquelle tout est écrit.',
     'Le catalogue ne se vide plus quand tu charges ta sortie. Les vignettes se refaisaient AVANT que la sortie soit posée : elles se rendaient sur une activité vide, au moment précis où tu venais de donner ton fichier.',

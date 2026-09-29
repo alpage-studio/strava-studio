@@ -687,6 +687,38 @@ function testsCoherence() {
          Object.keys(DICO).length + ' entrees)',
          orphelines.length === 0,
          'plus affichees nulle part : ' + orphelines.slice(0, 6).join(' | '));
+
+      /* ---------- ET LE SENS INVERSE ----------
+       *
+       * Le controle ci-dessus va du dictionnaire vers l'interface : il attrape
+       * les libelles morts. Rien n'allait de l'interface vers le dictionnaire,
+       * et c'est pourtant l'oubli le plus facile — ajouter un menu dans
+       * index.html sans y penser. Les six libelles du cyanotype ont failli
+       * partir ainsi : le controle des templates est reste vert, parce qu'il
+       * ne regarde que les templates.
+       *
+       * On ne releve que ce qui s'affiche a coup sur : le texte des <option>
+       * et celui des <span> d'etiquette. Le reste de la page est du contenu
+       * redactionnel, traduit ou non selon les cas, et l'y inclure aurait
+       * produit une liste qu'on aurait appris a ignorer. */
+      const libelles = new Set();
+      const page = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+      (page.match(/<option[^>]*>([^<]+)<\/option>/g) || []).forEach(function (m) {
+        libelles.add(nettoie(m.replace(/<[^>]+>/g, '')).trim());
+      });
+      (page.match(/<span>([^<]+)<\/span>/g) || []).forEach(function (m) {
+        libelles.add(nettoie(m.replace(/<[^>]+>/g, '')).trim());
+      });
+      const sansTraduction = Array.from(libelles).filter(function (t) {
+        return t && !/^[0-9\s:·×/]+$/.test(t) && !DICO[t];
+      });
+      /* Le compte doit etre plausible : a zero libelle releve, ce controle
+       * serait vert en n'ayant rien regarde. */
+      ok('langue · les libelles de l’interface ont ete releves  (' +
+         libelles.size + ')', libelles.size >= 40);
+      ok('langue · tout libelle de l’interface a sa traduction anglaise',
+         sansTraduction.length === 0,
+         'sans traduction : ' + sansTraduction.join(' | '));
     }());
 
     /* ---------- LES VARIANTES SONT-ELLES ATTEIGNABLES ? ----------

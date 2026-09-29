@@ -67,23 +67,44 @@ function meandre(axe, opts) {
 
 function gpx(nom, type, depart, pts, secondesParPoint, sansEle) {
   const t0 = new Date(depart).getTime();
+  /* L'HORLOGE S'ACCUMULE au lieu de se calculer par multiplication : c'est ce
+   * qui permet à un point de porter `pause`, des secondes de plus avant lui.
+   * Sans cela, aucun démo ne pouvait montrer un arrêt, et les planches qui
+   * lisent les interruptions ne se jugeaient que sur leur cas sans pause. */
+  let ecoule = 0;
   const corps = pts.map(function (p, i) {
-    /* LES WATTS, QUAND LE PARCOURS EN PORTE.
+    if (i > 0) ecoule += secondesParPoint + (p.pause || 0);
+    /* LES MESURES, QUAND LE PARCOURS EN PORTE.
      * Aucun démo n'en avait : les planches qui lisent la puissance se
      * jugeaient donc sur leur état vide, ou sur un repli silencieux vers la
      * fréquence cardiaque. Un jeu de démonstration qui n'exerce pas une
-     * grandeur laisse les planches qui la lisent sans relecture. */
-    const w = p.w == null ? '' :
-      '        <extensions><power>' + Math.round(p.w) + '</power></extensions>\n';
+     * grandeur laisse les planches qui la lisent sans relecture.
+     *
+     * La cadence et le cardio passent par TrackPointExtension, là où les
+     * montres les écrivent ; les watts gardent leur balise nue, pour que les
+     * démos déjà publiés gardent leurs points au caractère près — seule la
+     * déclaration d'espace de noms, en tête de fichier, change. */
+    let ext = '';
+    if (p.cad != null || p.hr != null) {
+      ext = '        <extensions>' +
+            (p.w == null ? '' : '<power>' + Math.round(p.w) + '</power>') +
+            '<gpxtpx:TrackPointExtension>' +
+            (p.hr == null ? '' : '<gpxtpx:hr>' + Math.round(p.hr) + '</gpxtpx:hr>') +
+            (p.cad == null ? '' : '<gpxtpx:cad>' + Math.round(p.cad) + '</gpxtpx:cad>') +
+            '</gpxtpx:TrackPointExtension></extensions>\n';
+    } else if (p.w != null) {
+      ext = '        <extensions><power>' + Math.round(p.w) + '</power></extensions>\n';
+    }
     return '      <trkpt lat="' + p.lat.toFixed(6) + '" lon="' + p.lon.toFixed(6) + '">\n' +
            (sansEle ? '' : '        <ele>' + p.ele.toFixed(1) + '</ele>\n') +
-           '        <time>' + new Date(t0 + i * secondesParPoint * 1000).toISOString() + '</time>\n' +
-           w +
+           '        <time>' + new Date(t0 + ecoule * 1000).toISOString() + '</time>\n' +
+           ext +
            '      </trkpt>';
   }).join('\n');
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<gpx creator="strava-studio" version="1.1"\n' +
-    '     xmlns="http://www.topografix.com/GPX/1/1">\n' +
+    '     xmlns="http://www.topografix.com/GPX/1/1"\n' +
+    '     xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1">\n' +
     '  <metadata><time>' + new Date(t0).toISOString() + '</time></metadata>\n' +
     '  <trk>\n    <name>' + nom + '</name>\n    <type>' + type + '</type>\n' +
     '    <trkseg>\n' + corps + '\n    </trkseg>\n  </trk>\n</gpx>\n';
@@ -222,9 +243,48 @@ function seanceIntervalles() {
   return pts;
 }
 
+/* 6. BOUCLE À CADENCE ET PAUSES — le seul démo qui porte une CADENCE, et le
+ * seul qui s'arrête.
+ *
+ * Trois choses qu'aucun autre parcours n'exerçait :
+ *   la cadence — le rythme des marques de la partition graphique en dépend ;
+ *   la roue libre — deux longues descentes à cadence nulle, qui ne sont PAS
+ *     des arrêts et ne doivent pas se lire comme tels ;
+ *   deux vrais arrêts — quatre et sept minutes, écrits dans l'horodatage et
+ *     non dans une balise, exactement comme une montre les laisse.
+ *
+ * Sans ce jeu, le seuil de détection des pauses (vingt secondes, partagé avec
+ * movingTime) n'était relu par aucune donnée : un contrôle qui n'a jamais vu
+ * une pause ne prouve pas qu'il en reconnaîtrait une.
+ */
+function cadenceEtPauses() {
+  const pts = meandre(function (t) {
+    const a = t * Math.PI * 2;
+    return { lat: 46.5800 + Math.sin(a) * 0.030, lon: 6.5200 + Math.cos(a) * 0.045,
+             ele: 520 + 380 * (0.5 - 0.5 * Math.cos(a)) };
+  }, { points: 1500, graine: 83, amplitude: 0.0038,
+       periode1: Math.PI * 2 * 5, periode2: Math.PI * 2 * 13, periode3: Math.PI * 2 * 31 });
+  const n = pts.length;
+  pts.forEach(function (p, i) {
+    const t = n > 1 ? i / (n - 1) : 0;
+    const a = t * Math.PI * 2;
+    const monte = Math.sin(a) > 0;
+    // roue libre : on ne pédale pas, et ce n'est pas un arrêt
+    const libre = (t > 0.55 && t < 0.62) || (t > 0.80 && t < 0.85);
+    p.cad = libre ? 0 : (monte ? 88 + 10 * Math.sin(t * 13) : 72 + 8 * Math.sin(t * 7));
+    p.w = Math.max(0, 210 + 120 * Math.sin(a) + 70 * Math.sin(t * 17));
+    p.hr = 128 + 34 * (0.5 + 0.5 * Math.sin(a - 0.6));
+  });
+  pts[400].pause = 240;
+  pts[950].pause = 420;
+  return pts;
+}
+
 const PUISSANCE = [
   ['demo-intervalles.gpx', 'Séance à intervalles', 'ride', '2026-09-09T17:30:00Z',
-   seanceIntervalles(), 4]
+   seanceIntervalles(), 4],
+  ['demo-cadence.gpx', 'Boucle à cadence et pauses', 'ride', '2026-09-15T08:00:00Z',
+   cadenceEtPauses(), 4]
 ];
 
 [].concat(FAMILLES, SEMAINE, LOIN, PUISSANCE).forEach(function (j) {

@@ -221,6 +221,28 @@
     'Vidéo — impossible sur ce navigateur': 'Video — not possible in this browser',
     'Sur iPhone la vidéo n’existe pas : cette séquence d’images s’importe dans ton montage.': 'On iPhone video is not available: this image sequence imports into your editor.',
 
+    /* ---------- Trame ---------- */
+    'Trame — le parcours tissé': 'Weave — the route as thread',
+    'Toile': 'Plain weave',
+    'chaîne et trame régulières, le fil traverse': 'even warp and weft, the thread crosses',
+    'Serré': 'Tight',
+    'un tissage dense, presque une étoffe': 'a dense weave, almost a cloth',
+    'Lâche': 'Loose',
+    'peu de fils, beaucoup de papier': 'few threads, plenty of paper',
+    'Original · Toile — chaîne et trame régulières': 'Original · Plain weave — even warp and weft',
+    'Original · Serré — une étoffe dense': 'Original · Tight — a dense cloth',
+    'Original · Lâche — peu de fils, beaucoup de papier': 'Original · Loose — few threads, plenty of paper',
+    'Ce qui resserre le tissage': 'What tightens the weave',
+    'Automatique — la mesure la plus riche de la sortie': 'Automatic — the richest measure this ride carries',
+    'Aucune — trame régulière': 'None — even weft',
+    'Altitude': 'Elevation',
+    'Puissance': 'Power',
+    'Fréquence cardiaque': 'Heart rate',
+    'Cadence': 'Cadence',
+    'Intensité du resserrement': 'How much it tightens',
+    'Épaisseur du fil': 'Thread weight',
+    'Légende des correspondances': 'Legend of what encodes what',
+
     /* ---------- Versants ---------- */
     'Versants — le rythme de la sortie': 'Slopes — the rhythm of the ride',
     'Bloc': 'Block',
@@ -460,6 +482,28 @@
     'Pincé — court, net': 'Plucked — short, clean',
     'Cloche — harmonique': 'Bell — harmonic',
     'Tracé en regard': 'Route alongside',
+
+    /* ---------- Cyanotype, la surface ---------- */
+    'Photo de démonstration': 'Demo photo',
+    'Cyanotype — tirage bleu': 'Cyanotype — blue print',
+    'Bain': 'Bath',
+    'Bain profond — contrasté, bleu dense': 'Deep bath — contrasted, dense blue',
+    'Voile — lavé, beaucoup de papier': 'Wash — pale, lots of paper',
+    'Négatif — le tracé en réserve blanche': 'Negative — the route in white reserve',
+    'Halo d’insolation — un effet de tirage': 'Exposure halo — a printing effect',
+    'Composition': 'Composition',
+    'Musicale': 'Musical',
+    'Graphique': 'Graphic',
+    'une pièce courte, jouable': 'a short piece, playable',
+    'la sortie écrite dans le temps, sans son': 'the ride written in time, no sound',
+    'Original · Musicale — une pièce courte, jouable':
+      'Original · Musical — a short piece, playable',
+    'Original · Graphique — la sortie écrite dans le temps':
+      'Original · Graphic — the ride written in time',
+    'Épaisseur des marques': 'Mark thickness',
+    'Automatique — la mesure la plus riche de la sortie': 'Automatic — the richest measure of the ride',
+    'Aucune — marques régulières': 'None — even marks',
+    'Légende des correspondances': 'Legend of what maps to what',
 
     /* ---------- Allumettes, Pente, Radiale, Sommet ---------- */
     'Allumettes': 'Matchsticks',

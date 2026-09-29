@@ -168,6 +168,7 @@
      * temps apprend à l'utilisateur à ne plus le lire. */
     var opt = $('#opt-voile');
     if (opt) opt.hidden = $('#support').value !== 'surcouche';
+    if (A.majCyanotype) A.majCyanotype();
     majPlacement();
     buildOptions();
     A.construitChoixStyle();
@@ -182,6 +183,17 @@
     changement();
   });
   $('#support').addEventListener('change', majSupport);
+  /* Le bain et le halo redessinent la planche ET le catalogue : les vignettes
+   * du choix de style passent par le même moteur, et un catalogue resté sur
+   * papier pendant que la planche vire au bleu ferait douter du réglage. */
+  ['#bain', '#halo'].forEach(function (sel) {
+    var el = $(sel);
+    if (!el) return;
+    el.addEventListener('change', function () {
+      A.construitChoixStyle();
+      changement();
+    });
+  });
   $('#voile').addEventListener('change', function () {
     A.construitChoixStyle();      // les vignettes portent le voile, elles aussi
     changement();
