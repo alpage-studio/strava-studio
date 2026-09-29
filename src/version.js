@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.13';
+var STUDIO_VERSION = '3.13.1';
 var STUDIO_DATE = '29.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,11 @@ var STUDIO_DATE = '29.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.13.1', d: '29.09.2026', points: [
+    'Si tu es resté bloqué sur une ancienne version, voici pourquoi. Entre la 3.11 et la 3.12, le fichier qui pilote le cache hors ligne n’a pas changé d’un seul octet : seul le numéro avait bougé, dans un fichier qu’il IMPORTE. Or un navigateur décide de remplacer ce fichier en comparant ses octets, et tous ne revérifient pas les imports. Chez ceux-là, la 3.11 servait son propre cache — le numéro compris — et ne pouvait donc plus jamais apprendre qu’une suite existait.',
+    'Les huit planches d’Almanac de la galerie étaient l’ÉTAT VIDE, rendu huit fois. Elles avaient été produites sans que l’année de 106 sorties soit chargée ; quatre d’entre elles pesaient exactement le même nombre d’octets. Elles montrent enfin l’année.',
+    'Un contrôle refuse désormais que deux entrées de la galerie montrent la même image au bit près. Le seuil d’encre ne pouvait pas l’attraper : une planche vide en porte 0,53 %, et deux planches volontairement sobres — « Fil », « Clairière » — en portent moins.'
+  ] },
   { v: '3.13', d: '29.09.2026', points: [
     'Deux planches de plus. « Trame » tisse la sortie : une chaîne, une trame, et le parcours qui les traverse comme un fil — dessus, dessous, dessus. Le tissage se resserre là où l’effort a été fourni, et seulement si la sortie porte la mesure qui le dit.',
     'L’entrelacement de Trame était invisible. Il existait — le banc comptait vingt-trois croisements repeints — mais un brin de chaîne est de l’encre à vingt pour cent, et vingt pour cent de gris posés sur un fil rouille ne se voient pas. Le fil est désormais effacé sous le brin, et l’alternance suit le parcours au lieu de suivre les colonnes.',

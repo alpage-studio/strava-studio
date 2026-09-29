@@ -12,6 +12,25 @@
 importScripts('./src/version.js');
 const VERSION = 'studio-v' + STUDIO_VERSION;
 
+/* ---------- LA GÉNÉRATION, ÉCRITE ICI EN TOUTES LETTRES ----------
+ *
+ * LE DÉFAUT RÉEL, MESURÉ : entre la 3.11 et la 3.12, ce fichier n'a pas changé
+ * d'un seul octet. Seul src/version.js avait bougé.
+ *
+ * Or un navigateur décide de remplacer un service worker en comparant LES
+ * OCTETS DE CE FICHIER. Les scripts importés sont revérifiés par certains
+ * moteurs et pas par d'autres, et rien dans le dépôt ne disait lequel. Chez
+ * qui n'en revérifie pas, le service worker de la 3.11 restait en place ; il
+ * servait le SHELL depuis son propre cache — src/version.js COMPRIS — donc le
+ * numéro ne pouvait plus jamais changer. La 3.12 était publiée et invisible.
+ *
+ * Cette constante n'a qu'un rôle : faire changer les octets de CE fichier à
+ * chaque version. Elle ne pilote rien — `VERSION` reste calculée depuis
+ * src/version.js, qui demeure la source unique. Un contrôle du harnais refuse
+ * qu'elle diverge, exactement comme il refuse un journal dont la première
+ * entrée ne porte pas le numéro servi. */
+const GENERATION = '3.13.1';
+
 /* Le strict nécessaire pour démarrer hors ligne. Les templates sont listés
  * un par un : en ajouter un demande une ligne ici, et un changement de
  * VERSION pour purger l'ancien cache. */

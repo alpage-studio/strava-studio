@@ -211,6 +211,36 @@ function testsCoherence() {
   ok('sw.js · le fichier de version est mis en cache',
      shell.includes('src/version.js'));
 
+  /* ---------- LES OCTETS DE sw.js DOIVENT CHANGER À CHAQUE VERSION ----------
+   *
+   * LE DÉFAUT RÉEL, MESURABLE DANS L'HISTORIQUE : `git diff v3.11 v3.12 --
+   * sw.js` ne rend rien. Ce fichier n'a pas bougé d'un octet entre les deux
+   * versions, parce que le numéro vit dans src/version.js, qu'il IMPORTE.
+   *
+   * Un navigateur remplace un service worker en comparant les octets du
+   * fichier du service worker. Les scripts importés sont revérifiés par
+   * certains moteurs et pas par d'autres. Chez ceux qui ne le font pas, le
+   * service worker de la 3.11 restait en place et servait le SHELL depuis son
+   * propre cache — src/version.js compris. Le numéro ne pouvait donc plus
+   * jamais changer : la version publiée était invisible, sans erreur, sans
+   * message, et sans rien à voir.
+   *
+   * `GENERATION` n'existe que pour faire changer ces octets. Elle ne pilote
+   * rien. Ce contrôle refuse qu'elle diverge du numéro servi — même règle que
+   * pour la première entrée du journal. */
+  (function () {
+    const m = /const GENERATION = '([^']+)'/.exec(sw);
+    ok('sw.js · il porte la génération en toutes lettres', !!m,
+       'sans elle, une version qui ne touche pas sw.js laisse les visiteurs ' +
+       'sur l’ancien cache, indéfiniment');
+    if (!m) return;
+    const v = /var STUDIO_VERSION = '([^']+)'/.exec(
+      fs.readFileSync(path.join(ROOT, 'src', 'version.js'), 'utf8'));
+    ok('sw.js · la génération suit le numéro servi  (' + m[1] + ')',
+       !!v && m[1] === v[1],
+       'sw.js dit ' + m[1] + ', src/version.js dit ' + (v ? v[1] : '?'));
+  }());
+
   /* Un exemple listé dans app.js mais absent du disque donne un 404 une fois
    * en ligne — et la règle *.gpx du .gitignore l'avait déjà fait une fois. */
   const appSrc = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');
@@ -929,6 +959,52 @@ function testsCoherence() {
       ok('galerie · les ' + d[1] + ' pèsent moins de ' + d[2] + ' Mo  (' +
          (poids / 1048576).toFixed(2) + ' Mo)', poids < d[2] * 1048576);
     });
+
+    /* ---------- DEUX ENTRÉES NE PEUVENT PAS MONTRER LA MÊME IMAGE ----------
+     *
+     * LE DÉFAUT RÉEL : les huit planches d'Almanac publiées étaient l'ÉTAT
+     * VIDE, rendu huit fois. Elles avaient été produites sans que l'année de
+     * 106 sorties soit chargée — quatre d'entre elles pesaient exactement le
+     * même nombre d'octets.
+     *
+     * POURQUOI AUCUN CONTRÔLE NE L'A VU. Le générateur signale une planche
+     * « presque vide » sous 0,2 % d'encre ; celles-ci en portaient 0,53 %,
+     * parce qu'un titre, une légende et un cadre suffisent à dépasser le
+     * seuil. Un seuil d'encre ne distingue pas une planche SOBRE — « Fil »,
+     * « Clairière », toutes deux sous 0,6 % — d'une planche VIDE.
+     *
+     * CE QUI LES DISTINGUE VRAIMENT : deux entrées aux options différentes
+     * doivent produire deux images différentes. Identiques au bit près, ou
+     * bien le réglage ne fait rien, ou bien les deux rendus ont échoué de la
+     * même façon. Les deux méritent d'être dits.
+     *
+     * Le contrôle porte sur les WebP VERSIONNÉS et non sur les PNG locaux :
+     * il doit tourner chez qui clone le dépôt, et en intégration continue. */
+    (function () {
+      const dirV = path.join(dossier, 'v');
+      if (!fs.existsSync(dirV)) { saute('galerie · unicité', 'apercus/v/ non généré'); return; }
+      const crypto = require('crypto');
+      const vues = new Map();
+      const doublons = [];
+      let lues = 0;
+      cles.forEach(function (k) {
+        const f = path.join(dirV, k + '.webp');
+        if (!fs.existsSync(f)) return;
+        lues++;
+        const h = crypto.createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+        if (vues.has(h)) doublons.push(k + ' = ' + vues.get(h));
+        else vues.set(h, k);
+      });
+      /* Le compte doit être plausible : à deux fichiers lus, ce contrôle
+       * serait vert en n'ayant rien comparé. */
+      ok('galerie · les vignettes ont été relevées pour comparaison  (' + lues + ')',
+         lues >= Math.max(10, Math.round(cles.length * 0.9)),
+         'seulement ' + lues + ' vignettes lues sur ' + cles.length);
+      ok('galerie · deux entrées ne montrent pas la même image',
+         doublons.length === 0,
+         'identiques au bit près : ' + doublons.join(' | ') +
+         ' — soit le réglage ne fait rien, soit les deux rendus ont échoué pareil');
+    }());
 
     /* La page ne doit pointer que sur des fichiers PUBLIÉS. photo-demo.png
      * reste hors du dépôt : la page doit donc viser sa vignette, sinon le
