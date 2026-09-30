@@ -273,22 +273,45 @@
       pret = Video.attendreLecture(E.bgVideo);
     }
 
-    pret.then(function () {
+    function peindre(p, fade) {
+      Studio.setProgress(p, fade);
+      Studio.render(canvas, tplId, act, opts, size);
+      if (ground) {
+        ground.clearRect(0, 0, size[0], size[1]);
+        if (E.bgVideo) cover(ground, E.bgVideo, size); else paintGround(ground, size);
+        ground.drawImage(canvas, 0, 0);
+      }
+    }
+    function enTempsReel() {
       note.textContent = 'Enregistrement…';
-      return Video.record(target, function (p, fade) {
-        Studio.setProgress(p, fade);
-        Studio.render(canvas, tplId, act, opts, size);
-        if (ground) {
-          ground.clearRect(0, 0, size[0], size[1]);
-          if (E.bgVideo) cover(ground, E.bgVideo, size); else paintGround(ground, size);
-          ground.drawImage(canvas, 0, 0);
-        }
-      }, {
+      return Video.record(target, peindre, {
         duration: duree,
         at: function (k) { return horloge.at(k); },
         audioFrom: (transparent && E.bgVideo) ? E.bgVideo : null,
         onProgress: function (k) { note.textContent = 'Enregistrement… ' + Math.round(k * 100) + ' %'; }
       });
+    }
+
+    /* IMAGE PAR IMAGE quand c'est possible (src/mp4.js, le socle de la suite).
+     * L'enregistrement en temps réel filme le canvas pendant qu'il s'anime : il
+     * dépend de requestAnimationFrame, que le navigateur ralentit ou coupe dès
+     * que l'onglet passe en arrière-plan. Essayé ainsi, il a livré UNE image
+     * en trois secondes. Image par image, la vidéo ne dépend plus ni de la
+     * vitesse de la machine ni de la visibilité de l'onglet.
+     *
+     * Deux cas restent en temps réel : une vidéo de fond (sa lecture ET son
+     * son ne se capturent qu'en direct — l'encodeur n'a pas d'audio), et un
+     * format trop grand pour l'encodeur H.264 du navigateur, qui se replie
+     * de lui-même. */
+    var imageParImage = window.Mp4 && Mp4.disponible() && !(transparent && E.bgVideo);
+    pret.then(function () {
+      if (!imageParImage) return enTempsReel();
+      note.textContent = 'Encodage…';
+      return Mp4.encoder(target, {
+        fps: 30, secondes: duree / 1000, debit: 12e6,
+        dessiner: function (t) { var etat = horloge.at(Math.min(1, t * 1000 / duree)); peindre(etat.p, etat.fade); },
+        progres: function (k) { note.textContent = 'Encodage… ' + Math.round(k * 100) + ' %'; }
+      }).then(function (blob) { return { blob: blob, mime: 'video/mp4' }; }, enTempsReel);
     }).then(function (res) {
       if (E.bgVideo) { E.bgVideo.pause(); E.bgVideo.muted = true; }
       Studio.setProgress(1, 1);

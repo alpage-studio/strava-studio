@@ -258,12 +258,20 @@ harnais ET l'acceptation soient verts.
 - **Médaillon « Topographie » et « Rives »** : il faut une source de terrain, et
   des tuiles d'une autre origine *tainteraient* le canvas — tous les exports
   casseraient. Bloqué, pas oublié.
-- **L'aperçu animé et l'export MP4** ne sont pas couverts par l'acceptation :
-  ils demandent `requestAnimationFrame` et `MediaRecorder` sur plusieurs
-  secondes. À éprouver à la main, et les fichiers le disent plutôt que de faire
-  semblant.
+- **L'aperçu animé et l'export vidéo** ne sont pas couverts par l'acceptation.
+  Depuis la 3.17, la vidéo s'encode image par image (`src/mp4.js`, WebCodecs) et
+  ne dépend plus du temps réel ; seules une vidéo de fond (son et lecture) et
+  les très grands formats passent encore par `MediaRecorder`. À éprouver à la
+  main : charger une sortie d'abord — sans sortie chargée, le bouton Exporter
+  est désactivé et un clic de test ne fait RIEN, sans message.
 
-## Le carnet de route (prototype, hors du SHELL)
+## La suite : le studio et le carnet de route
+
+Deux applications dans un même dépôt, sur un **socle commun** : `src/activity.js` (lire un
+GPX) et `src/mp4.js` (encoder une vidéo image par image) servent les deux. Le socle ne
+connaît aucune des deux applications ; ce qui ne sert qu'à l'une reste chez elle.
+
+### Le carnet de route (hors du SHELL)
 
 `carnet.html` + `src/carnet/` : un voyage (GPX + photos en vrac) raconté en trois
 sorties — le récit web à faire défiler, un carrousel Instagram (récit court par
@@ -273,7 +281,7 @@ depuis le studio : le changer ne demande pas de monter le numéro.
 - **Les frontières** : `composer.js` place les photos (GPS, sinon l'heure selon
   l'allure du tracé, entre les calages) et ne dessine rien ; `lecteur.js` est
   autonome, recopié tel quel dans le carnet exporté ; `horizon.js`, `recit.js`,
-  `montage.js` dessinent ; `mp4.js` encode.
+  `montage.js` dessinent ; l'encodeur vient du socle (`src/mp4.js`).
 - **Chaque position a un statut** — `gps`, `confirmee`, `estimee` — et ce qui
   est estimé ne s'affiche jamais au dixième (« ≈ km 18 »).
 - **Le relief réel** vient de `tools/relief.js` (swisstopo, une fois, hors de la
@@ -282,6 +290,10 @@ depuis le studio : le changer ne demande pas de monter le numéro.
 - **L'export vidéo passe par WebCodecs, image par image** : l'enregistrement en
   temps réel (MediaRecorder) livrait une image en trois secondes dans un onglet
   en arrière-plan. MediaRecorder ne reste qu'en repli.
+- **Un carnet s'emporte dans un fichier `.carnet`** : une archive ZIP stockée
+  (`src/zip.js`) avec le carnet, la trace, le relief, les réglages du panneau et
+  les photos RÉENCODÉES (2400 px, sans EXIF). C'est ce qui permet de travailler
+  sur plusieurs ordinateurs sans jamais versionner une vraie photo.
 - **Les vraies données vivent dans `carnet-local/`**, ignoré : manifeste, GPX,
   photos, relief, galerie locale. Rien de ce dossier ne se versionne — il montre
   des personnes reconnaissables.
