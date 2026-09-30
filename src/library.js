@@ -53,6 +53,20 @@
     return null;
   }
 
+  /* ---------- ENRICHIR SANS REMPLACER ----------
+   *
+   * Une sortie entre d'abord en résumé — sans tracé — puis son tracé arrive.
+   * La retirer pour la réajouter lui donnerait un nouvel identifiant, un
+   * nouveau rang et donc UNE AUTRE COULEUR, et la ferait sauter en fin de
+   * liste : la planche changerait sous les yeux de qui la regarde se
+   * construire. On remplace donc l'activité EN PLACE. */
+  function enrichis(id, activity) {
+    var e = get(id);
+    if (!e || !activity) return null;
+    e.activity = activity;
+    return e;
+  }
+
   function remove(id) {
     var i = entrees.findIndex(function (e) { return e.id === id; });
     if (i < 0) return;
@@ -101,6 +115,7 @@
 
   global.Library = {
     add: add, list: list, count: count, get: get, remove: remove, clear: clear,
+    enrichis: enrichis,
     move: move, setColor: setColor,
     select: select, current: current, currentId: currentId,
     nomCourt: nomCourt, COULEURS: COULEURS

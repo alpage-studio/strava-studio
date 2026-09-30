@@ -542,6 +542,36 @@
    * Même principe que Strava — les agrégats font foi, les flux donnent la
    * géométrie — mais la forme diffère : intervals renvoie un TABLEAU de
    * { type, data }, là où Strava renvoie un objet indexé par type. */
+  /* ---------- UNE SORTIE SANS SON TRACÉ ----------
+   *
+   * POURQUOI ELLE EXISTE. Le détail et les flux d'une sortie se demandent
+   * sortie par sortie : une année, c'est trois cents requêtes, plusieurs
+   * minutes, et intervals.icu qui finit par limiter le rythme. Or la LISTE,
+   * obtenue en UNE requête, porte déjà la date, la distance, le dénivelé, la
+   * durée et le sport — c'est-à-dire tout ce qu'Almanac et Saisons dessinent.
+   *
+   * CE QU'ELLE N'A PAS, ET LE DIT. Pas de points, donc pas de carte, pas de
+   * profil, pas de splits. `sans_trace` le marque explicitement : une planche
+   * qui dessine un parcours doit pouvoir compter ce qui lui manque plutôt que
+   * de montrer du vide. `build()` pose déjà les tableaux à vide, donc rien ne
+   * casse — mais rien ne doit non plus faire semblant. */
+  function fromResume(a) {
+    return build({
+      source_id: a.id != null ? String(a.id) : null,
+      name: a.name || 'Sortie',
+      type: a.type || '',
+      date: a.start_date_local ? new Date(a.start_date_local) : null,
+      distance_m: a.distance != null ? a.distance : null,
+      duration_s: a.moving_time || null,
+      elapsed_s: a.elapsed_time || null,
+      elev_gain_m: a.total_elevation_gain != null
+        ? Math.round(a.total_elevation_gain) : null,
+      has_power: !!a.has_power,
+      sans_trace: true,
+      icu_id: a.id
+    });
+  }
+
   function fromIntervals(detail, streams) {
     var par = {};
     (streams || []).forEach(function (f) { if (f && f.type) par[f.type] = f; });
@@ -642,7 +672,7 @@
   }
 
   global.Activity = {
-    parseGPX: parseGPX, fromStrava: fromStrava, fromIntervals: fromIntervals,
+    parseGPX: parseGPX, fromStrava: fromStrava, fromIntervals: fromIntervals, fromResume: fromResume,
     fromPoints: fromPoints, build: build, empty: empty
   };
 }(window));

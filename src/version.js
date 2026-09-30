@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.15.3';
+var STUDIO_VERSION = '3.16';
 var STUDIO_DATE = '30.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,13 @@ var STUDIO_DATE = '30.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.16', d: '30.09.2026', points: [
+    'L’IMPORT DONNE UNE PLANCHE TOUT DE SUITE. La liste des sorties, obtenue en UNE requête, porte déjà la date, la distance, le dénivelé, la durée et le sport — tout ce qu’Almanac dessine. Une année entière se pose donc instantanément, et les tracés arrivent ensuite, un par un, en fond.',
+    'Les tracés ENRICHISSENT les sorties déjà posées au lieu de les remplacer : même couleur, même rang, même place. Sans cela la planche se serait réorganisée sous les yeux de qui la regarde se construire.',
+    'Tu peux arrêter l’import. Il dure des minutes sur une année ; la seule sortie était de recharger la page, ce qui perdait tout. Ce qui est chargé avant l’arrêt reste, et relancer reprend où l’on s’était arrêté.',
+    'La note de période dit combien de sorties portent un tracé. Une sortie importée en résumé n’en a pas : Almanac et Saisons s’en passent, Atlas, Métro, Fresque et Tissage n’ont alors rien à dessiner pour elle. Sans ce compte, une carte à moitié vide ressemble à une panne.',
+    'La planche ne se redessine plus à chaque tracé reçu — trois cents rendus pleine taille — mais au plus une fois toutes les deux secondes.'
+  ] },
   { v: '3.15.3', d: '30.09.2026', points: [
     'L’import allait trop vite. intervals.icu répond 429 au bout de quelques dizaines de requêtes rapprochées — et sa réponse 429 ne porte pas d’en-tête CORS, donc le navigateur la bloque AVANT que le statut soit lisible. Vingt-six refus de rythme se comptaient comme vingt-six sorties illisibles.',
     'Une requête à la fois, espacées, et une nouvelle tentative après une pause qui double. Cinq abandons de suite arrêtent l’import : insister sur une limite de rythme ne fait que l’entretenir.',

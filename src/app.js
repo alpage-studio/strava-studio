@@ -108,9 +108,20 @@
     bloc.hidden = !multi;
     var f = fenetreCourante();
     if (!multi || !f) { note.hidden = true; return; }
-    var n = entreesRetenues().length, total = Library.count();
+    var retenues = entreesRetenues();
+    var n = retenues.length, total = Library.count();
+    /* COMBIEN PORTENT UN TRACÉ.
+     *
+     * Une sortie importée en résumé n'en a pas : Almanac et Saisons s'en
+     * passent, Atlas, Métro, Fresque et Tissage n'ont alors rien à dessiner
+     * pour elle. Sans ce compte, une carte à moitié vide ressemble à une
+     * panne ; avec lui, elle ressemble à ce qu'elle est. */
+    var avecTrace = retenues.filter(function (e) {
+      return e.activity && e.activity.track && e.activity.track.length > 1;
+    }).length;
     note.hidden = false;
-    note.textContent = n + ' / ' + total + ' ' + T('sorties') + ' · ' +
+    note.textContent = n + ' / ' + total + ' ' + T('sorties') +
+      (avecTrace < n ? ' · ' + avecTrace + ' ' + T('avec tracé') : '') + ' · ' +
       f.debut.toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' }) +
       ' → ' + new Date(f.fin.getTime() - 86400000)
         .toLocaleDateString('fr-CH', { day: '2-digit', month: '2-digit' }) +

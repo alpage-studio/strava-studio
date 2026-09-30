@@ -270,19 +270,43 @@
     if (tronquee) aFaire = aFaire.slice(0, PLAFOND);
 
     if (!aFaire.length) {
-      dit({ etat: 'fini', charges: 0, ignorees: ignorees, total: trouvees.length });
-      return { charges: 0, ignorees: ignorees, total: trouvees.length, arret: null };
+      dit({ etat: 'fini', charges: 0, ignorees: ignorees, resumes: 0,
+            total: trouvees.length });
+      return { charges: 0, ignorees: ignorees, resumes: 0,
+               total: trouvees.length, arret: null };
     }
 
+    /* ================= PHASE 1 : LES RÉSUMÉS =================
+     *
+     * La liste est déjà là — UNE requête — et elle porte la date, la distance,
+     * le dénivelé, la durée et le sport. C'est tout ce qu'Almanac et Saisons
+     * dessinent. On pose donc l'année entière immédiatement, sans toucher au
+     * réseau une seconde fois, et la planche est utilisable tout de suite.
+     *
+     * Les tracés arrivent ensuite, un par un, et remplacent le résumé EN
+     * PLACE : même identifiant, même couleur, même rang. Sans cela la planche
+     * se réorganiserait sous les yeux de qui la regarde se construire. */
+    var poses = [];
+    aFaire.forEach(function (a) {
+      var e = Library.add(Activity.fromResume(a));
+      if (e) poses.push({ id: e.id, source: a.id });
+    });
+    dit({ etat: 'resumes', resumes: poses.length, ignorees: ignorees,
+          total: trouvees.length, tronquee: tronquee });
+    if (opts.apresResumes) opts.apresResumes();
+
+    /* ================= PHASE 2 : LES TRACÉS ================= */
     var faits = 0, echoues = 0, refusees = 0, dSuite = 0, arret = null, i = 0;
     dit({ etat: 'debut', total: aFaire.length, ignorees: ignorees, tronquee: tronquee });
 
     async function ouvrier() {
       while (i < aFaire.length && !arret) {
-        var a = aFaire[i++];
+        var rang = i++;
+        var a = aFaire[rang];
+        if (opts.stop && opts.stop()) { arret = 'ARRET'; break; }
         try {
           var j = await avecPatience(function () { return charge(a.id); });
-          Library.add(Activity.fromIntervals(j.detail, j.streams));
+          Library.enrichis(poses[rang].id, Activity.fromIntervals(j.detail, j.streams));
           faits++;
           dSuite = 0;
         } catch (e) {
@@ -304,6 +328,7 @@
         }
         dit({ etat: 'avance', faits: faits, echoues: echoues + refusees,
               total: aFaire.length });
+        if (opts.avance) opts.avance();
         if (PAUSE && i < aFaire.length && !arret) await dors(PAUSE);
       }
     }
@@ -314,9 +339,11 @@
 
     dit({ etat: 'fini', charges: faits, echoues: echoues, refusees: refusees,
           ignorees: ignorees, total: trouvees.length, tronquee: tronquee,
-          arret: arret, reste: aFaire.length - faits - echoues - refusees });
+          resumes: poses.length, arret: arret,
+          reste: aFaire.length - faits - echoues - refusees });
     return { charges: faits, echoues: echoues, refusees: refusees,
-             ignorees: ignorees, total: trouvees.length, arret: arret };
+             ignorees: ignorees, resumes: poses.length,
+             total: trouvees.length, arret: arret };
   }
   A.importePeriode = importePeriode;
 
@@ -328,12 +355,17 @@
     var n = $('#icu-progres');
     if (!n) return;
     if (e.etat === 'erreur') { n.textContent = e.message; return; }
-    if (e.etat === 'debut') {
-      n.textContent = e.total + ' ' + T(e.total > 1 ? 'sorties' : 'sortie') + ' à charger…';
+    /* LES RÉSUMÉS SONT UNE ÉTAPE, PAS UNE ATTENTE. La planche est déjà
+     * utilisable à ce moment-là ; le dire évite de croire qu'il ne se passe
+     * rien pendant les minutes qui suivent. */
+    if (e.etat === 'resumes') {
+      n.textContent = e.resumes + ' ' + T(e.resumes > 1 ? 'sorties posées' : 'sortie posée') +
+        ' — ' + T('les tracés arrivent…');
       return;
     }
+    if (e.etat === 'debut') return;
     if (e.etat === 'avance') {
-      n.textContent = e.faits + ' / ' + e.total + '…';
+      n.textContent = T('tracés') + ' ' + e.faits + ' / ' + e.total + '…';
       return;
     }
     /* CE QUE LA PERIODE CONTENAIT, EN TETE.
@@ -344,12 +376,14 @@
      * plafond. Le compte rendu doit permettre de diagnostiquer sans moi. */
     var bouts = [];
     bouts.push(e.total + ' ' + T(e.total > 1 ? 'sorties trouvées' : 'sortie trouvée'));
-    bouts.push(e.charges + ' ' + T(e.charges > 1 ? 'chargées' : 'chargée'));
+    if (e.resumes) bouts.push(e.resumes + ' ' + T('posées'));
+    bouts.push(e.charges + ' ' + T('avec tracé'));
     if (e.ignorees) bouts.push(e.ignorees + ' ' + T('déjà présentes'));
     if (e.echoues) bouts.push(e.echoues + ' ' + T('illisibles'));
     if (e.refusees) bouts.push(e.refusees + ' ' + T('refusées'));
     if (e.tronquee) bouts.push(T('période tronquée'));
     if (e.arret === 'CLE_REFUSEE') bouts.push(T('arrêté : clé refusée'));
+    if (e.arret === 'ARRET') bouts.push(T('interrompu'));
     n.textContent = bouts.join(' · ');
     /* CE QU'IL FAUT FAIRE, PAS SEULEMENT CE QUI S'EST PASSÉ.
      *
@@ -363,32 +397,59 @@
   }
   A.ditImport = ditImport;
 
+  /* ON PEUT L'ARRÊTER. Un import d'année dure des minutes : sans bouton, la
+   * seule sortie était de recharger la page, ce qui perdait ce qui était déjà
+   * entré. Le même bouton sert aux deux états — deux boutons dont un seul
+   * agit à la fois se lisent moins bien qu'un seul qui dit ce qu'il fait. */
+  var stopDemande = false;
+
+  /* REDESSINER À CHAQUE TRACÉ, C'EST TROIS CENTS RENDUS PLEINE TAILLE.
+   * On étale : le premier tout de suite, puis un toutes les deux secondes au
+   * plus. La planche se construit sous les yeux sans que l'onglet chauffe. */
+  var dernierRendu = 0;
+  function rafraichisPendantImport(force) {
+    var t = Date.now();
+    if (!force && t - dernierRendu < 2000) return;
+    dernierRendu = t;
+    syncBibliotheque();
+    draw();
+  }
+
   var bImport = $('#icu-importer');
   if (bImport) {
     bImport.addEventListener('click', async function () {
-      if (importEnCours) return;
+      if (importEnCours) { stopDemande = true; bImport.textContent = T('Arrêt…'); return; }
       importEnCours = true;
-      bImport.disabled = true;
+      stopDemande = false;
+      var libelle = bImport.textContent;
+      bImport.textContent = T('Arrêter');
+      $('#icu-periode').disabled = true;
       var jours = parseInt($('#icu-periode').value, 10) || 31;
       try {
         var r = await importePeriode({
           jours: jours,
           dit: ditImport,
           liste: function (j) { return IcuWeb.activities(0, j); },
-          charge: function (id) { return IcuWeb.activity(id); }
+          charge: function (id) { return IcuWeb.activity(id); },
+          stop: function () { return stopDemande; },
+          apresResumes: function () {
+            /* La planche est utilisable DÈS MAINTENANT : Almanac et Saisons ne
+             * lisent que la date, la distance, le dénivelé et la durée. */
+            E.overrides = {};
+            E.chargee = true;
+            syncManualFields();
+            summary();
+            buildOptions();
+            rafraichisPendantImport(true);
+          },
+          avance: rafraichisPendantImport
         });
-        if (r.charges) {
-          E.overrides = {};
-          E.chargee = true;
-          syncBibliotheque();
-          syncManualFields();
-          summary();
-          buildOptions();
-          draw();
-        }
+        if (r.resumes || r.charges) rafraichisPendantImport(true);
       } finally {
         importEnCours = false;
-        bImport.disabled = false;
+        stopDemande = false;
+        bImport.textContent = libelle;
+        $('#icu-periode').disabled = false;
       }
     });
   }

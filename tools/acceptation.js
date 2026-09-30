@@ -335,16 +335,62 @@
       };
     }
 
-    /* 1. le cas nominal */
+    /* 1. DEUX PHASES : les résumés d'abord, les tracés ensuite.
+     *
+     * La liste porte déjà date, distance, dénivelé, durée et sport — tout ce
+     * qu'Almanac dessine. Les poser immédiatement rend la planche utilisable
+     * en UNE requête, là où une année demandait trois cents appels et
+     * plusieurs minutes avant de montrer quoi que ce soit.
+     *
+     * On constate l'ordre, pas seulement le résultat : au moment où
+     * `apresResumes` se déclenche, les trois sorties doivent Être LÀ, et
+     * aucune ne doit encore porter de tracé. */
+    var auMomentDesResumes = null;
     var r1 = await App.importePeriode({
-      jours: 31, front: 3,
+      jours: 31, front: 1, pause: 0,
+      dors: function () { return Promise.resolve(); },
       liste: function () {
-        return Promise.resolve([{ id: 'f1' }, { id: 'f2' }, { id: 'f3' }]);
+        return Promise.resolve([{ id: 'f1', name: 'Résumée', type: 'Ride',
+                                 start_date_local: '2026-03-02T08:00:00',
+                                 distance: 30000, moving_time: 3600,
+                                 total_elevation_gain: 500 },
+                                { id: 'f2' }, { id: 'f3' }]);
+      },
+      apresResumes: function () {
+        /* ON NE REGARDE QUE LES NOUVELLES, et on relit le résumé ICI : quatre
+         * sorties de démonstration portent déjà un tracé, et l'enrichissement
+         * remplacera ces résumés avant la fin de l'import. Mesurer après coup,
+         * c'est mesurer autre chose. */
+        var neuves = Library.list().slice(avantImport.length);
+        var a0 = neuves[0] && neuves[0].activity;
+        auMomentDesResumes = {
+          entrees: neuves.length,
+          avecTrace: neuves.filter(function (e) {
+            return e.activity && e.activity.track && e.activity.track.length > 1;
+          }).length,
+          resume: a0 && {
+            km: a0.distance_km, deniv: a0.elev_gain_m, duree: a0.duration_s,
+            date: !!a0.date, sansTrace: a0.sans_trace === true
+          }
+        };
       },
       charge: function (id) { return Promise.resolve(fausseSortie(+String(id).slice(1))); }
     });
-    ok('import · une période charge toutes ses sorties  (' + r1.charges + '/3)',
-       r1.charges === 3 && Library.count() === avantImport.length + 3);
+    ok('import · les résumés sont posés AVANT le premier tracé  (' +
+       (auMomentDesResumes ? auMomentDesResumes.entrees + ' entrées, ' +
+        auMomentDesResumes.avecTrace + ' avec tracé' : 'jamais appelé') + ')',
+       !!auMomentDesResumes && auMomentDesResumes.entrees === 3 &&
+       auMomentDesResumes.avecTrace === 0);
+    var res0 = auMomentDesResumes && auMomentDesResumes.resume;
+    ok('import · un résumé porte ce qu’Almanac dessine  (' +
+       (res0 ? res0.km + ' km · ' + res0.deniv + ' m · ' + res0.duree + ' s' : '—') + ')',
+       !!res0 && res0.km === 30 && res0.deniv === 500 && res0.duree === 3600 &&
+       res0.date && res0.sansTrace,
+       'date, distance, dénivelé, durée — et le marquage « sans tracé »');
+    ok('import · les tracés ENRICHISSENT, ils n’ajoutent pas  (' +
+       (Library.count() - avantImport.length) + ' entrées pour 3 sorties)',
+       r1.charges === 3 && Library.count() === avantImport.length + 3,
+       'retirer puis réajouter changerait la couleur et le rang');
 
     /* 2. CE QU'ON A DÉJÀ NE SE RETÉLÉCHARGE PAS. Sans ce filtre, réimporter une
      *    période chevauchante repayait chaque sortie commune et la comptait
@@ -425,9 +471,36 @@
     ok('import · au-delà du plafond, la période est tronquée ET annoncée  (' +
        r4.charges + ')', r4.charges === 2 && r4.total === 10);
 
+    /* 4 bis. ON PEUT L'ARRÊTER. Un import d'année dure des minutes ; sans
+     *        bouton, la seule sortie était de recharger la page et de perdre
+     *        ce qui était déjà entré. Ce qui est chargé avant l'arrêt RESTE. */
+    var avantArret = Library.count();
+    var demande = false;
+    var chargesFaits = 0;
+    var r5 = await App.importePeriode({
+      jours: 31, front: 1, pause: 0,
+      dors: function () { return Promise.resolve(); },
+      liste: function () {
+        var l = [];
+        for (var i = 0; i < 10; i++) l.push({ id: 's' + i });
+        return Promise.resolve(l);
+      },
+      stop: function () { return demande; },
+      charge: function (id) {
+        chargesFaits++;
+        if (chargesFaits >= 3) demande = true;
+        return Promise.resolve(fausseSortie(60 + chargesFaits));
+      }
+    });
+    ok('import · l’arrêt est entendu, et ce qui est chargé reste  (' +
+       r5.charges + ' tracés sur 10, ' + r5.resumes + ' résumés posés)',
+       r5.arret === 'ARRET' && r5.charges === 3 && r5.resumes === 10 &&
+       Library.count() === avantArret + 10,
+       'les dix résumés restent, trois seulement ont leur tracé');
+
     /* 5. LE COMPTE RENDU DIT TOUT. Une ligne qui n'annoncerait que les
      *    chargements laisserait croire que la période n'en comptait pas plus. */
-    App.ditImport({ etat: 'fini', charges: 3, ignorees: 2, echoues: 1,
+    App.ditImport({ etat: 'fini', charges: 3, resumes: 5, ignorees: 2, echoues: 1,
                     refusees: 4, total: 6, tronquee: true });
     var ligne = $('#icu-progres').textContent;
     ok('import · le compte rendu dit ce qui est entré, ignoré, raté et refusé  (' +
