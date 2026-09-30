@@ -248,6 +248,69 @@
   $('#support').dispatchEvent(new Event('change'));
   await attends(400);
 
+  /* ---------- CE QUE L'APPEL RÉEL RAMÈNE ----------
+   *
+   * LE DÉFAUT QUE CE CAS AURAIT ATTRAPÉ, ET QUE RIEN N'A ATTRAPÉ :
+   * `activities()` commençait par `limit = limit || 5`. L'import appelait
+   * `activities(0, 365)` — zéro pour dire « pas de plafond » — et cette ligne
+   * le changeait en CINQ avant le garde-fou d'en bas. Une année entière
+   * rendait cinq sorties quand l'API en rendait 471.
+   *
+   * POURQUOI LE BANC NE L'A PAS VU. Les cas d'import injectent leur `liste` :
+   * c'est ce qui les rend éprouvables sans clé d'API, et c'est aussi ce qui
+   * contournait `activities()` ENTIÈREMENT. L'injection avait rendu le code
+   * testable et laissé l'implémentation réelle sans témoin. Ici, on remplace
+   * le réseau et non la fonction : c'est elle qu'on mesure.
+   *
+   * La clé de l'utilisateur est sauvée puis remise à l'identique — un banc
+   * n'a pas à laisser de trace dans le navigateur de quelqu'un. */
+  if (window.IcuWeb) {
+    var vraiFetch = window.fetch;
+    var vraieCle = null;
+    try { vraieCle = sessionStorage.getItem('icu-key'); } catch (e) { /* mode privé */ }
+    var urls = [];
+    try {
+      sessionStorage.setItem('icu-key', 'cle-du-banc');
+      window.fetch = function (url) {
+        urls.push(String(url));
+        var faux = [];
+        for (var i = 0; i < 400; i++) {
+          faux.push({ id: 'b' + i, name: 'Fabriquée', type: 'Ride',
+                      start_date_local: '2026-05-01T08:00:00',
+                      distance: 20000, moving_time: 3600, total_elevation_gain: 100 });
+        }
+        return Promise.resolve({
+          ok: true, status: 200,
+          json: function () { return Promise.resolve(faux); }
+        });
+      };
+
+      var fen = await IcuWeb.activities(0, 365);
+      ok('icu · une fenêtre demandée se rend ENTIÈRE  (' + fen.length + ' sur 400)',
+         fen.length === 400,
+         'un plafond s’applique encore à une fenêtre qui n’en demandait pas');
+
+      var menu = await IcuWeb.activities(5);
+      ok('icu · le menu déroulant garde son plafond de cinq  (' + menu.length + ')',
+         menu.length === 5,
+         'les deux besoins partagent une fonction : l’un ne doit pas manger l’autre');
+
+      ok('icu · la fenêtre et le plafond partent bien à l’API',
+         /oldest=/.test(urls[0]) && /newest=/.test(urls[0]) && /limit=/.test(urls[0]),
+         urls[0] || '(aucune requête)');
+    } catch (e) {
+      ok('icu · l’appel réel se déroule sans lever', false, e.message);
+    } finally {
+      window.fetch = vraiFetch;
+      try {
+        if (vraieCle == null) sessionStorage.removeItem('icu-key');
+        else sessionStorage.setItem('icu-key', vraieCle);
+      } catch (e) { /* mode privé */ }
+    }
+    ok('icu · le banc remet la clé et le réseau en place',
+       window.fetch === vraiFetch);
+  }
+
   /* ---------- IMPORTER UNE PÉRIODE ----------
    *
    * Le chemin réseau vers intervals.icu n'est pas éprouvé ici, et ce n'est pas

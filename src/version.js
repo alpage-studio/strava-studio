@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.15.1';
+var STUDIO_VERSION = '3.15.2';
 var STUDIO_DATE = '30.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,11 @@ var STUDIO_DATE = '30.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.15.2', d: '30.09.2026', points: [
+    'L’import d’une période rendait CINQ sorties, quelle que soit la fenêtre. La cause n’était ni intervals.icu ni ton compte : l’API en rendait 471 sur l’année. C’était une ligne à moi — `limit = limit || 5`, restée en place quand la fenêtre a été ajoutée. L’import demandait « zéro » pour dire « pas de plafond », et cette ligne le changeait en cinq avant le garde-fou censé l’en empêcher.',
+    'Le menu déroulant garde ses cinq dernières, l’import prend toute la fenêtre : les deux besoins partagent une fonction, et le plafond se calcule maintenant une seule fois en disant lequel on sert.',
+    'Un contrôle éprouve désormais l’appel RÉEL, réseau remplacé, et non une liste injectée. Les cas d’import fournissaient leur propre liste — ce qui les rendait éprouvables sans clé d’API, et contournait la fonction fautive entièrement.'
+  ] },
   { v: '3.15.1', d: '30.09.2026', points: [
     'L’import d’une période ne demandait jamais combien de sorties il voulait. `limit` est documenté comme optionnel chez intervals.icu, donc soumis à la valeur par défaut du serveur — laquelle n’est écrite nulle part. Une année entière pouvait ainsi ne rendre que cinq sorties. Il est maintenant envoyé.',
     'Le compte rendu dit d’ABORD combien la période en contenait : « 42 sorties trouvées · 38 chargées · 4 déjà présentes ». Il fallait additionner pour s’apercevoir qu’une fenêtre n’en avait rendu que cinq — et c’est justement le chiffre qu’on cherche quand on soupçonne un plafond.'

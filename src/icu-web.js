@@ -70,7 +70,19 @@
    * pas : élargir en silence rendrait des sorties hors de la période demandée,
    * et l'affiche mentirait sur ce qu'elle montre. */
   async function activities(limit, jours) {
-    limit = limit || 5;
+    /* ---------- DEUX BESOINS, DEUX PLAFONDS ----------
+     *
+     * CE QUI A COÛTÉ DEUX VERSIONS : la ligne `limit = limit || 5` est restée
+     * ici quand on a ajouté la fenêtre. L'import appelait `activities(0, 365)`
+     * — zéro pour dire « pas de plafond » — et cette ligne le changeait en
+     * CINQ avant que le `limit || 10000` d'en bas n'ait son mot à dire. Deux
+     * lignes qui se contredisent, la première gagne, et une année entière
+     * rendait cinq sorties. Le compte de l'API était de 471.
+     *
+     * Le plafond se calcule donc UNE fois, en disant lequel des deux besoins
+     * on sert : le menu déroulant veut les N dernières, l'import veut TOUTE
+     * la fenêtre. */
+    var nMax = jours ? (limit > 0 ? limit : Infinity) : (limit || 5);
 
     /* `limit` EST ENVOYÉ EXPLICITEMENT.
      *
@@ -100,10 +112,10 @@
        * l'import, pas celui d'un menu déroulant */
       liste = await fenetre(jours, 1000);
     } else {
-      liste = await fenetre(60, limit);
-      if (!Array.isArray(liste) || liste.length < limit) {
+      liste = await fenetre(60, nMax);
+      if (!Array.isArray(liste) || liste.length < nMax) {
         try {
-          var large = await fenetre(365, limit);
+          var large = await fenetre(365, nMax);
           if (Array.isArray(large) && large.length > liste.length) liste = large;
         } catch (e) { /* on garde la première fenêtre */ }
       }
@@ -111,7 +123,7 @@
 
     return (liste || [])
       .filter(function (a) { return a.distance > 500; })
-      .slice(0, limit || 10000)
+      .slice(0, nMax)
       .map(function (a) {
         return {
           id: a.id, name: a.name, type: a.type,
