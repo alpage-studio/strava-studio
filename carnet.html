@@ -134,9 +134,10 @@
     <div class="sur">alpage studio · carnet de route</div>
     <h1>Un voyage, pas une sortie.</h1>
     <p>Dépose le GPX du parcours — un tour Komoot exporté fait l’affaire — et, en vrac, les photos et les vidéos du voyage.</p>
+    <p>Un carnet déjà enregistré (fichier <b>.carnet</b>) se rouvre de la même façon.</p>
     <p>Chaque image se pose seule au kilomètre où elle a été prise : par sa position quand elle l’a gardée, par son heure sinon. Rien ne quitte ton ordinateur.</p>
     <label class="bouton" for="fichiers">Choisir les fichiers</label>
-    <input type="file" id="fichiers" multiple accept=".gpx,image/jpeg,video/mp4,video/quicktime,.mov">
+    <input type="file" id="fichiers" multiple accept=".gpx,.carnet,image/jpeg,video/mp4,video/quicktime,.mov">
     <div class="etat" id="etat"></div>
   </div>
 </div>
@@ -146,6 +147,7 @@
 <div class="outils" id="outils" hidden>
   <button class="bouton clair" id="bCaler" aria-pressed="false">Caler les photos</button>
   <button class="bouton clair" id="bHorizon">Instagram · Horizon</button>
+  <button class="bouton clair" id="bEnregistrer" title="Un fichier .carnet à rouvrir sur un autre ordinateur">Enregistrer le carnet</button>
   <button class="bouton" id="bExport">Exporter le carnet</button>
   <a class="bouton clair" id="bGalerie" href="carnet-local/galerie.html" hidden>Galerie</a>
 </div>

@@ -116,6 +116,9 @@
 
   function lireFichiers(files) {
     files = Array.prototype.slice.call(files);
+    // un carnet enregistré se rouvre tel quel
+    var carnet = files.filter(function (f) { return /\.carnet$/i.test(f.name); })[0];
+    if (carnet) return rouvrirCarnet(carnet);
     var gpx = files.filter(function (f) { return /\.gpx$/i.test(f.name); });
     var imgs = files.filter(function (f) { return /\.(jpe?g)$/i.test(f.name) || f.type === 'image/jpeg'; });
     var vids = files.filter(function (f) { return /\.(mov|mp4)$/i.test(f.name); });
@@ -194,6 +197,116 @@
       });
     }).catch(function (e) { $('etat').textContent = 'Manifeste illisible : ' + e.message; });
   }
+
+  /* ---------- enregistrer le carnet, le rouvrir ailleurs ----------
+   * Le carnet ne vit que dans ce navigateur : les photos déposées sont des
+   * blob:, les calages et les réglages sont dans son stockage local. Pour
+   * reprendre le travail sur un autre ordinateur, tout part dans UN fichier
+   * `.carnet` — une archive ZIP « stockée » (src/zip.js) :
+   *
+   *   carnet.json    le carnet : titre, étapes, noms, Komoot, et chaque photo
+   *                  avec son heure, son kilomètre, son statut, sa légende
+   *   reglages.json  le panneau Instagram : format, thème, titres, anecdotes,
+   *                  moments du Reel…
+   *   parcours.gpx   la trace, telle quelle
+   *   relief.json    le relief swisstopo, s'il a été préparé
+   *   photos/…jpg    les photos, RÉENCODÉES à 2400 px : plus légères, et sans
+   *                  EXIF — le fichier ne porte que ce que le carnet utilise
+   *   videos/…       les Live Photos, telles quelles
+   *
+   * Le rouvrir, c'est le déposer sur l'accueil du carnet, comme un GPX. */
+  var CARNET_COTE = 2400;
+  /* une adresse data: se décode ici : la politique de sécurité du carnet
+   * n'autorise pas fetch() vers data:, et c'est très bien ainsi */
+  function enOctets(u) {
+    if (/^data:/.test(u)) {
+      var b = atob(u.slice(u.indexOf(',') + 1)), o = new Uint8Array(b.length);
+      for (var i = 0; i < b.length; i++) o[i] = b.charCodeAt(i);
+      return Promise.resolve(o);
+    }
+    return fetch(u).then(function (r) { return r.arrayBuffer(); }).then(function (x) { return new Uint8Array(x); });
+  }
+  function texteOctets(s) { return new TextEncoder().encode(s); }
+
+  function enregistrerCarnet() {
+    if (!entree) return;
+    var bouton = $('bEnregistrer');
+    bouton.disabled = true;
+    note('Préparation du fichier…', 60000);
+    var reglages = null;
+    try { reglages = localStorage.getItem(hCle()); } catch (e) { reglages = null; }
+    var sansSource = JSON.parse(JSON.stringify(entree, function (k, v) {
+      // la trace et le relief ont leur propre fichier ; les src ne valent que dans ce navigateur
+      return (k === 'gpx' || k === 'relief' || k === 'src' || k === 'video') ? undefined : v;
+    }));
+    sansSource.medias.forEach(function (m, i) {
+      m.fichier = 'photos/' + entree.medias[i].id + '.jpg';
+      if (entree.medias[i].video) m.fichierVideo = 'videos/' + entree.medias[i].id + '.mov';
+    });
+    var fait = 0, n = entree.medias.length;
+    Promise.all(entree.medias.map(function (m) {
+      return reencoder(m.src, CARNET_COTE).then(enOctets).then(function (photo) {
+        note('Préparation du fichier… ' + (++fait) + ' / ' + n, 60000);
+        var sorties = [{ name: 'photos/' + m.id + '.jpg', data: photo }];
+        if (!m.video) return sorties;
+        return enOctets(m.video).then(function (v) { sorties.push({ name: 'videos/' + m.id + '.mov', data: v }); return sorties; },
+                                      function () { return sorties; });
+      });
+    })).then(function (lots) {
+      var entrees = [
+        { name: 'carnet.json', data: texteOctets(JSON.stringify(sansSource, null, 1)) },
+        { name: 'parcours.gpx', data: texteOctets(entree.gpx) }
+      ];
+      if (entree.relief) entrees.push({ name: 'relief.json', data: texteOctets(JSON.stringify(entree.relief)) });
+      if (reglages) entrees.push({ name: 'reglages.json', data: texteOctets(reglages) });
+      lots.forEach(function (l) { entrees = entrees.concat(l); });
+      var zip = Zip.build(entrees);
+      Video.save(zip, nomFichier() + '.carnet');
+      note('Carnet enregistré : ' + (zip.size / 1048576).toFixed(1) + ' Mo. Dépose-le sur l’accueil du carnet pour le rouvrir, sur n’importe quel ordinateur.', 7000);
+    }).catch(function (e) { note('Enregistrement impossible : ' + e.message, 6000); })
+      .then(function () { bouton.disabled = false; });
+  }
+
+  /* lire une archive « stockée » — la seule que le carnet écrit. Une archive
+   * compressée par un autre outil est refusée en le disant, pas lue de travers. */
+  function lireZip(buffer) {
+    var v = new DataView(buffer), o = 0, fichiers = {}, dec = new TextDecoder();
+    while (o + 30 <= v.byteLength && v.getUint32(o, true) === 0x04034B50) {
+      var methode = v.getUint16(o + 8, true), taille = v.getUint32(o + 18, true);
+      var lNom = v.getUint16(o + 26, true), lExtra = v.getUint16(o + 28, true);
+      var nom = dec.decode(new Uint8Array(buffer, o + 30, lNom));
+      if (methode !== 0) throw new Error('ce fichier a été recompressé par un autre outil — enregistre-le à nouveau depuis le carnet');
+      var debut = o + 30 + lNom + lExtra;
+      fichiers[nom] = new Uint8Array(buffer, debut, taille);
+      o = debut + taille;
+    }
+    if (!fichiers['carnet.json']) throw new Error('ce n’est pas un fichier de carnet');
+    return fichiers;
+  }
+
+  function rouvrirCarnet(fichier) {
+    $('etat').textContent = 'Ouverture du carnet…';
+    fichier.arrayBuffer().then(function (buf) {
+      var F = lireZip(buf), dec = new TextDecoder();
+      var carnet = JSON.parse(dec.decode(F['carnet.json']));
+      carnet.gpx = dec.decode(F['parcours.gpx']);
+      carnet.relief = F['relief.json'] ? JSON.parse(dec.decode(F['relief.json'])) : null;
+      carnet.medias.forEach(function (m) {
+        var photo = F[m.fichier], video = m.fichierVideo && F[m.fichierVideo];
+        if (!photo) throw new Error('la photo ' + m.id + ' manque dans le fichier');
+        m.src = URL.createObjectURL(new Blob([photo], { type: 'image/jpeg' }));
+        m.video = video ? URL.createObjectURL(new Blob([video], { type: 'video/quicktime' })) : null;
+        delete m.fichier; delete m.fichierVideo;
+      });
+      entree = carnet;
+      // les réglages du panneau reprennent leur place dans ce navigateur
+      if (F['reglages.json']) { try { localStorage.setItem(hCle(), dec.decode(F['reglages.json'])); } catch (e) { /* navigation privée */ } }
+      hOpts = { theme: 'papier', titre: null, sousTitre: null, exclus: {} };
+      rendre();
+      note('Carnet rouvert : ' + carnet.medias.length + ' photos, calages et réglages compris.', 5000);
+    }).catch(function (e) { $('etat').textContent = 'Ouverture impossible : ' + e.message; });
+  }
+  $('bEnregistrer').addEventListener('click', enregistrerCarnet);
 
   /* ---------- exporter ----------
    * UN fichier HTML, qui s'ouvre partout sans rien installer ni rien
