@@ -46,7 +46,14 @@
 
   function monter(data, recit, images, videos, opts) {
     var th = global.Horizon.THEMES[opts.theme] || global.Horizon.THEMES.papier;
-    var moments = choisirMoments(data, recit, 3);
+    /* les moments : ceux qu'on a choisis à la main, sinon les trois plus forts.
+     * Un choix dont plus aucun moment n'existe (photos regroupées autrement)
+     * retombe sur l'automatique plutôt que de livrer un Reel sans moment. */
+    var tous = recit.filter(function (im) { return im.type === 'moment'; });
+    var auto = choisirMoments(data, recit, 3);
+    var main = (opts.reelMoments || []).length
+      ? tous.filter(function (m) { return opts.reelMoments.indexOf(m.cle) >= 0; }) : [];
+    var moments = main.length ? main : auto;
     var couv = data.medias.filter(function (m) { return m.id === data.couverture; })[0] || data.medias[0];
 
     // la chronologie
@@ -287,6 +294,11 @@
     }
 
     return { duree: duree, dessiner: dessiner, preparer: preparer, moments: moments.map(function (m) { return m.titre; }),
+             choisis: moments.map(function (m) { return m.cle; }), aLaMain: main.length > 0,
+             candidats: tous.map(function (m) {
+               return { cle: m.cle, titre: m.titre, n: m.photos.length, video: m.choix.some(function (p) { return p.video; }),
+                        km: m.estime ? '≈ km ' + Math.round(m.a) : 'km ' + m.a.toFixed(1).replace('.', ',') };
+             }),
              scenes: scenes.map(function (s) { return s.type + ' ' + s.t0.toFixed(1); }), W: W, H: H };
   }
 

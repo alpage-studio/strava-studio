@@ -468,6 +468,48 @@
       : Reel.monter(hGrand, hPlan, lecteur.data, hImages, reelVideos, hOpts);
     $('hReelCanvas').__reel = reel;   // pour tirer une image précise (contrôles)
     $('hReelInfo').textContent = Math.round(reel.duree) + ' s · 1080 × 1920';
+    reelChoix();
+  }
+
+  /* LE CHOIX DES MOMENTS, À LA MAIN. Une pastille par moment du récit ; les
+   * allumées entrent dans le Reel, dans l'ordre du voyage. Le premier clic part
+   * du choix automatique, pour ne pas repartir de rien. « Automatique » rend
+   * la main au calcul. De un à cinq moments : au-delà, le Reel dépasse 40 s. */
+  var REEL_MAX = 5;
+  function reelChoix() {
+    var box = $('hReelMoments');
+    box.innerHTML = '';
+    if (!reel.candidats) return;   // le travelling n'a pas de moments
+    var aide = document.createElement('div');
+    aide.className = 'aide';
+    aide.textContent = reel.aLaMain ? 'Moments choisis à la main — touche pour ajouter ou retirer'
+                                    : 'Moments choisis automatiquement — touche pour choisir toi-même';
+    box.appendChild(aide);
+    reel.candidats.forEach(function (c) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = reel.choisis.indexOf(c.cle) >= 0 ? 'on' : '';
+      b.innerHTML = c.titre.replace(/</g, '&lt;') + '<small>' + c.km + ' · ' + c.n + (c.n > 1 ? ' photos' : ' photo') + (c.video ? ' · vidéo' : '') + '</small>';
+      b.addEventListener('click', function () {
+        var sel = reel.choisis.slice(), i = sel.indexOf(c.cle);
+        if (i >= 0) {
+          if (sel.length === 1) { note('Il faut au moins un moment dans le Reel.', 3000); return; }
+          sel.splice(i, 1);
+        } else {
+          if (sel.length >= REEL_MAX) { note('Cinq moments au plus : retire-en un d’abord.', 3500); return; }
+          sel.push(c.cle);
+        }
+        hOpts.reelMoments = sel; hSauver();
+        reelMonter(); reelLire();
+      });
+      box.appendChild(b);
+    });
+    if (reel.aLaMain) {
+      var a = document.createElement('button');
+      a.type = 'button'; a.className = 'auto'; a.textContent = 'Automatique';
+      a.addEventListener('click', function () { delete hOpts.reelMoments; hSauver(); reelMonter(); reelLire(); });
+      box.appendChild(a);
+    }
   }
   function reelLire() {
     var ctx = $('hReelCanvas').getContext('2d'), t0 = performance.now();

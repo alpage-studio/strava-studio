@@ -110,7 +110,13 @@
   .h-photos .off img { opacity: .3; filter: grayscale(1); }
   .h-photos input[type=text] { font: 12px "Archivo", sans-serif; border: 1px solid #D8D5CC; border-radius: 5px; padding: 4px 6px; width: 100%; box-sizing: border-box; }
   .h-reel { position: absolute; inset: 0; z-index: 5; background: rgba(20, 20, 16, .92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; }
-  .h-reel canvas { height: min(80vh, 1920px); width: auto; max-width: 100%; aspect-ratio: 9 / 16; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, .5); }
+  .h-reel canvas { height: min(64vh, 1920px); width: auto; max-width: 100%; aspect-ratio: 9 / 16; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, .5); }
+  .h-reel-moments { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 900px; }
+  .h-reel-moments .aide { flex: 1 1 100%; text-align: center; color: #B9B5AA; font: 12px "IBM Plex Mono", monospace; }
+  .h-reel-moments button { font: 13px "Archivo", sans-serif; border: 1px solid #5A5C52; background: transparent; color: #EDEAE0; border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+  .h-reel-moments button.on { background: #EDEAE0; color: #1B1C17; border-color: #EDEAE0; font-weight: 600; }
+  .h-reel-moments button small { font: 11px "IBM Plex Mono", monospace; opacity: .75; margin-left: 6px; }
+  .h-reel-moments button.auto { border-style: dashed; }
   .h-reel-cmd { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; color: #EDEAE0; font: 13px "IBM Plex Mono", monospace; }
   @media (max-width: 700px) { .h-tete .t-titre, .h-tete .t-sous { flex: 1 1 100%; width: auto; } .h-bande canvas { height: 52vh; } }
 </style>
@@ -162,8 +168,11 @@
   <div class="h-reel" id="hReelBoite" hidden>
     <canvas id="hReelCanvas" width="1080" height="1920"></canvas>
     <div class="h-reel-cmd">
-      <select id="hReelMode" aria-label="Montage du Reel"><option value="montage">Montage : titre, boucle, 3 moments, bilan</option><option value="travelling">Travelling du panorama</option></select>
+      <select id="hReelMode" aria-label="Montage du Reel"><option value="montage">Montage : titre, boucle, moments, bilan</option><option value="travelling">Travelling du panorama</option></select>
       <span id="hReelInfo"></span>
+    </div>
+    <div class="h-reel-moments" id="hReelMoments"></div>
+    <div class="h-reel-cmd">
       <button class="bouton" id="hReelExport">Exporter le Reel</button>
       <button class="bouton clair" id="hReelFermer">Fermer</button>
     </div>
