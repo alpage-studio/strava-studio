@@ -292,9 +292,15 @@
       n.textContent = e.faits + ' / ' + e.total + '…';
       return;
     }
+    /* CE QUE LA PERIODE CONTENAIT, EN TETE.
+     *
+     * La ligne disait « 0 sortie chargee · 5 deja presentes » : il fallait
+     * additionner pour savoir que la fenetre n'en avait rendu que cinq, et
+     * c'est justement le chiffre qu'on veut lire quand on soupconne un
+     * plafond. Le compte rendu doit permettre de diagnostiquer sans moi. */
     var bouts = [];
-    bouts.push(e.charges + ' ' + T(e.charges > 1 ? 'sorties' : 'sortie') + ' ' +
-               T(e.charges > 1 ? 'chargées' : 'chargée'));
+    bouts.push(e.total + ' ' + T(e.total > 1 ? 'sorties trouvées' : 'sortie trouvée'));
+    bouts.push(e.charges + ' ' + T(e.charges > 1 ? 'chargées' : 'chargée'));
     if (e.ignorees) bouts.push(e.ignorees + ' ' + T('déjà présentes'));
     if (e.echoues) bouts.push(e.echoues + ' ' + T('illisibles'));
     if (e.tronquee) bouts.push(T('période tronquée'));

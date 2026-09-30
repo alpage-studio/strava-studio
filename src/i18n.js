@@ -42,6 +42,8 @@
     'Le trimestre': 'The quarter',
     'L’année': 'The year',
     'Importer la période': 'Import the period',
+    'sorties trouvées': 'rides found',
+    'sortie trouvée': 'ride found',
     'chargée': 'loaded',
     'chargées': 'loaded',
     'déjà présentes': 'already there',

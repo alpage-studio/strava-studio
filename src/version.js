@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.15';
+var STUDIO_VERSION = '3.15.1';
 var STUDIO_DATE = '30.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,10 @@ var STUDIO_DATE = '30.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.15.1', d: '30.09.2026', points: [
+    'L’import d’une période ne demandait jamais combien de sorties il voulait. `limit` est documenté comme optionnel chez intervals.icu, donc soumis à la valeur par défaut du serveur — laquelle n’est écrite nulle part. Une année entière pouvait ainsi ne rendre que cinq sorties. Il est maintenant envoyé.',
+    'Le compte rendu dit d’ABORD combien la période en contenait : « 42 sorties trouvées · 38 chargées · 4 déjà présentes ». Il fallait additionner pour s’apercevoir qu’une fenêtre n’en avait rendu que cinq — et c’est justement le chiffre qu’on cherche quand on soupçonne un plafond.'
+  ] },
   { v: '3.15', d: '30.09.2026', points: [
     'TU PEUX IMPORTER UNE PÉRIODE ENTIÈRE. Depuis intervals.icu on ne pouvait charger qu’UNE sortie à la fois, choisie parmi les cinq dernières : les neuf planches multi-sorties n’avaient donc aucun moyen d’être nourries autrement qu’en glissant des GPX un par un. La semaine, le mois, le trimestre ou l’année s’importent maintenant d’un bouton.',
     'Ce que tu as déjà ne se retéléchargé pas. Deux périodes qui se chevauchent auraient doublé chaque sortie commune — l’identifiant de la sortie d’origine est désormais conservé, et il sert à ça.',

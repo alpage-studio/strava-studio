@@ -339,6 +339,11 @@
     ok('import · le compte rendu dit ce qui est entré, ignoré, raté et arrêté  (' +
        ligne + ')',
        /3/.test(ligne) && /2/.test(ligne) && /1/.test(ligne) && /quota/i.test(ligne));
+    /* LE NOMBRE TROUVÉ EST ÉCRIT, ET EN TÊTE. Sans lui, une période qui ne rend
+     * que cinq sorties oblige à additionner pour s'en apercevoir — et c'est
+     * exactement le chiffre qu'on cherche quand on soupçonne un plafond. */
+    ok('import · il dit d’abord combien la période en contenait',
+       /^6 sorties trouvées/.test(ligne), ligne);
     $('#icu-progres').textContent = '';
 
     /* On rend la bibliothèque telle qu'on l'a trouvée. */

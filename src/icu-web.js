@@ -72,21 +72,38 @@
   async function activities(limit, jours) {
     limit = limit || 5;
 
-    async function fenetre(jours) {
-      return call('/athlete/0/activities', {
+    /* `limit` EST ENVOYÉ EXPLICITEMENT.
+     *
+     * Il ne l'était pas : on demandait une fenêtre et on tronquait côté
+     * navigateur. Tant qu'on ne voulait que cinq sorties, la différence ne se
+     * voyait pas — et le jour où l'on a demandé une ANNÉE, la réponse en a
+     * rendu cinq quand même. `limit` est documenté comme optionnel, donc
+     * soumis à la valeur par défaut du serveur, laquelle n'est écrite nulle
+     * part. Ne pas l'envoyer, c'était laisser quelqu'un d'autre choisir
+     * combien de sorties composent ton affiche. */
+    async function fenetre(jours, plafond) {
+      var p = {
         oldest: iso(new Date(Date.now() - jours * 86400000)),
         newest: iso(new Date())
-      });
+      };
+      /* `URLSearchParams` écrirait « limit=undefined » EN TOUTES LETTRES si on
+       * lui passait la valeur absente — et l'API répondrait 422 sur une
+       * requête qui a l'air juste. On ne pose la clé que si elle vaut
+       * quelque chose. */
+      if (plafond > 0) p.limit = plafond;
+      return call('/athlete/0/activities', p);
     }
 
     var liste;
     if (jours) {
-      liste = await fenetre(jours);
+      /* une fenêtre demandée se rend ENTIÈRE : le plafond est celui de
+       * l'import, pas celui d'un menu déroulant */
+      liste = await fenetre(jours, 1000);
     } else {
-      liste = await fenetre(60);
+      liste = await fenetre(60, limit);
       if (!Array.isArray(liste) || liste.length < limit) {
         try {
-          var large = await fenetre(365);
+          var large = await fenetre(365, limit);
           if (Array.isArray(large) && large.length > liste.length) liste = large;
         } catch (e) { /* on garde la première fenêtre */ }
       }
