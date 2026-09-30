@@ -919,7 +919,24 @@
               </div>
             </details>
           </div>
-          <button class="ghost" id="icu-forget" type="button" style="display: none">Oublier la clé</button>
+          <!-- IMPORTER UNE PÉRIODE, ET PAS UNE SORTIE À LA FOIS.
+             La liste au-dessus est un menu à choix unique, plafonné à cinq :
+             c'est ce qu'il faut pour composer l'affiche de la sortie du jour,
+             et c'est sans issue pour une planche à l'année, qui n'avait alors
+             aucun moyen d'être nourrie autrement qu'en glissant des GPX.
+             Le coût est visible — une requête par sortie — donc la fenêtre se
+             choisit, et le compte s'écrit avant de commencer. -->
+        <label class="opt" id="opt-icu-periode" style="display: none"><span>Importer une période</span>
+          <select id="icu-periode">
+            <option value="7">La semaine</option>
+            <option value="31" selected>Le mois</option>
+            <option value="92">Le trimestre</option>
+            <option value="365">L’année</option>
+          </select>
+        </label>
+        <button class="ghost" id="icu-importer" type="button" style="display: none">Importer la période</button>
+        <div id="icu-progres" class="muted" data-brut style="font-size: 11.5px"></div>
+        <button class="ghost" id="icu-forget" type="button" style="display: none">Oublier la clé</button>
         </div>
         <label class="file" style="margin-top: 11px">
           <input type="file" id="gpx" accept=".gpx,application/gpx+xml,text/xml" multiple>

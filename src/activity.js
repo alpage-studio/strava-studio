@@ -504,6 +504,14 @@
 
     var el = elevation(points);
     return build({
+      /* L'IDENTIFIANT DE LA SOURCE EST CONSERVÉ.
+       *
+       * Il ne servait à rien tant qu'on chargeait une sortie à la fois — et
+       * il est devenu nécessaire le jour où l'on importe une PÉRIODE : sans
+       * lui, rien ne distingue une sortie déjà présente d'une nouvelle, et
+       * deux périodes qui se chevauchent doublent chaque sortie commune. Le
+       * défaut ne se serait vu qu'à la deuxième importation. */
+      source_id: detail.id != null ? String(detail.id) : null,
       name: detail.name || 'Sortie',
       type: detail.sport_type || detail.type || '',
       date: start,
@@ -581,6 +589,14 @@
 
     var el = elevation(points);
     return build({
+      /* L'IDENTIFIANT DE LA SOURCE EST CONSERVÉ.
+       *
+       * Il ne servait à rien tant qu'on chargeait une sortie à la fois — et
+       * il est devenu nécessaire le jour où l'on importe une PÉRIODE : sans
+       * lui, rien ne distingue une sortie déjà présente d'une nouvelle, et
+       * deux périodes qui se chevauchent doublent chaque sortie commune. Le
+       * défaut ne se serait vu qu'à la deuxième importation. */
+      source_id: detail.id != null ? String(detail.id) : null,
       name: detail.name || 'Sortie',
       type: detail.type || '',
       date: start,

@@ -58,8 +58,18 @@
   function iso(d) { return d.toISOString().slice(0, 10); }
 
   /* Les N dernières sorties. L'API EXIGE une fenêtre oldest/newest — sans
-   * elle, 422. On élargit une fois si la moisson est maigre. */
-  async function activities(limit) {
+   * elle, 422. On élargit une fois si la moisson est maigre.
+   *
+   * `jours` REND LA FENÊTRE EXPLICITE. Sans lui, cette fonction ne savait
+   * faire qu'une chose : les cinq dernières sur soixante jours, élargies à un
+   * an si la moisson était maigre. C'était juste pour composer l'affiche de
+   * la sortie du jour, et sans issue pour une planche à l'année : il n'y avait
+   * aucun moyen de demander « tout mars ».
+   *
+   * Quand `jours` est donné, on interroge CETTE fenêtre et on ne l'élargit
+   * pas : élargir en silence rendrait des sorties hors de la période demandée,
+   * et l'affiche mentirait sur ce qu'elle montre. */
+  async function activities(limit, jours) {
     limit = limit || 5;
 
     async function fenetre(jours) {
@@ -69,17 +79,22 @@
       });
     }
 
-    var liste = await fenetre(60);
-    if (!Array.isArray(liste) || liste.length < limit) {
-      try {
-        var large = await fenetre(365);
-        if (Array.isArray(large) && large.length > liste.length) liste = large;
-      } catch (e) { /* on garde la première fenêtre */ }
+    var liste;
+    if (jours) {
+      liste = await fenetre(jours);
+    } else {
+      liste = await fenetre(60);
+      if (!Array.isArray(liste) || liste.length < limit) {
+        try {
+          var large = await fenetre(365);
+          if (Array.isArray(large) && large.length > liste.length) liste = large;
+        } catch (e) { /* on garde la première fenêtre */ }
+      }
     }
 
     return (liste || [])
       .filter(function (a) { return a.distance > 500; })
-      .slice(0, limit)
+      .slice(0, limit || 10000)
       .map(function (a) {
         return {
           id: a.id, name: a.name, type: a.type,

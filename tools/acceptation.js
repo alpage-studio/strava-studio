@@ -248,6 +248,114 @@
   $('#support').dispatchEvent(new Event('change'));
   await attends(400);
 
+  /* ---------- IMPORTER UNE PÉRIODE ----------
+   *
+   * Le chemin réseau vers intervals.icu n'est pas éprouvé ici, et ce n'est pas
+   * une négligence : il demanderait une clé d'API personnelle. Ce qui EST
+   * éprouvé, avec une source fabriquée, c'est tout ce qui peut se tromper sans
+   * le réseau — la boucle, le dédoublonnage, l'arrêt sur quota, le plafond, et
+   * le compte rendu. C'est là que vivent les fautes, pas dans le `fetch`.
+   *
+   * Chaque cas part d'une bibliothèque REMISE À ZÉRO puis restaurée : sans
+   * cela, l'import laisserait des sorties fabriquées dans tous les cas
+   * suivants, qui se mettraient à mesurer autre chose que ce qu'ils disent. */
+  if (window.App && App.importePeriode) {
+    var avantImport = Library.list().slice();
+
+    function fausseSortie(n) {
+      return {
+        detail: { id: 'f' + n, name: 'Fabriquée ' + n, type: 'Ride',
+                  start_date_local: '2026-0' + (1 + (n % 9)) + '-15T08:00:00',
+                  distance: 20000 + n * 100, moving_time: 3600,
+                  total_elevation_gain: 300 + n },
+        streams: []
+      };
+    }
+
+    /* 1. le cas nominal */
+    var r1 = await App.importePeriode({
+      jours: 31, front: 3,
+      liste: function () {
+        return Promise.resolve([{ id: 'f1' }, { id: 'f2' }, { id: 'f3' }]);
+      },
+      charge: function (id) { return Promise.resolve(fausseSortie(+String(id).slice(1))); }
+    });
+    ok('import · une période charge toutes ses sorties  (' + r1.charges + '/3)',
+       r1.charges === 3 && Library.count() === avantImport.length + 3);
+
+    /* 2. CE QU'ON A DÉJÀ NE SE RETÉLÉCHARGE PAS. Sans ce filtre, réimporter une
+     *    période chevauchante repayait chaque sortie commune et la comptait
+     *    deux fois dans la bibliothèque. */
+    var appels = 0;
+    var r2 = await App.importePeriode({
+      jours: 31, front: 3,
+      liste: function () {
+        return Promise.resolve([{ id: 'f1' }, { id: 'f2' }, { id: 'f9' }]);
+      },
+      charge: function (id) { appels++; return Promise.resolve(fausseSortie(9)); }
+    });
+    ok('import · ce qui est déjà là n’est pas rechangé  (' + r2.ignorees +
+       ' ignorée(s), ' + appels + ' appel(s))',
+       r2.ignorees === 2 && appels === 1 && r2.charges === 1);
+
+    /* 3. UN QUOTA ARRÊTE TOUT. Continuer, c'est cent refus de plus et un
+     *    message qui arrive cent fois trop tard. */
+    var apres = 0;
+    var r3 = await App.importePeriode({
+      jours: 365, front: 1,
+      liste: function () {
+        var l = [];
+        for (var i = 20; i < 40; i++) l.push({ id: 'q' + i });
+        return Promise.resolve(l);
+      },
+      charge: function (id) {
+        apres++;
+        return Promise.reject(new Error(apres === 1 ? 'illisible' : 'QUOTA'));
+      }
+    });
+    ok('import · un quota arrête l’import, une sortie illisible non  (' +
+       apres + ' appel(s) pour 20 sorties)',
+       r3.arret === 'QUOTA' && r3.echoues === 1 && apres <= 3);
+
+    /* 4. LE PLAFOND EST DIT. Une année peut compter des centaines de sorties ;
+     *    en tronquer en silence ferait une affiche incomplète sans le dire. */
+    var r4 = await App.importePeriode({
+      jours: 365, front: 2, plafond: 2,
+      liste: function () {
+        var l = [];
+        for (var i = 50; i < 60; i++) l.push({ id: 'p' + i });
+        return Promise.resolve(l);
+      },
+      charge: function (id) { return Promise.resolve(fausseSortie(+String(id).slice(1))); }
+    });
+    ok('import · au-delà du plafond, la période est tronquée ET annoncée  (' +
+       r4.charges + ')', r4.charges === 2 && r4.total === 10);
+
+    /* 5. LE COMPTE RENDU DIT TOUT. Une ligne qui n'annoncerait que les
+     *    chargements laisserait croire que la période n'en comptait pas plus. */
+    App.ditImport({ etat: 'fini', charges: 3, ignorees: 2, echoues: 1,
+                    total: 6, tronquee: true, arret: 'QUOTA' });
+    var ligne = $('#icu-progres').textContent;
+    ok('import · le compte rendu dit ce qui est entré, ignoré, raté et arrêté  (' +
+       ligne + ')',
+       /3/.test(ligne) && /2/.test(ligne) && /1/.test(ligne) && /quota/i.test(ligne));
+    $('#icu-progres').textContent = '';
+
+    /* On rend la bibliothèque telle qu'on l'a trouvée. */
+    Library.replace ? Library.replace(avantImport)
+                    : (function () {
+                        while (Library.count() > avantImport.length) {
+                          Library.remove(Library.list()[Library.count() - 1].id);
+                        }
+                      }());
+    ok('import · le banc rend la bibliothèque telle qu’il l’a trouvée  (' +
+       Library.count() + ')', Library.count() === avantImport.length);
+    if (App.syncBibliotheque) App.syncBibliotheque();
+  } else {
+    resultats.push({ cas: 'import · période', verdict: 'sauté',
+                     detail: 'point d’entrée absent' });
+  }
+
   /* ---------- L'ANNONCE D'UNE NOUVELLE VERSION ----------
    *
    * Le banc ne peut pas fabriquer une vraie mise à jour de service worker en

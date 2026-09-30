@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.14';
+var STUDIO_VERSION = '3.15';
 var STUDIO_DATE = '30.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,12 @@ var STUDIO_DATE = '30.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.15', d: '30.09.2026', points: [
+    'TU PEUX IMPORTER UNE PÉRIODE ENTIÈRE. Depuis intervals.icu on ne pouvait charger qu’UNE sortie à la fois, choisie parmi les cinq dernières : les neuf planches multi-sorties n’avaient donc aucun moyen d’être nourries autrement qu’en glissant des GPX un par un. La semaine, le mois, le trimestre ou l’année s’importent maintenant d’un bouton.',
+    'Ce que tu as déjà ne se retéléchargé pas. Deux périodes qui se chevauchent auraient doublé chaque sortie commune — l’identifiant de la sortie d’origine est désormais conservé, et il sert à ça.',
+    'Le compte rendu dit TOUT : ce qui est entré, ce qui était déjà là, ce qui était illisible, si la période a été tronquée et si l’on s’est arrêté. Une ligne qui n’annoncerait que les chargements laisserait croire que la période n’en comptait pas plus.',
+    'Un quota atteint arrête l’import ; une sortie illisible ne l’arrête pas. Continuer après un quota, c’est cent requêtes refusées de plus et un message qui arrive cent fois trop tard.'
+  ] },
   { v: '3.14', d: '30.09.2026', points: [
     'TU PEUX CHOISIR LE MOIS. Le menu des périodes ne proposait que des fenêtres relatives — ce mois, le mois dernier — de sorte qu’on ne pouvait composer l’affiche d’août que pendant le mois de septembre, et qu’une planche à l’année ne servait qu’une fois par an. Il liste désormais les mois qui portent vraiment des sorties, avec leur compte : douze affiches d’Almanac pour une année roulée.',
     'Un mois choisi est ABSOLU, pas un recul : « juin 2026 » désignera encore juin 2026 dans six mois. Un projet rouvert retrouve donc la période qu’on avait choisie.',
