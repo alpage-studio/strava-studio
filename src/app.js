@@ -77,6 +77,13 @@
   function fenetreCourante() {
     var v = $('#periode') ? $('#periode').value : 'tout';
     if (!v || v === 'tout') return null;
+    /* Les périodes NOMMÉES — « m:2026-06 », « a:2026 » — sont absolues : elles
+     * désignent le même mois dans six mois, ce qu'un recul relatif ne fait
+     * pas. Voir `construitPeriodes()`. */
+    var nom = /^m:(\d{4})-(\d{2})$/.exec(v);
+    if (nom) return Alpage.fenetreMois(+nom[1], +nom[2] - 1);
+    var an = /^a:(\d{4})$/.exec(v);
+    if (an) return Alpage.fenetreAnnee(+an[1]);
     var p = v.split(':');
     return Alpage.fenetre(p[0], parseInt(p[1], 10) || 0);
   }
@@ -146,7 +153,84 @@
   }
   A.majCyanotype = majCyanotype;
 
+  /* ---------- LE MENU DES PÉRIODES SE CONSTRUIT SUR LES SORTIES ----------
+   *
+   * Il ne proposait que des fenêtres RELATIVES : cette semaine, la semaine
+   * dernière, ce mois, le mois dernier, cette année, l'an dernier. On pouvait
+   * donc composer l'affiche d'août seulement pendant le mois de septembre.
+   * « Almanac est superbe mais à l'année je ne peux m'en servir qu'une fois »
+   * — c'était vrai, et ce n'était pas une limite des planches : `Alpage.fenetre`
+   * accepte n'importe quel recul depuis toujours, et les neuf planches
+   * multi-sorties lisent déjà la fenêtre. Seul le menu était fermé.
+   *
+   * ON NE PROPOSE QUE CE QUI EXISTE. Un mois sans sortie n'entre pas dans la
+   * liste : offrir « février » à qui n'a pas roulé en février, c'est offrir
+   * une affiche vide et la lui laisser découvrir. Le compte est écrit à côté
+   * de chaque entrée, pour qu'on choisisse en connaissance de cause. */
+  var MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet',
+              'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+  function construitPeriodes() {
+    var sel = $('#periode');
+    if (!sel) return;
+    var avant = sel.value;
+
+    /* Les entrées relatives sont celles du HTML : on les garde telles quelles
+     * et on n'ajoute que les nommées, pour ne pas réécrire ce qui marche. */
+    Array.prototype.slice.call(sel.querySelectorAll('optgroup'))
+      .forEach(function (g) { g.remove(); });
+
+    var parMois = {}, parAn = {};
+    Library.list().forEach(function (e) {
+      var d = e.activity && e.activity.date;
+      if (!d) return;
+      var cleM = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+      parMois[cleM] = (parMois[cleM] || 0) + 1;
+      parAn[d.getFullYear()] = (parAn[d.getFullYear()] || 0) + 1;
+    });
+
+    var mois = Object.keys(parMois).sort().reverse();
+    if (mois.length) {
+      var gm = document.createElement('optgroup');
+      gm.label = T('Un mois précis');
+      mois.forEach(function (k) {
+        var o = document.createElement('option');
+        o.value = 'm:' + k;
+        o.textContent = MOIS[+k.slice(5) - 1] + ' ' + k.slice(0, 4) +
+          '  ·  ' + parMois[k] + ' ' + T(parMois[k] > 1 ? 'sorties' : 'sortie');
+        gm.appendChild(o);
+      });
+      sel.appendChild(gm);
+    }
+
+    var ans = Object.keys(parAn).sort().reverse();
+    if (ans.length > 1) {
+      var ga = document.createElement('optgroup');
+      ga.label = T('Une année précise');
+      ans.forEach(function (k) {
+        var o = document.createElement('option');
+        o.value = 'a:' + k;
+        o.textContent = k + '  ·  ' + parAn[k] + ' ' +
+          T(parAn[k] > 1 ? 'sorties' : 'sortie');
+        ga.appendChild(o);
+      });
+      sel.appendChild(ga);
+    }
+
+    /* La sélection SURVIT à la reconstruction — sinon charger une sortie de
+     * plus ramenait le menu sur « tout » et changeait la planche sans qu'on
+     * ait rien demandé. */
+    if (avant) {
+      var existe = Array.prototype.some.call(sel.options, function (o) {
+        return o.value === avant;
+      });
+      sel.value = existe ? avant : 'tout';
+    }
+  }
+  A.construitPeriodes = construitPeriodes;
+
   function syncBibliotheque() {
+    construitPeriodes();
     Studio.setLibrary(entreesRetenues());
     if ($('#opt-periode')) majPeriode();
     /* Les vignettes du catalogue sont des rendus des sorties chargées : elles

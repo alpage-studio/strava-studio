@@ -227,32 +227,32 @@
    * JavaScript, qui lui faisait exactement ce qu'on lui demandait. */
   [hidden] { display: none !important; }
 
-  #nouveautes {
+  .bandeau {
     flex: none; display: flex; align-items: baseline; flex-wrap: wrap;
     gap: 10px 12px; padding: 9px 18px;
     background: var(--panel); border-bottom: 1px solid var(--line);
     font-size: 12.5px; color: var(--mut);
   }
-  #nouveautes .titre { color: var(--ink); }
-  #nouveautes .spacer { flex: 1; }
-  #nouveautes .voir, #nouveautes .fermer {
+  .bandeau .titre { color: var(--ink); }
+  .bandeau .spacer { flex: 1; }
+  .bandeau .voir, .bandeau .fermer {
     width: auto; padding: 2px 0; background: none; border: 0;
     color: var(--acc); font: inherit; cursor: pointer;
     text-decoration: underline; text-underline-offset: 3px;
   }
-  #nouveautes .fermer {
+  .bandeau .fermer {
     color: var(--mut); text-decoration: none; font-size: 17px;
     line-height: 1; padding: 0 4px;
   }
-  #nouveautes .fermer:hover { color: var(--ink); }
+  .bandeau .fermer:hover { color: var(--ink); }
   #nouveautes-liste { flex: 1 1 100%; margin: 2px 0 6px; }
-  #nouveautes .v {
+  .bandeau .v {
     font: 600 9.5px/1 "IBM Plex Mono", monospace; letter-spacing: .14em;
     text-transform: uppercase; color: var(--mut); margin: 12px 0 6px;
   }
-  #nouveautes .v:first-child { margin-top: 2px; }
-  #nouveautes ul { margin: 0; padding-left: 16px; }
-  #nouveautes li {
+  .bandeau .v:first-child { margin-top: 2px; }
+  .bandeau ul { margin: 0; padding-left: 16px; }
+  .bandeau li {
     margin-bottom: 5px; font-size: 12.5px; line-height: 1.55; color: var(--ink);
   }
 
@@ -840,12 +840,26 @@
 <!-- Un bandeau, pas une fenêtre modale. Une nouvelle n'a pas à barrer la
      route : on arrive pour composer une affiche, pas pour lire des notes de
      version. Il s'ouvre si on le veut, il se ferme pour de bon. -->
-<div id="nouveautes" hidden>
+<div id="nouveautes" class="bandeau" hidden>
   <span class="titre">Depuis ta dernière visite</span>
   <button class="voir" id="nouveautes-voir" type="button">Voir</button>
   <div class="spacer"></div>
   <button class="fermer" id="nouveautes-fermer" type="button" aria-label="Fermer">×</button>
   <div id="nouveautes-liste" hidden></div>
+</div>
+
+<!-- UNE NOUVELLE VERSION EST INSTALLEE, CELLE-CI EST ENCORE A L'ECRAN.
+     Le SHELL est servi par generation : une page ne melange jamais deux
+     versions du code, et le prix est qu'une version fraiche apparait au
+     chargement SUIVANT. Sans ce bandeau, la seule consigne possible etait
+     « recharge, et si tu vois encore l'ancien numero, recharge encore » —
+     une phrase qu'on ne peut ni verifier ni contredire. Ici le studio le dit
+     au moment ou il le sait, et le bouton fait le geste. -->
+<div id="maj" class="bandeau" hidden>
+  <span class="titre">Une nouvelle version est prête</span>
+  <button class="voir" id="maj-recharger" type="button">Recharger</button>
+  <div class="spacer"></div>
+  <button class="fermer" id="maj-fermer" type="button" aria-label="Fermer">×</button>
 </div>
 
 <!-- LE TÉLÉPHONE : une barre d'outils en bas, des panneaux qui remontent.

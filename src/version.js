@@ -11,8 +11,8 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.13.1';
-var STUDIO_DATE = '29.09.2026';
+var STUDIO_VERSION = '3.14';
+var STUDIO_DATE = '30.09.2026';
 
 /* ---------- le journal ----------
  *
@@ -34,6 +34,13 @@ var STUDIO_DATE = '29.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.14', d: '30.09.2026', points: [
+    'TU PEUX CHOISIR LE MOIS. Le menu des périodes ne proposait que des fenêtres relatives — ce mois, le mois dernier — de sorte qu’on ne pouvait composer l’affiche d’août que pendant le mois de septembre, et qu’une planche à l’année ne servait qu’une fois par an. Il liste désormais les mois qui portent vraiment des sorties, avec leur compte : douze affiches d’Almanac pour une année roulée.',
+    'Un mois choisi est ABSOLU, pas un recul : « juin 2026 » désignera encore juin 2026 dans six mois. Un projet rouvert retrouve donc la période qu’on avait choisie.',
+    'On ne te propose pas un mois vide. Un mois sans sortie n’entre pas dans la liste : offrir « février » à qui n’a pas roulé en février, c’est offrir une affiche vide et la laisser découvrir.',
+    'Cela vaut pour les NEUF planches multi-sorties, pas seulement Almanac : la fenêtre est un réglage global, et Strates, Série, Saisons, Tissage, Métro, Atlas, Fresque et Exploration la lisent déjà.',
+    'Le studio te dit quand une nouvelle version est prête, au lieu de te laisser recharger pour voir. Le code est servi par génération — une page ne mélange jamais deux versions — et le prix était qu’une version fraîche apparaissait au chargement suivant, sans que rien ne le dise. Un bandeau, un bouton, et la question ne se pose plus.'
+  ] },
   { v: '3.13.1', d: '29.09.2026', points: [
     'Si tu es resté bloqué sur une ancienne version, voici pourquoi. Entre la 3.11 et la 3.12, le fichier qui pilote le cache hors ligne n’a pas changé d’un seul octet : seul le numéro avait bougé, dans un fichier qu’il IMPORTE. Or un navigateur décide de remplacer ce fichier en comparant ses octets, et tous ne revérifient pas les imports. Chez ceux-là, la 3.11 servait son propre cache — le numéro compris — et ne pouvait donc plus jamais apprendre qu’une suite existait.',
     'Les huit planches d’Almanac de la galerie étaient l’ÉTAT VIDE, rendu huit fois. Elles avaient été produites sans que l’année de 106 sorties soit chargée ; quatre d’entre elles pesaient exactement le même nombre d’octets. Elles montrent enfin l’année.',

@@ -667,6 +667,23 @@
     return { debut: debut, fin: fin };
   }
 
+  /* ---------- UNE FENÊTRE NOMMÉE, ET NON RELATIVE ----------
+   *
+   * `fenetre('mois', recul)` compte à rebours depuis AUJOURD'HUI. C'est ce
+   * qu'il faut pour « ce mois » et « le mois dernier », et c'est précisément
+   * ce qu'il ne faut pas pour « juin 2026 » : la même valeur enregistrée
+   * désignerait un autre mois le mois suivant, et une affiche rouverte ne
+   * montrerait plus la période qu'on avait choisie.
+   *
+   * Ces deux-ci sont ABSOLUES. Elles servent aux périodes que le studio
+   * propose d'après les sorties réellement chargées. */
+  function fenetreMois(an, mois) {
+    return { debut: new Date(an, mois, 1), fin: new Date(an, mois + 1, 1) };
+  }
+  function fenetreAnnee(an) {
+    return { debut: new Date(an, 0, 1), fin: new Date(an + 1, 0, 1) };
+  }
+
   function dansLaFenetre(date, f) {
     if (!f) return true;
     if (!date) return false;             // sans date, on ne peut pas répondre oui
@@ -824,7 +841,7 @@
     champDistance: champDistance, ligneDeNiveau: ligneDeNiveau,
     mesures: mesures, serie: serie, cadre: cadre,
     semaineISO: semaineISO,
-    fenetre: fenetre,
+    fenetre: fenetre, fenetreMois: fenetreMois, fenetreAnnee: fenetreAnnee,
     dansLaFenetre: dansLaFenetre, lundiDe: lundiDe, positionDansPeriode: positionDansPeriode,
     socle: socle, optionsFond: optionsFond, optionsTexte: optionsTexte,
     dit: dit, luminance: luminance,

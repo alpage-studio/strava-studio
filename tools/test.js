@@ -241,6 +241,49 @@ function testsCoherence() {
        'sw.js dit ' + m[1] + ', src/version.js dit ' + (v ? v[1] : '?'));
   }());
 
+  /* ---------- LE STUDIO DIT QU'UNE VERSION EST PRÊTE ----------
+   *
+   * Le SHELL étant servi par génération, une version fraîche apparaît au
+   * chargement SUIVANT. Sans annonce, la seule consigne possible était
+   * « recharge, et si tu vois encore l'ancien numéro, recharge encore » : une
+   * phrase qu'on ne peut ni vérifier ni contredire.
+   *
+   * DEUX CHOSES SE CONTRÔLENT ICI, ET LA SECONDE EST LE PIÈGE.
+   *   · l'événement doit être écouté ;
+   *   · il doit être GARDÉ. `controllerchange` se déclenche aussi la première
+   *     fois qu'un service worker prend en charge une page qui n'en avait
+   *     pas — à la toute première visite, là où il n'y a rien de neuf. Sans
+   *     garde, le studio annoncerait une nouvelle version à qui découvre la
+   *     première, et l'annonce ne voudrait plus rien dire. */
+  (function () {
+    const ins = fs.readFileSync(path.join(ROOT, 'src', 'installe.js'), 'utf8');
+    ok('installe.js · il écoute la prise en main d’une nouvelle génération',
+       /addEventListener\('controllerchange'/.test(ins));
+    ok('installe.js · le premier chargement n’annonce rien',
+       /navigator\.serviceWorker\.controller/.test(ins) &&
+       /etaitPilotee/.test(ins),
+       'sans garde, la toute première visite annonce une nouvelle version');
+    ok('index.html · le bandeau de mise à jour existe, avec son bouton',
+       /id="maj"/.test(html) && /id="maj-recharger"/.test(html));
+  }());
+
+  /* ---------- UNE SUITE QUI S'INTERROMPT DOIT LE DIRE ----------
+   *
+   * L'acceptation était une fonction asynchrone sans `catch` : une exception
+   * quelconque emportait les soixante mesures déjà faites, et le lanceur
+   * n'avait plus qu'un timeout de cinq minutes à annoncer. C'est arrivé une
+   * fois, à une seule largeur, sur un seul moteur — et il a fallu relancer
+   * pour savoir que c'était intermittent, parce que rien n'était nommé. */
+  (function () {
+    const acc = fs.readFileSync(path.join(ROOT, 'tools', 'acceptation.js'), 'utf8');
+    ok('acceptation · une interruption est rapportée, pas avalée',
+       /\}\(\)\)\.catch\(/.test(acc) && /__acceptationPartiel/.test(acc),
+       'sans filet, une exception rend la suite muette pendant cinq minutes');
+    ok('acceptation · elle retient le dernier cas atteint',
+       /__acceptationDernier/.test(acc),
+       'sans lui, l’interruption ne dit pas OÙ elle a eu lieu');
+  }());
+
   /* Un exemple listé dans app.js mais absent du disque donne un 404 une fois
    * en ligne — et la règle *.gpx du .gitignore l'avait déjà fait une fois. */
   const appSrc = fs.readFileSync(path.join(ROOT, 'src', 'app.js'), 'utf8');

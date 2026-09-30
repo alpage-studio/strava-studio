@@ -44,6 +44,9 @@
   'use strict';
 
   var resultats = [];
+  /* PUBLIÉS AVANT D'ÊTRE COMPLETS, exprès : si la suite s'interrompt, ce qui a
+   * déjà été mesuré doit survivre. Voir le filet, tout en bas. */
+  window.__acceptationPartiel = resultats;
   var $ = function (s) { return document.querySelector(s); };
   var attends = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
 
@@ -66,6 +69,9 @@
   }
 
   function ok(nom, condition, detail) {
+    /* Le dernier cas ATTEINT, pas le dernier réussi : c'est lui qui localise
+     * une interruption, et il ne sert qu'à ça. */
+    window.__acceptationDernier = nom;
     resultats.push({ cas: nom, verdict: condition ? 'ok' : 'ÉCHEC',
                      detail: condition ? '' : (detail || '') });
   }
@@ -128,6 +134,51 @@
   ok('chargement · quatre parcours de démonstration', charge,
      Library.count() + ' chargés');
   ok('chargement · la scène dessine', encre($('#canvas')) > 200);
+
+  /* ---------- LES PÉRIODES SE CONSTRUISENT SUR LES SORTIES ----------
+   *
+   * Le menu ne proposait que des fenêtres RELATIVES — ce mois, le mois
+   * dernier. On ne pouvait donc composer l'affiche d'août que pendant le mois
+   * de septembre, et une planche à l'année ne servait qu'une fois par an.
+   *
+   * Le contrôle compare le menu à ce que la BIBLIOTHÈQUE porte vraiment, et
+   * non à un nombre attendu : un menu qui proposerait un mois vide, ou qui en
+   * oublierait un, échoue dans les deux sens. */
+  (function () {
+    var sel = $('#periode');
+    var reels = {};
+    Library.list().forEach(function (e) {
+      var d = e.activity && e.activity.date;
+      if (!d) return;
+      var k = d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2);
+      reels[k] = (reels[k] || 0) + 1;
+    });
+    var attendus = Object.keys(reels).sort().reverse();
+    var proposes = Array.prototype.map.call(
+      sel.querySelectorAll('optgroup option[value^="m:"]'),
+      function (o) { return o.value.slice(2); });
+    ok('période · le menu propose exactement les mois qui portent des sorties  (' +
+       proposes.length + ')',
+       proposes.length > 0 && proposes.join() === attendus.join(),
+       'proposés : ' + proposes.join(' ') + ' — réels : ' + attendus.join(' '));
+
+    if (proposes.length) {
+      var k = proposes[0];
+      sel.value = 'm:' + k;
+      sel.dispatchEvent(new Event('change'));
+      ok('période · choisir un mois retient le bon nombre de sorties  (' +
+         App.entreesRetenues().length + '/' + reels[k] + ')',
+         App.entreesRetenues().length === reels[k]);
+
+      /* ELLE NE DOIT PAS DÉRIVER. Un recul relatif enregistré désignerait un
+       * autre mois le mois suivant ; une période nommée désigne le même. */
+      ok('période · un mois nommé est absolu, pas un recul',
+         /^m:\d{4}-\d{2}$/.test(sel.value));
+
+      sel.value = 'tout';
+      sel.dispatchEvent(new Event('change'));
+    }
+  }());
 
   // ---------- 3. le catalogue de styles ----------
   var cartes = document.querySelectorAll('#choix-style .carte-style');
@@ -196,6 +247,39 @@
   $('#support').value = 'papier';
   $('#support').dispatchEvent(new Event('change'));
   await attends(400);
+
+  /* ---------- L'ANNONCE D'UNE NOUVELLE VERSION ----------
+   *
+   * Le banc ne peut pas fabriquer une vraie mise à jour de service worker en
+   * quelques secondes, et prétendre le contraire serait le contrôle qui ne
+   * contrôle pas ce qu'il dit. Il éprouve ce qui casse EN SILENCE : le
+   * bandeau, son libellé, son numéro, et le fait que le bouton existe.
+   * Le déclenchement, lui, est gardé statiquement par le harnais. */
+  var maj = $('#maj');
+  ok('mise à jour · le bandeau est absent tant qu’il n’y a rien à annoncer',
+     !!maj && maj.hidden);
+  if (maj && window.__annonceVersion) {
+    window.__annonceVersion('9.9.9');
+    await attends(120);
+    ok('mise à jour · annoncée, elle se montre et porte le numéro  (' +
+       maj.querySelector('.titre').textContent + ')',
+       !maj.hidden && /9\.9\.9/.test(maj.querySelector('.titre').textContent));
+    ok('mise à jour · le bouton qui recharge est là',
+       !!$('#maj-recharger') && $('#maj-recharger').offsetParent !== null);
+    /* SANS NUMÉRO, ON N'EN INVENTE PAS. La lecture de src/version.js peut
+     * échouer — hors ligne, cache vidé — et le bandeau doit alors rester
+     * vrai plutôt que d'afficher « undefined ». */
+    window.__annonceVersion(null);
+    await attends(120);
+    ok('mise à jour · sans numéro lisible, elle n’en invente pas',
+       !/undefined|null|9\.9\.9/.test(maj.querySelector('.titre').textContent));
+    $('#maj-fermer').click();
+    await attends(120);
+    ok('mise à jour · la croix la ferme', maj.hidden);
+  } else {
+    resultats.push({ cas: 'mise à jour · annonce', verdict: 'sauté',
+                     detail: 'bandeau ou point d’entrée absent' });
+  }
 
   /* ---------- LE CYANOTYPE, UNE SURFACE ----------
    *
@@ -777,4 +861,28 @@
   console.log('NON COUVERT ICI : aperçu animé, séquence PNG. L’export vidéo, lui, est éprouvé — il était cassé et personne ne le voyait.');
   window.__acceptation = resultats;
   return resultats;
-}());
+}()).catch(function (e) {
+  /* ---------- LE FILET ----------
+   *
+   * LE DÉFAUT RÉEL : cette suite était une fonction asynchrone sans `catch`.
+   * Une seule exception, où que ce soit, et `window.__acceptation` n'était
+   * jamais posé — le lanceur attendait cinq minutes, puis annonçait
+   * « l'acceptation n'a pas rendu de résultats ». Aucun nom, aucune trace,
+   * aucune des soixante mesures déjà faites. Un incident intermittent
+   * devenait un silence de cinq minutes, indiscernable d'une lenteur.
+   *
+   * Le filet ne rattrape RIEN : il ne rend pas la suite plus verte, il la rend
+   * lisible. L'interruption devient un cas en échec qui porte son message et
+   * le nom du dernier cas atteint, et tout ce qui précède est conservé. */
+  var partiel = window.__acceptationPartiel || [];
+  partiel.push({
+    cas: 'la suite s’est interrompue après « ' +
+         (window.__acceptationDernier || 'aucun cas') + ' »',
+    verdict: 'ÉCHEC',
+    detail: ((e && e.message) || String(e)) +
+            ((e && e.stack) ? ' — ' + String(e.stack).split('\n')[1] : '')
+  });
+  console.error('acceptation interrompue :', e);
+  window.__acceptation = partiel;
+  return partiel;
+});
