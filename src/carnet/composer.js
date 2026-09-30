@@ -296,6 +296,7 @@
     var dplus = etapes.reduce(function (s, e) { return s + e.dplus; }, 0);
     return {
       relief: relief,
+      komoot: entree.komoot || null,
       v: 1,
       titre: entree.titre || act.name || 'Carnet de route',
       sousTitre: entree.sousTitre || '',

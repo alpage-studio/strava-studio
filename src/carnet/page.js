@@ -319,13 +319,16 @@
     hPlan = Horizon.composer(data, hOpts);
     Horizon.dessiner(hGrand, data, hPlan, hImages, hOpts);
     var planches;
-    if ((hOpts.format || 'recit') === 'recit') {
-      planches = Recit.composer(data, hOpts).map(function (im) {
-        var c = document.createElement('canvas'); c.width = Recit.W; c.height = Recit.H;
-        Recit.dessiner(c.getContext('2d'), data, im, hImages, hOpts);
+    var f = format();
+    if (f === 'promo' || f === 'recit') {
+      var M = f === 'promo' ? Promo : Recit;
+      planches = M.composer(data, hOpts).map(function (im) {
+        var c = document.createElement('canvas'); c.width = M.W; c.height = M.H;
+        M.dessiner(c.getContext('2d'), data, im, hImages, hOpts);
         return c;
       });
     } else planches = Horizon.planches(hGrand, hPlan.n);
+    $('hKomoot').hidden = f !== 'promo';
     hPlanches = planches;
     var bande = $('hBande');
     bande.innerHTML = '';
@@ -343,12 +346,17 @@
    * première photo du moment — elle survit aux changements de thème et de
    * couverture, pas à un regroupement différent des photos. */
   var ANECDOTE_MAX = 140;
+  /* trois formats : la PROMOTION (club et Komoot, le défaut), le souvenir en
+   * récit, le souvenir en panorama. Le Reel et la liste des moments suivent. */
+  function format() { return hOpts.format || 'promo'; }
+  function composerMoments() { return (format() === 'promo' ? Promo : Recit).composer(lecteur.data, hOpts); }
+
   function hMoments() {
     var box = $('hMoments');
     box.innerHTML = '';
-    if ((hOpts.format || 'recit') !== 'recit') return;
+    if (format() === 'panorama') return;
     hOpts.titres = hOpts.titres || {}; hOpts.textes = hOpts.textes || {};
-    Recit.composer(lecteur.data, hOpts).filter(function (im) { return im.type === 'moment'; }).forEach(function (s) {
+    composerMoments().filter(function (im) { return im.type === 'moment'; }).forEach(function (s) {
       var d = document.createElement('div');
       d.className = 'moment';
       d.innerHTML = '<span>' + String(s.n).padStart(2, '0') + ' · ' + (s.estime ? '≈ km ' + Math.round(s.a) : 'km ' + s.a.toFixed(1).replace('.', ',')) + '</span>' +
@@ -403,7 +411,12 @@
     $('hSigne').value = hOpts.signature;
     $('hNB').checked = !!hOpts.nb;
     $('hCouv').value = hOpts.couverture || 'coupe';
-    $('hFormat').value = hOpts.format || 'recit';
+    $('hFormat').value = format();
+    // les liens Komoot : ceux du carnet (manifeste) tant qu'on ne les a pas changés ici
+    if (!hOpts.komoot) hOpts.komoot = Object.assign({ dansCollection: false }, entree.komoot || {});
+    var K = hOpts.komoot;
+    $('kTour').value = K.tour || ''; $('kCollection').value = K.collection || ''; $('kNom').value = K.nom || '';
+    $('kParcours').value = K.parcours || ''; $('kDans').checked = !!K.dansCollection; $('kBio').checked = hOpts.lienEnBio !== false;
     $('hFondu').value = hOpts.fondu || 'halo';
     // le récit se lit en Papier, photos en couleur, signature sobre — sauf choix contraire
     if (hOpts.signatureSobre == null) hOpts.signatureSobre = true;
@@ -421,6 +434,28 @@
   $('hNB').addEventListener('change', function () { hOpts.nb = this.checked; hSauver(); hRendre(); });
   $('hCouv').addEventListener('change', function () { hOpts.couverture = this.value; hSauver(); hRendre(); });
   $('hFormat').addEventListener('change', function () { hOpts.format = this.value; hSauver(); hRendre(); hMoments(); });
+  /* Komoot : les réglages valent pour les images ET pour le carnet web, dont
+   * les liens, eux, se cliquent — on les recopie donc dans le carnet */
+  function majKomoot() {
+    var K = hOpts.komoot = hOpts.komoot || {};
+    K.tour = $('kTour').value.trim(); K.collection = $('kCollection').value.trim(); K.nom = $('kNom').value.trim();
+    K.parcours = +$('kParcours').value || null; K.dansCollection = $('kDans').checked;
+    hOpts.lienEnBio = $('kBio').checked;
+    entree.komoot = { tour: K.tour, collection: K.collection, nom: K.nom, parcours: K.parcours, dansCollection: K.dansCollection };
+    hSauver(); hRendre(); rendre();
+  }
+  ['kTour', 'kCollection', 'kNom', 'kParcours', 'kDans', 'kBio'].forEach(function (id) { $(id).addEventListener('change', majKomoot); });
+
+  /* la story : l'invitation en 9:16, la zone du sticker lien laissée libre —
+   * c'est le seul endroit d'Instagram où un lien se clique depuis une image */
+  $('hStory').addEventListener('click', function () {
+    var c = document.createElement('canvas'); c.width = 1080; c.height = 1920;
+    Promo.dessinerStory(c.getContext('2d'), lecteur.data, hImages, hOpts);
+    c.toBlob(function (b) {
+      Video.save(b, 'story-' + nomFichier() + '.png');
+      note('Story exportée. Sur Instagram : ajoute le sticker « Lien » dans la zone libre, avec le lien de la collection.', 7000);
+    }, 'image/png');
+  });
   $('hFondu').addEventListener('change', function () { hOpts.fondu = this.value; hSauver(); hRendre(); });
   $('hMain').addEventListener('change', function () { hOpts.manuscrit = this.checked; hSauver(); hRendre(); });
   $('hContinu').addEventListener('change', function () { $('hBande').classList.toggle('continu', this.checked); });
@@ -464,7 +499,7 @@
     /* le Reel MONTÉ (par défaut) : titre, boucle, trois moments en plein cadre,
      * bilan ; ou le travelling du panorama, gardé pour comparer */
     reel = (hOpts.reelMode || 'montage') === 'montage'
-      ? Montage.monter(lecteur.data, Recit.composer(lecteur.data, hOpts), hImages, reelVideos, hOpts)
+      ? Montage.monter(lecteur.data, composerMoments(), hImages, reelVideos, Object.assign({}, hOpts, { format: format(), komoot: hOpts.komoot }))
       : Reel.monter(hGrand, hPlan, lecteur.data, hImages, reelVideos, hOpts);
     $('hReelCanvas').__reel = reel;   // pour tirer une image précise (contrôles)
     $('hReelInfo').textContent = Math.round(reel.duree) + ' s · 1080 × 1920';

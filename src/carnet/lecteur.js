@@ -71,6 +71,10 @@
       '.cr-boite{position:fixed;inset:0;z-index:50;background:rgba(18,18,14,.94);display:none;align-items:center;justify-content:center;cursor:zoom-out;padding:3vh 3vw}',
       '.cr-boite.ouvert{display:flex}',
       '.cr-boite img,.cr-boite video{max-width:100%;max-height:100%;object-fit:contain}',
+      '.cr-komoot{display:flex;flex-wrap:wrap;gap:10px;padding:26px 48px 0}',
+      '.cr-komoot a{font:600 15px/1.2 var(--sans);text-decoration:none;border-radius:99px;padding:12px 18px;border:1.5px solid var(--ink);color:var(--ink)}',
+      '.cr-komoot a.cr-principal{background:var(--ink);color:var(--bg)}',
+      '.cr-fin .cr-komoot{padding:26px 0 0}',
       '.cr-sommaire{display:flex;flex-wrap:wrap;gap:8px;padding:28px 48px 0}',
       '.cr-sommaire button{font:13px/1.2 var(--mono);border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:99px;padding:8px 12px;cursor:pointer}',
       '.cr-sommaire button.cr-et{background:var(--ink);color:var(--bg);border-color:var(--ink)}',
@@ -90,6 +94,7 @@
       '.cr-prog{display:block;height:3px;background:var(--line);margin:10px -16px 0}',
       '.cr-prog i{display:block;height:100%;width:0;background:var(--acc)}',
       '.cr-couv{height:62vh}.cr-couv div{padding:0 16px 28px}.cr-couv .cr-sous{font-size:18px}',
+      '.cr-komoot{padding:18px 16px 0}',
       '.cr-sommaire{padding:20px 16px 0;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}',
       '.cr-sommaire button{flex:0 0 auto}',
       '.cr-fil{padding:0 16px 12vh}',
@@ -242,6 +247,24 @@
         data.etapes.length + (data.etapes.length > 1 ? ' étapes' : ' étape') + '</p></div>';
       recit.appendChild(couv);
       requestAnimationFrame(function () { couv.classList.add('vu'); });
+      /* les liens Komoot : ici ils se CLIQUENT, contrairement aux images
+       * Instagram. En tête pour qui veut y aller tout de suite, à la fin pour
+       * qui a tout lu. */
+      function liensKomoot() {
+        var K = data.komoot;
+        if (!K || (!K.tour && !K.collection)) return null;
+        var box = el('div', 'cr-komoot');
+        function lien(url, txt, cls) {
+          if (!/^https:\/\/(www\.)?komoot\.[a-z]+\//.test(url || '')) return;   // uniquement des liens Komoot
+          var a = el('a', cls || '', esc(txt)); a.href = url; a.target = '_blank'; a.rel = 'noopener';
+          box.appendChild(a);
+        }
+        lien(K.tour, 'Voir le parcours sur Komoot', 'cr-principal');
+        lien(K.collection, K.nom ? 'La collection ' + K.nom : 'La collection sur Komoot');
+        return box.childNodes.length ? box : null;
+      }
+      var kHaut = liensKomoot();
+      if (kHaut) recit.appendChild(kHaut);
       var sommaire = el('nav', 'cr-sommaire');
       sommaire.setAttribute('aria-label', 'Aller à');
       recit.appendChild(sommaire);
@@ -269,8 +292,9 @@
           it.liste.forEach(function (s) { n.appendChild(figure(data, s.m)); });
         } else {
           n = el('section', 'cr-fin', '<h2>' + esc(data.etapes[data.etapes.length - 1].a) + '</h2>' +
-            '<p>' + fKm(data.total.km) + ' · ' + fM(data.total.dplus) + ' de dénivelé<br>' +
-            data.medias.length + ' images, posées là où elles ont été prises.</p>');
+            '<p>' + fKm(data.total.km) + ' · ' + fM(data.total.dplus) + ' D+</p>');
+          var kBas = liensKomoot();
+          if (kBas) n.appendChild(kBas);
         }
         if (it.type === 'media' || it.type === 'serie' || it.type === 'rep') {
           var ecart = it.km - precedent;

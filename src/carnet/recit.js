@@ -28,22 +28,37 @@
 
   function O() { return global.Horizon.outils; }
 
-  /* ---------- composer le récit ---------- */
-  function composer(data, opts) {
+  function etapeDe(data, km) { for (var i = data.etapes.length - 1; i >= 0; i--) if (km >= data.etapes[i].kmDebut - 1e-9) return i; return 0; }
+
+  /* les MOMENTS : des photos proches, d'une même étape, réunis tant qu'il y
+   * en a plus que `place`. Partagé par le souvenir (ce fichier) et la
+   * promotion (promo.js) — ils ne diffèrent que par la place qu'ils laissent. */
+  function momentsDe(data, opts, place, ecarter) {
     var medias = data.medias.filter(function (m) { return !(opts.exclus && opts.exclus[m.id]); })
       .slice().sort(function (a, b) { return a.km - b.km; });
-    var cible = Math.max(6, Math.min(10, opts.nbImages || 10));
-    function etapeDe(km) { for (var i = data.etapes.length - 1; i >= 0; i--) if (km >= data.etapes[i].kmDebut - 1e-9) return i; return 0; }
-
-    // 1. les moments : des photos proches, d'une même étape
     var moments = [];
     medias.forEach(function (m) {
       var der = moments[moments.length - 1];
-      if (der && m.km - der.photos[der.photos.length - 1].km < FUSION_KM && etapeDe(m.km) === der.etape) der.photos.push(m);
-      else moments.push({ type: 'moment', etape: etapeDe(m.km), photos: [m] });
+      if (der && m.km - der.photos[der.photos.length - 1].km < FUSION_KM && etapeDe(data, m.km) === der.etape) der.photos.push(m);
+      else moments.push({ type: 'moment', etape: etapeDe(data, m.km), photos: [m] });
     });
-    // trop de moments pour la place : on réunit les deux plus proches, dans une même étape
-    while (moments.length + 2 > cible) {
+    /* trop de moments pour la place. Le souvenir les RÉUNIT (tout le voyage doit
+     * y être) ; la promotion ÉCARTE les plus faibles — fondre le départ du
+     * village dans un col de 2 500 m mettait un chalet sous le nom du col. */
+    if (ecarter) {
+      var E = O().eleAuKm, T = data.trace;
+      var poids = function (m) {
+        var alt = Math.max.apply(null, m.photos.map(function (p) { return E(data, p.km); }));
+        return Math.min(3, m.photos.length) + 2 * (alt - T.eleMin) / Math.max(1, T.eleMax - T.eleMin) + (m.photos.some(function (p) { return p.video; }) ? 0.5 : 0);
+      };
+      while (moments.length > place) {
+        var faible = 0;
+        moments.forEach(function (m, i) { if (poids(m) < poids(moments[faible])) faible = i; });
+        moments.splice(faible, 1);
+      }
+      return moments;
+    }
+    while (moments.length > place) {
       var best = -1, ecart = Infinity;
       for (var i = 0; i < moments.length - 1; i++) {
         if (moments[i].etape !== moments[i + 1].etape) continue;
@@ -54,6 +69,24 @@
       moments[best].photos = moments[best].photos.concat(moments[best + 1].photos);
       moments.splice(best + 1, 1);
     }
+    return moments;
+  }
+
+  // chaque moment : sa forme, ses photos (au plus `max`), son nom, sa clé
+  function preparerMoment(data, opts, s, max) {
+    s.a = s.photos[0].km; s.b = s.photos[s.photos.length - 1].km;
+    s.choix = choisir(s.photos, data, max);
+    s.forme = s.choix.length === 1 ? 'grande' : 'sequence';
+    s.cle = s.photos[0].id;   // la clé du moment : sa première photo
+    s.titre = (opts.titres && opts.titres[s.cle]) || nommer(data, s);
+    s.estime = s.choix.some(function (m) { return !m.ancre; });
+    return s;
+  }
+
+  /* ---------- composer le récit (le souvenir) ---------- */
+  function composer(data, opts) {
+    var cible = Math.max(6, Math.min(10, opts.nbImages || 10));
+    var moments = momentsDe(data, opts, cible - 2), i;
 
     // 2. les passages : les plus longs trous, tant qu'il reste de la place
     var trous = [];
@@ -68,20 +101,12 @@
     moments.forEach(function (mo, k) {
       suite.push(mo);
       retenus.filter(function (t) { return t.apres === k; }).forEach(function (t) {
-        suite.push({ type: 'passage', a: t.a, b: t.b, etape: etapeDe((t.a + t.b) / 2) });
+        suite.push({ type: 'passage', a: t.a, b: t.b, etape: etapeDe(data, (t.a + t.b) / 2) });
       });
     });
 
     // 3. chaque moment : sa forme, ses photos (trois au plus), son nom
-    suite.forEach(function (s) {
-      if (s.type !== 'moment') return;
-      s.a = s.photos[0].km; s.b = s.photos[s.photos.length - 1].km;
-      s.choix = choisir(s.photos, data);
-      s.forme = s.choix.length === 1 ? 'grande' : 'sequence';
-      s.cle = s.photos[0].id;   // la clé du moment : sa première photo
-      s.titre = (opts.titres && opts.titres[s.cle]) || nommer(data, s);
-      s.estime = s.choix.some(function (m) { return !m.ancre; });
-    });
+    suite.forEach(function (s) { if (s.type === 'moment') preparerMoment(data, opts, s, 3); });
 
     var images = [{ type: 'couverture' }].concat(suite, [{ type: 'bilan' }]);
     images.forEach(function (im, k) { im.n = k + 1; im.total = images.length; });
@@ -90,9 +115,17 @@
 
   /* trois photos au plus : la première, la dernière, et entre les deux celle
    * qui monte le plus haut — le début, la fin, le sommet du moment */
-  function choisir(photos, data) {
-    if (photos.length <= 3) return photos.slice();
+  function choisir(photos, data, max) {
+    max = max || 3;
+    if (photos.length <= max) return photos.slice();
     var alt = function (p) { return O().eleAuKm(data, p.km); };
+    if (max === 1) return [photos.reduce(function (m, p) { return alt(p) > alt(m) ? p : m; }, photos[0])];
+    // deux photos : la plus haute, et la plus éloignée d'elle — deux facettes, pas deux fois la même
+    if (max === 2) {
+      var haute = photos.reduce(function (m, p) { return alt(p) > alt(m) ? p : m; }, photos[0]);
+      var loin = photos.reduce(function (m, p) { return Math.abs(p.km - haute.km) > Math.abs(m.km - haute.km) ? p : m; }, photos[0]);
+      return [haute, loin].sort(function (x, y) { return x.km - y.km; });
+    }
     var mid = photos.slice(1, -1).reduce(function (m, p) { return alt(p) > alt(m) ? p : m; }, photos[1]);
     return [photos[0], mid, photos[photos.length - 1]];
   }
@@ -408,5 +441,7 @@
     ctx.restore();
   }
 
-  global.Recit = { composer: composer, dessiner: dessiner, W: W, H: H };
+  global.Recit = { composer: composer, dessiner: dessiner, W: W, H: H,
+    // ce que la promotion reprend (promo.js)
+    outils: { momentsDe: momentsDe, preparerMoment: preparerMoment, fond: fond, ecrire: ecrire } };
 })(this);

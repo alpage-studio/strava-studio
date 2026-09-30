@@ -61,13 +61,17 @@
     function scene(type, d, extra) { scenes.push(Object.assign({ type: type, t0: t, t1: t + d }, extra || {})); t += d; }
     scene('titre', T_TITRE);
     scene('boucle', T_BOUCLE);
+    /* en promotion : les moments s'enchaînent sans écran de compteur (« 44 km »
+     * demande de comprendre un compteur), et le Reel finit sur l'invitation,
+     * assez longtemps pour la lire */
+    var promo = opts.format === 'promo';
     var kmPrec = 0;
     moments.forEach(function (m) {
-      scene('passe', T_PASSE, { de: kmPrec, a: m.a });
-      scene('moment', T_MOMENT, { m: m });
+      if (!promo) scene('passe', T_PASSE, { de: kmPrec, a: m.a });
+      scene('moment', promo ? 4.2 : T_MOMENT, { m: m });
       kmPrec = m.b;
     });
-    scene('bilan', T_BILAN, { de: kmPrec });
+    if (promo) scene('invitation', 5.5); else scene('bilan', T_BILAN, { de: kmPrec });
     var duree = t;
 
     function sceneA(t) {
@@ -169,10 +173,14 @@
       ctx.beginPath(); ctx.arc(cad.ox + T.x[0] * cad.sc, cad.oy + T.y[0] * cad.sc, 16, 0, 7); ctx.fill(); ctx.stroke();
       // deux chiffres, qui arrivent l'un après l'autre
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-      [[O().fKm(data.total.km).replace(' km', ''), 'KILOMÈTRES', 0.3], ['+' + O().fM(data.total.dplus).replace(' m', ''), 'MÈTRES DE MONTÉE', 0.9]].forEach(function (c, j) {
+      // en promotion, la convention unique : « 158 km », « 5 545 m D+ »
+      var chiffres = opts.format === 'promo' && global.Promo
+        ? [[global.Promo.F.km(data.total.km), '', 0.3], [global.Promo.F.dplus(data.total.dplus), '', 0.9]]
+        : [[O().fKm(data.total.km).replace(' km', ''), 'KILOMÈTRES', 0.3], ['+' + O().fM(data.total.dplus).replace(' m', ''), 'MÈTRES DE MONTÉE', 0.9]];
+      chiffres.forEach(function (c, j) {
         var a = lisse(fondu(t, s.t0 + c[2], s.t0 + c[2] + 0.6));
         ctx.globalAlpha = a;
-        ctx.fillStyle = th.ink; ctx.font = '800 118px ' + O().SANS; ctx.fillText(c[0], 64 + j * 500, 1640 + (1 - a) * 30);
+        ctx.fillStyle = th.ink; ctx.font = '800 ' + (c[1] ? 118 : 92) + 'px ' + O().SANS; ctx.fillText(c[0], 64 + j * 500, 1640 + (1 - a) * 30);
         ctx.fillStyle = th.acc; ctx.font = '28px ' + O().MONO; ctx.fillText(c[1], 70 + j * 500, 1690 + (1 - a) * 30);
       });
       ctx.globalAlpha = 1;
@@ -221,7 +229,8 @@
       lignes.forEach(function (l, i) { ctx.fillText(l, 60, yT + i * 88); });
       var E = O().eleAuKm;
       ctx.font = '30px ' + O().MONO; ctx.fillStyle = 'rgba(255,255,255,.85)';
-      ctx.fillText(kmLu(m, m.a, m.b) + '  ·  ' + O().fM(E(data, ph.p.km)), 64, H - 290);
+      // en promotion : la position seule — l'altitude d'une photo n'est pas celle du lieu
+      ctx.fillText(opts.format === 'promo' && global.Promo ? global.Promo.F.position(m.a, m.b) : kmLu(m, m.a, m.b) + '  ·  ' + O().fM(E(data, ph.p.km)), 64, H - 290);
       var texte = opts.textes && opts.textes[m.cle];
       if (texte) { ctx.font = '400 34px ' + O().SANS; ctx.fillStyle = '#FFFFFF'; O().titreEnLignes(ctx, texte, 950).slice(0, 2).forEach(function (l, i) { ctx.fillText(l, 62, H - 230 + i * 44); }); }
       ctx.globalAlpha = 1;
@@ -273,6 +282,11 @@
       else if (s.type === 'boucle') boucle(ctx, s, t);
       else if (s.type === 'passe') passe(ctx, s, t);
       else if (s.type === 'moment') moment(ctx, s, t);
+      else if (s.type === 'invitation') {
+        var a = lisse(fondu(t, s.t0, s.t0 + 0.6));
+        global.Promo.invitation(ctx, data, images, th, opts, W, H, 'story');
+        if (a < 1) { ctx.fillStyle = 'rgba(12,12,10,' + (1 - a) + ')'; ctx.fillRect(0, 0, W, H); }
+      }
       else bilan(ctx, s, t);
       ctx.restore();
     }

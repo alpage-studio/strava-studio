@@ -439,8 +439,7 @@
       ctx.fillText(mots[0], cx, yCentre - 16 * k);
       ctx.fillText(mots.slice(1).join(' '), cx, yCentre + 17 * k);
     } else ctx.fillText(nom, cx, yCentre);
-    ctx.fillStyle = th.mut; ctx.textAlign = 'right'; ctx.font = Math.round(24 * k) + 'px ' + MONO;
-    ctx.fillText('by', cx - r - 14, yCentre);
+    // pas de « by » devant : la pastille signe seule
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
   }
 

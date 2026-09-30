@@ -97,6 +97,12 @@
   .h-bande.continu canvas { box-shadow: none; }
   .h-bande figcaption { position: absolute; top: 8px; left: 8px; font: 11px "IBM Plex Mono", monospace; background: rgba(37, 40, 32, .72); color: #fff; padding: 2px 7px; border-radius: 99px; }
   .h-bande.continu figcaption { display: none; }
+  .h-komoot { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; padding: 10px 18px; background: #F7F5EF; border-top: 1px solid #D8D5CC; font: 12px "IBM Plex Mono", monospace; color: #62665C; }
+  .h-komoot[hidden] { display: none; }
+  .h-komoot b { font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+  .h-komoot input[type=url], .h-komoot input[type=text], .h-komoot input[type=number] { font: 13px "Archivo", sans-serif; border: 1px solid #D8D5CC; border-radius: 5px; padding: 5px 7px; background: #fff; color: #252820; }
+  .h-komoot input[type=url] { width: 260px; }
+  .h-komoot label { display: flex; gap: 5px; align-items: center; }
   .h-moments { display: flex; gap: 10px; overflow-x: auto; padding: 12px 18px 4px; background: #F7F5EF; border-top: 1px solid #D8D5CC; }
   .h-moments:empty { display: none; }
   .h-moments .moment { flex: 0 0 250px; display: flex; flex-direction: column; gap: 5px; font: 11px "IBM Plex Mono", monospace; color: #62665C; }
@@ -149,7 +155,7 @@
     <h2>Horizon<small id="hNb"></small></h2>
     <input type="text" class="t-titre" id="hTitre" aria-label="Titre">
     <input type="text" class="t-sous" id="hSous" aria-label="Sous-titre">
-    <select id="hFormat" aria-label="Format"><option value="recit">Récit court · un moment par image</option><option value="panorama">Panorama continu</option></select>
+    <select id="hFormat" aria-label="Format"><option value="promo">Promotion · club et Komoot</option><option value="recit">Souvenir · récit complet</option><option value="panorama">Souvenir · panorama continu</option></select>
     <select id="hFondu" aria-label="Relief"><option value="halo">Relief : fondu en halo</option><option value="bords">Relief : bords fondus</option><option value="page">Relief : pleine page</option><option value="cadre">Relief : en cadre</option></select>
     <select id="hTheme" aria-label="Thème"><option value="papier">Papier</option><option value="nuit">Nuit</option><option value="club">Club · magenta</option><option value="cyano">Cyanotype</option></select>
     <select id="hCouv" aria-label="Couverture"><option value="coupe">Couverture : coupe &amp; plan</option><option value="carte">Couverture : carte &amp; chiffres</option><option value="paysage">Couverture : la carte devient montagne</option></select>
@@ -159,10 +165,20 @@
     <label class="bouton clair" style="padding:7px 12px"><input type="checkbox" id="hContinu" style="position:static;width:auto;height:auto;opacity:1;margin:0"> vue continue</label>
     <span class="espace"></span>
     <button class="bouton clair" id="hReel">▶ Reel</button>
+    <button class="bouton clair" id="hStory">Story + lien</button>
     <button class="bouton" id="hExport">Exporter les images</button>
     <button class="bouton clair" id="hFermer">Fermer</button>
   </div>
   <div class="h-bande" id="hBande"></div>
+  <div class="h-komoot" id="hKomoot">
+    <b>Komoot</b>
+    <input type="url" id="kTour" placeholder="Lien du parcours" aria-label="Lien du parcours sur Komoot">
+    <input type="url" id="kCollection" placeholder="Lien de la collection" aria-label="Lien de la collection">
+    <input type="text" id="kNom" placeholder="Nom de la collection" aria-label="Nom de la collection" style="width:170px">
+    <input type="number" id="kParcours" placeholder="nb" min="1" aria-label="Nombre de parcours dans la collection" style="width:70px">
+    <label><input type="checkbox" id="kDans"> le parcours est dans la collection</label>
+    <label><input type="checkbox" id="kBio" checked> « Liens en bio »</label>
+  </div>
   <div class="h-moments" id="hMoments"></div>
   <div class="h-photos" id="hPhotos"></div>
   <div class="h-reel" id="hReelBoite" hidden>
@@ -187,9 +203,10 @@
 <script src="src/zip.js"></script>
 <script src="src/carnet/horizon.js"></script>
 <script src="src/carnet/recit.js"></script>
+<script src="src/carnet/promo.js"></script>
 <script src="src/video.js"></script>
 <script src="src/carnet/reel.js"></script>
-<script src="src/carnet/mp4.js"></script>
+<script src="src/mp4.js"></script>
 <script src="src/carnet/montage.js"></script>
 <script src="src/carnet/page.js"></script>
 </body>

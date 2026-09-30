@@ -1,5 +1,9 @@
 /* mp4.js — un MP4 image par image, sans temps réel et sans bibliothèque.
  *
+ * SOCLE DE LA SUITE : le studio (src/app/exports.js) et le carnet de route
+ * (src/carnet/) s'en servent tous les deux. Il ne connaît ni l'un ni l'autre :
+ * il reçoit un canvas et une fonction qui le dessine à l'instant t.
+ *
  * L'export par MediaRecorder filme le canvas PENDANT qu'il s'anime : il
  * dépend donc de requestAnimationFrame, que le navigateur ralentit ou coupe
  * dès que l'onglet n'est plus au premier plan. Essayé dans un panneau en
@@ -87,8 +91,10 @@
       },
       error: function (e) { erreur = e; }
     });
-    // du plus exigeant au plus sûr : High, puis Main, puis Baseline, niveau 4.0 (1080 × 1920 à 30 i/s)
-    var codecs = ['avc1.640028', 'avc1.4d0028', 'avc1.420028'];
+    /* du plus exigeant au plus sûr : High, Main, Baseline — niveau 4.0 pour le
+     * 1080 × 1920, 5.1 pour les grands formats du studio. Au-delà, aucun ne
+     * convient et l'appelant se replie sur son autre méthode. */
+    var codecs = ['avc1.640028', 'avc1.4d0028', 'avc1.420028', 'avc1.640033', 'avc1.4d0033'];
     function essayer(i) {
       if (i >= codecs.length) return Promise.reject(new Error('Aucun encodage H.264 disponible pour ' + w + ' × ' + h + '.'));
       var conf = { codec: codecs[i], width: w, height: h, bitrate: opt.debit || 10e6, framerate: fps, avc: { format: 'avc' } };
