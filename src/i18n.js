@@ -404,6 +404,9 @@
     'Les plus longues en temps': 'The longest in time',
     'Monochrome — la forme dit le sport': 'Monochrome — shape tells the sport',
     'Une teinte par sport': 'One hue per sport',
+    'Cadran nu': 'Bare dial',
+    'sans les sorties nommées, les mesures au centre':
+      'no named rides, the measures stay in the middle',
     'Période (0 = la dernière)': 'Period (0 = the latest)',
     'Orbites de référence': 'Reference orbits',
     'Taille des symboles': 'Symbol size',

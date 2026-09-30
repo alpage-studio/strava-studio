@@ -1049,6 +1049,37 @@ function testsCoherence() {
          ' — soit le réglage ne fait rien, soit les deux rendus ont échoué pareil');
     }());
 
+    /* ---------- RIEN NE SE PUBLIE QUI NE SOIT AU CATALOGUE ----------
+     *
+     * LE DÉFAUT RÉEL : `apercus/` est un répertoire de TRAVAIL — les PNG n'y
+     * sont pas versionnés, et on y dépose librement des essais. Or
+     * `vignettes.py` convertissait TOUT ce qu'il y trouvait, et les WebP, eux,
+     * SONT versionnés. Cent quatre essais oubliés sont ainsi devenus deux cent
+     * huit fichiers prêts à partir dans un commit, pour quatre-vingt-seize
+     * mégaoctets. Un `git add -A` distrait suffisait.
+     *
+     * Le script filtre désormais sur le catalogue ; ce contrôle vérifie le
+     * résultat, parce qu'un filtre peut être contourné à la main et qu'un
+     * dépôt se juge sur ce qu'il contient, pas sur ce que l'outil promet. */
+    (function () {
+      const attendues = new Set(cles);
+      const enTrop = [];
+      [['v', 'vignettes'], ['p', 'planches']].forEach(function (d) {
+        const dir = path.join(dossier, d[0]);
+        if (!fs.existsSync(dir)) return;
+        fs.readdirSync(dir).forEach(function (f) {
+          if (!/[.]webp$/.test(f) || f === 'photo-demo.webp') return;
+          const k = f.replace(/[.]webp$/, '');
+          if (!attendues.has(k)) enTrop.push(d[0] + '/' + f);
+        });
+      });
+      ok('galerie · aucune image publiée hors catalogue',
+         enTrop.length === 0,
+         enTrop.length + ' fichier(s) : ' + enTrop.slice(0, 6).join(', ') +
+         (enTrop.length > 6 ? ' …' : '') +
+         ' — la galerie ne les montre nulle part et le dépôt les porte');
+    }());
+
     /* La page ne doit pointer que sur des fichiers PUBLIÉS. photo-demo.png
      * reste hors du dépôt : la page doit donc viser sa vignette, sinon le
      * fond des surcouches est un 404 une fois en ligne. */

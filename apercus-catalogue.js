@@ -211,6 +211,8 @@
       t: 'almanac', o: { orbite: 'deniv', taille: 'duree', remarquables: 'deniv' }, j: 'annee' },
     { f: 'Almanac', g: 'Exploration', n: 'Une teinte par sport', d: 'la forme reste première',
       t: 'almanac', o: { couleur: 'sport' }, j: 'annee' },
+    { f: 'Almanac', g: 'Exploration', n: 'Cadran nu', d: 'sans les sorties nommées, les mesures au centre',
+      t: 'almanac', o: { remarquables: 'aucune' }, j: 'annee' },
     { f: 'Almanac', g: 'Support', n: 'Année · paysage', d: 'mémoires en colonne',
       t: 'almanac', o: {}, j: 'annee', taille: [1920, 1080] },
     { f: 'Almanac', g: 'Support', n: 'Année · carré', d: 'mémoires en colonne',

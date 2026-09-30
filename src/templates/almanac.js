@@ -62,7 +62,15 @@ Studio.template({
     { nom: 'Gravity', dit: 'rayon et taille par dénivelé',
       o: { orbite: 'deniv', taille: 'duree', remarquables: 'deniv' } },
     { nom: 'Une teinte par sport', dit: 'la couleur dit le sport',
-      o: { couleur: 'sport' } }
+      o: { couleur: 'sport' } },
+    /* LE CADRAN SEUL. Les sorties nommées à la périphérie disent trois noms
+     * sur cent : sur une année chargée, elles prélèvent un quart de la feuille
+     * pour un échantillon qu'on n'a pas choisi. Les retirer laisse le cadran
+     * s'agrandir et garde les mesures du centre, qui parlent de TOUTE l'année.
+     * C'était déjà possible par le réglage « À la périphérie » ; c'est
+     * désormais un clic. */
+    { nom: 'Cadran nu', dit: 'sans les sorties nommées, les mesures au centre',
+      o: { remarquables: 'aucune' } }
   ],
 
   /* La transparence est une OPTION : la même planche s'exporte sur papier
