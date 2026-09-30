@@ -263,6 +263,32 @@ harnais ET l'acceptation soient verts.
   secondes. À éprouver à la main, et les fichiers le disent plutôt que de faire
   semblant.
 
+## Le carnet de route (prototype, hors du SHELL)
+
+`carnet.html` + `src/carnet/` : un voyage (GPX + photos en vrac) raconté en trois
+sorties — le récit web à faire défiler, un carrousel Instagram (récit court par
+moments, ou panorama « Horizon ») et un Reel. Il n'est ni dans `sw.js` ni lié
+depuis le studio : le changer ne demande pas de monter le numéro.
+
+- **Les frontières** : `composer.js` place les photos (GPS, sinon l'heure selon
+  l'allure du tracé, entre les calages) et ne dessine rien ; `lecteur.js` est
+  autonome, recopié tel quel dans le carnet exporté ; `horizon.js`, `recit.js`,
+  `montage.js` dessinent ; `mp4.js` encode.
+- **Chaque position a un statut** — `gps`, `confirmee`, `estimee` — et ce qui
+  est estimé ne s'affiche jamais au dixième (« ≈ km 18 »).
+- **Le relief réel** vient de `tools/relief.js` (swisstopo, une fois, hors de la
+  page) et le carnet ne touche jamais le réseau. L'outil refuse d'écrire si
+  l'altitude swisstopo s'écarte de celle du GPX.
+- **L'export vidéo passe par WebCodecs, image par image** : l'enregistrement en
+  temps réel (MediaRecorder) livrait une image en trois secondes dans un onglet
+  en arrière-plan. MediaRecorder ne reste qu'en repli.
+- **Les vraies données vivent dans `carnet-local/`**, ignoré : manifeste, GPX,
+  photos, relief, galerie locale. Rien de ce dossier ne se versionne — il montre
+  des personnes reconnaissables.
+- Un contrôle d'export vidéo a été trompé par le serveur de développement, qui ne
+  servait pas les requêtes partielles : Chrome n'avançait pas dans le MP4 et
+  montrait quatorze fois la première image. Il les sert désormais.
+
 ## Deux pièges d'environnement
 
 - Le rendu du navigateur ne se déclenche pas sans peinture : les images en

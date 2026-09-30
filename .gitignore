@@ -16,6 +16,8 @@ tools/banc-vtt/*.png
 # L'écart est invisible à l'écran, et les PNG restent sur le disque pour
 # juger un grain de près. Ce qui ne se publie pas :
 apercus/*.png
+# les vidéos d'essai du carnet : de vraies photos, des personnes reconnaissables
+apercus/*.mp4
 apercus/v1-reference/
 tools/sequence-test.zip
 *.zip
@@ -75,3 +77,6 @@ acceptation-run.js
 
 # essais de marque, le temps de les regarder
 logos-essai.html
+
+# Le carnet de route : photos et traces RÉELLES, le temps du prototype.
+carnet-local/

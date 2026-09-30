@@ -37,7 +37,7 @@ const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.gpx': 'application/gpx+xml',
   '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
+  '.webp': 'image/webp', '.mov': 'video/quicktime', '.mp4': 'video/mp4',
   '.json': 'application/json', '.txt': 'text/plain; charset=utf-8',
   '.woff2': 'font/woff2',
   '.webmanifest': 'application/manifest+json'
@@ -332,10 +332,22 @@ async function traite(req, res) {
 
   fs.readFile(file, (err, data) => {
     if (err) { res.writeHead(404); res.end('404'); return; }
-    res.writeHead(200, {
-      'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream',
-      'Cache-Control': 'no-store'
-    });
+    const type = TYPES[path.extname(file)] || 'application/octet-stream';
+    /* LES REQUÊTES PARTIELLES. Sans elles, Chrome lit une vidéo du début à la
+     * fin mais refuse d'y avancer : chaque saut retombe sur la première image.
+     * Un contrôle de l'export vidéo a été trompé exactement ainsi — quatorze
+     * images « identiques » d'un MP4 qui, lu en mémoire, était correct. */
+    const plage = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+    if (plage && (plage[1] || plage[2])) {
+      const debut = plage[1] ? +plage[1] : Math.max(0, data.length - +plage[2]);
+      const fin = plage[1] && plage[2] ? Math.min(+plage[2], data.length - 1) : data.length - 1;
+      if (debut > fin || debut >= data.length) { res.writeHead(416, { 'Content-Range': 'bytes */' + data.length }); res.end(); return; }
+      res.writeHead(206, { 'Content-Type': type, 'Cache-Control': 'no-store', 'Accept-Ranges': 'bytes',
+        'Content-Range': 'bytes ' + debut + '-' + fin + '/' + data.length, 'Content-Length': fin - debut + 1 });
+      res.end(data.subarray(debut, fin + 1));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-store', 'Accept-Ranges': 'bytes' });
     res.end(data);
   });
 }

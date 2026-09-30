@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Carnet de route — alpage studio</title>
+<!-- Même politique que le studio : rien d'un tiers ne peut se charger. Les
+     photos déposées arrivent en blob:, le carnet exporté en data:. -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' blob: data:;
+  media-src 'self' blob: data:;
+  font-src 'self';
+  connect-src 'self' blob:;
+  form-action 'none';
+  frame-src 'none';
+  object-src 'none';
+  base-uri 'self'">
+<link rel="icon" href="assets/icon-192.png">
+<style>
+  @font-face { font-family: "Archivo"; src: url("assets/archivo-latin.woff2") format("woff2");
+    font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; unicode-range: U+0000-00FF, U+0152-0153, U+2000-206F, U+2190-21FF; }
+  @font-face { font-family: "Archivo"; src: url("assets/archivo-latin-ext.woff2") format("woff2");
+    font-weight: 100 900; font-stretch: 62% 125%; font-display: swap; unicode-range: U+0100-024F, U+1E00-1EFF; }
+  @font-face { font-family: "IBM Plex Mono"; src: url("assets/plexmono-latin.woff2") format("woff2");
+    font-weight: 400; font-display: swap; unicode-range: U+0000-00FF, U+0152-0153, U+2000-206F, U+2190-21FF; }
+  @font-face { font-family: "IBM Plex Mono"; src: url("assets/plexmono-latin-ext.woff2") format("woff2");
+    font-weight: 400; font-display: swap; unicode-range: U+0100-024F, U+1E00-1EFF; }
+
+  /* un `display` posé plus bas l'emporterait sur l'attribut */
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: #F7F5EF; }
+  body { color: #252820; font: 16px/1.55 "Archivo", "Helvetica Neue", Arial, sans-serif; }
+
+  /* ---------- l'accueil : déposer ---------- */
+  .accueil { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
+  .depot { width: min(620px, 100%); border: 1.5px dashed #B9B5AA; border-radius: 14px; padding: 48px 36px;
+    text-align: left; transition: background .2s, border-color .2s; }
+  .depot.survol { background: #EEEAE1; border-color: #A54F37; }
+  .depot .sur { font: 12px "IBM Plex Mono", monospace; letter-spacing: .16em; text-transform: uppercase; color: #A54F37; }
+  .depot h1 { font: 800 clamp(36px, 6vw, 56px)/.95 "Archivo", sans-serif; font-stretch: 118%; letter-spacing: -.03em; margin: 12px 0 18px; }
+  .depot p { color: #62665C; margin: 0 0 12px; max-width: 46ch; }
+  .depot label.bouton { margin-top: 18px; }
+  .depot .etat { font: 13px "IBM Plex Mono", monospace; color: #62665C; margin-top: 16px; min-height: 1.4em; white-space: pre-line; }
+
+  .bouton { display: inline-flex; align-items: center; gap: 8px; border: 1px solid #252820; background: #252820; color: #FBF9F4;
+    font: 500 14px "Archivo", sans-serif; padding: 10px 16px; border-radius: 999px; cursor: pointer; }
+  .bouton.clair { background: #F7F5EF; color: #252820; }
+  .bouton[aria-pressed="true"] { background: #A54F37; border-color: #A54F37; color: #FBF9F4; }
+  .bouton:disabled { opacity: .5; cursor: progress; }
+  input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
+  /* ---------- la barre d'outils du carnet ---------- */
+  .outils { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 40; display: flex; gap: 8px;
+    flex-wrap: wrap; justify-content: flex-end; }
+  .outils .bouton { box-shadow: 0 2px 10px rgba(37, 40, 32, .18); }
+  @media (max-width: 700px) {
+    .outils { gap: 6px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); }
+    .outils .bouton { font-size: 12px; padding: 7px 11px; }
+  }
+  .note { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 41;
+    background: #252820; color: #FBF9F4; font: 13px "IBM Plex Mono", monospace; padding: 10px 14px; border-radius: 8px;
+    max-width: min(560px, calc(100vw - 32px)); opacity: 0; pointer-events: none; transition: opacity .3s; }
+  .note.vue { opacity: 1; }
+
+  /* ---------- le calage ---------- */
+  .calage { display: none; }
+  .cr-edition .calage { display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-items: center;
+    padding: 10px 12px; margin-top: 8px; background: #EEEAE1; border-radius: 8px; font: 12px "IBM Plex Mono", monospace; color: #62665C; }
+  .calage input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: #A54F37; }
+  .calage input[type=text] { grid-column: 1 / -1; font: 14px "Archivo", sans-serif; border: 1px solid #D8D5CC; border-radius: 6px;
+    padding: 6px 8px; background: #F7F5EF; color: #252820; }
+  .calage .statut { padding: 1px 7px; border-radius: 99px; }
+  .calage .statut.gps { background: #DDE7D6; color: #3D5A33; }
+  .calage .statut.confirmee { background: #F0DCD3; color: #A54F37; }
+  .calage .statut.estimee { background: #EFE3C8; color: #7A5A18; }
+  .calage button { font: 12px "IBM Plex Mono", monospace; border: 1px solid #B9B5AA; background: transparent; border-radius: 6px; padding: 3px 8px; cursor: pointer; color: #252820; }
+  .cr-edition .cr-fig .cr-cadre { cursor: default; }
+  .cr-edition .cr-fig.estime .cr-cadre { outline: 2px dashed #B9B5AA; outline-offset: -2px; }
+  .cr-edition .cr-fig.ancre .cr-cadre { outline: 2px solid #A54F37; outline-offset: -2px; }
+
+  /* ---------- Horizon : le carrousel ---------- */
+  .horizon { position: fixed; inset: 0; z-index: 60; background: #E9E5DB; display: flex; flex-direction: column; overflow: hidden; }
+  .h-tete { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; padding: 14px 18px; border-bottom: 1px solid #D8D5CC; background: #F7F5EF; }
+  .h-tete h2 { font: 800 22px "Archivo", sans-serif; font-stretch: 115%; margin: 0 8px 0 0; letter-spacing: -.01em; }
+  .h-tete h2 small { font: 12px "IBM Plex Mono", monospace; color: #A54F37; letter-spacing: .12em; margin-left: 8px; font-stretch: 100%; }
+  .h-tete input[type=text] { font: 14px "Archivo", sans-serif; border: 1px solid #D8D5CC; border-radius: 6px; padding: 7px 9px; background: #fff; color: #252820; min-width: 0; }
+  .h-tete .t-titre { width: 200px; } .h-tete .t-sous { flex: 1 1 240px; }
+  .h-tete select { font: 13px "IBM Plex Mono", monospace; padding: 6px 8px; border-radius: 6px; border: 1px solid #D8D5CC; background: #fff; }
+  .h-tete .espace { flex: 1 1 0; }
+  .h-bande { flex: 1 1 auto; overflow-x: auto; overflow-y: hidden; display: flex; align-items: center; gap: 10px; padding: 18px; scroll-snap-type: x mandatory; }
+  .h-bande.continu { gap: 0; }
+  .h-bande figure { margin: 0; flex: 0 0 auto; scroll-snap-align: start; position: relative; }
+  .h-bande canvas { display: block; height: min(62vh, 640px); width: auto; box-shadow: 0 4px 24px rgba(37, 40, 32, .16); }
+  .h-bande.continu canvas { box-shadow: none; }
+  .h-bande figcaption { position: absolute; top: 8px; left: 8px; font: 11px "IBM Plex Mono", monospace; background: rgba(37, 40, 32, .72); color: #fff; padding: 2px 7px; border-radius: 99px; }
+  .h-bande.continu figcaption { display: none; }
+  .h-moments { display: flex; gap: 10px; overflow-x: auto; padding: 12px 18px 4px; background: #F7F5EF; border-top: 1px solid #D8D5CC; }
+  .h-moments:empty { display: none; }
+  .h-moments .moment { flex: 0 0 250px; display: flex; flex-direction: column; gap: 5px; font: 11px "IBM Plex Mono", monospace; color: #62665C; }
+  .h-moments input, .h-moments textarea { font: 13px "Archivo", sans-serif; border: 1px solid #D8D5CC; border-radius: 5px; padding: 5px 7px; width: 100%; box-sizing: border-box; background: #fff; color: #252820; }
+  .h-moments textarea { resize: vertical; min-height: 44px; }
+  .h-moments .compte { text-align: right; }
+  .h-moments .compte.trop { color: #A3402C; }
+  .h-photos { display: flex; gap: 10px; overflow-x: auto; padding: 12px 18px 16px; background: #F7F5EF; border-top: 1px solid #D8D5CC; }
+  .h-photos label { flex: 0 0 150px; display: flex; flex-direction: column; gap: 5px; font: 11px "IBM Plex Mono", monospace; color: #62665C; }
+  .h-photos img { width: 150px; height: 100px; object-fit: cover; border-radius: 4px; }
+  .h-photos .off img { opacity: .3; filter: grayscale(1); }
+  .h-photos input[type=text] { font: 12px "Archivo", sans-serif; border: 1px solid #D8D5CC; border-radius: 5px; padding: 4px 6px; width: 100%; box-sizing: border-box; }
+  .h-reel { position: absolute; inset: 0; z-index: 5; background: rgba(20, 20, 16, .92); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; }
+  .h-reel canvas { height: min(80vh, 1920px); width: auto; max-width: 100%; aspect-ratio: 9 / 16; border-radius: 12px; box-shadow: 0 10px 40px rgba(0, 0, 0, .5); }
+  .h-reel-cmd { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; color: #EDEAE0; font: 13px "IBM Plex Mono", monospace; }
+  @media (max-width: 700px) { .h-tete .t-titre, .h-tete .t-sous { flex: 1 1 100%; width: auto; } .h-bande canvas { height: 52vh; } }
+</style>
+</head>
+<body>
+
+<div class="accueil" id="accueil">
+  <div class="depot" id="depot">
+    <div class="sur">alpage studio · carnet de route</div>
+    <h1>Un voyage, pas une sortie.</h1>
+    <p>Dépose le GPX du parcours — un tour Komoot exporté fait l’affaire — et, en vrac, les photos et les vidéos du voyage.</p>
+    <p>Chaque image se pose seule au kilomètre où elle a été prise : par sa position quand elle l’a gardée, par son heure sinon. Rien ne quitte ton ordinateur.</p>
+    <label class="bouton" for="fichiers">Choisir les fichiers</label>
+    <input type="file" id="fichiers" multiple accept=".gpx,image/jpeg,video/mp4,video/quicktime,.mov">
+    <div class="etat" id="etat"></div>
+  </div>
+</div>
+
+<div id="carnet"></div>
+
+<div class="outils" id="outils" hidden>
+  <button class="bouton clair" id="bCaler" aria-pressed="false">Caler les photos</button>
+  <button class="bouton clair" id="bHorizon">Instagram · Horizon</button>
+  <button class="bouton" id="bExport">Exporter le carnet</button>
+  <a class="bouton clair" id="bGalerie" href="carnet-local/galerie.html" hidden>Galerie</a>
+</div>
+
+<div class="horizon" id="horizon" hidden>
+  <div class="h-tete">
+    <h2>Horizon<small id="hNb"></small></h2>
+    <input type="text" class="t-titre" id="hTitre" aria-label="Titre">
+    <input type="text" class="t-sous" id="hSous" aria-label="Sous-titre">
+    <select id="hFormat" aria-label="Format"><option value="recit">Récit court · un moment par image</option><option value="panorama">Panorama continu</option></select>
+    <select id="hFondu" aria-label="Relief"><option value="halo">Relief : fondu en halo</option><option value="bords">Relief : bords fondus</option><option value="page">Relief : pleine page</option><option value="cadre">Relief : en cadre</option></select>
+    <select id="hTheme" aria-label="Thème"><option value="papier">Papier</option><option value="nuit">Nuit</option><option value="club">Club · magenta</option><option value="cyano">Cyanotype</option></select>
+    <select id="hCouv" aria-label="Couverture"><option value="coupe">Couverture : coupe &amp; plan</option><option value="carte">Couverture : carte &amp; chiffres</option><option value="paysage">Couverture : la carte devient montagne</option></select>
+    <label class="bouton clair" style="padding:7px 12px"><input type="checkbox" id="hMain" style="position:static;width:auto;height:auto;opacity:1;margin:0"> manuscrit</label>
+    <input type="text" id="hSigne" aria-label="Signature" placeholder="Signature (by …)" style="width:120px">
+    <label class="bouton clair" style="padding:7px 12px"><input type="checkbox" id="hNB" style="position:static;width:auto;height:auto;opacity:1;margin:0"> photos N&amp;B</label>
+    <label class="bouton clair" style="padding:7px 12px"><input type="checkbox" id="hContinu" style="position:static;width:auto;height:auto;opacity:1;margin:0"> vue continue</label>
+    <span class="espace"></span>
+    <button class="bouton clair" id="hReel">▶ Reel</button>
+    <button class="bouton" id="hExport">Exporter les images</button>
+    <button class="bouton clair" id="hFermer">Fermer</button>
+  </div>
+  <div class="h-bande" id="hBande"></div>
+  <div class="h-moments" id="hMoments"></div>
+  <div class="h-photos" id="hPhotos"></div>
+  <div class="h-reel" id="hReelBoite" hidden>
+    <canvas id="hReelCanvas" width="1080" height="1920"></canvas>
+    <div class="h-reel-cmd">
+      <select id="hReelMode" aria-label="Montage du Reel"><option value="montage">Montage : titre, boucle, 3 moments, bilan</option><option value="travelling">Travelling du panorama</option></select>
+      <span id="hReelInfo"></span>
+      <button class="bouton" id="hReelExport">Exporter le Reel</button>
+      <button class="bouton clair" id="hReelFermer">Fermer</button>
+    </div>
+  </div>
+</div>
+<div class="note" id="note"></div>
+
+<script src="src/activity.js"></script>
+<script src="src/carnet/exif.js"></script>
+<script src="src/carnet/composer.js"></script>
+<script src="src/carnet/lecteur.js"></script>
+<script src="src/zip.js"></script>
+<script src="src/carnet/horizon.js"></script>
+<script src="src/carnet/recit.js"></script>
+<script src="src/video.js"></script>
+<script src="src/carnet/reel.js"></script>
+<script src="src/carnet/mp4.js"></script>
+<script src="src/carnet/montage.js"></script>
+<script src="src/carnet/page.js"></script>
+</body>
+</html>
