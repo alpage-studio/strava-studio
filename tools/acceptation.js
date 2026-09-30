@@ -361,24 +361,55 @@
        ' ignorée(s), ' + appels + ' appel(s))',
        r2.ignorees === 2 && appels === 1 && r2.charges === 1);
 
-    /* 3. UN QUOTA ARRÊTE TOUT. Continuer, c'est cent refus de plus et un
-     *    message qui arrive cent fois trop tard. */
-    var apres = 0;
+    /* 3. UN REFUS DE RYTHME SE RETENTE, PUIS RENONCE.
+     *
+     * intervals.icu répond 429 au bout de quelques dizaines de requêtes
+     * rapprochées, et sa réponse 429 NE PORTE PAS d'en-tête CORS : le
+     * navigateur la bloque avant que le statut soit lisible, et l'appel lève
+     * « RESEAU ». Vingt-six refus se comptaient donc comme vingt-six sorties
+     * illisibles. Ici on vérifie les deux moitiés de la règle : le refus est
+     * retenté, et cinq abandons de suite arrêtent l'import.
+     *
+     * `dors` est neutralisé : on éprouve la logique d'attente, pas la
+     * patience du banc. */
+    var essais = 0;
     var r3 = await App.importePeriode({
-      jours: 365, front: 1,
+      jours: 365, front: 1, pause: 0, essais: 3,
+      dors: function () { return Promise.resolve(); },
       liste: function () {
         var l = [];
         for (var i = 20; i < 40; i++) l.push({ id: 'q' + i });
         return Promise.resolve(l);
       },
-      charge: function (id) {
-        apres++;
-        return Promise.reject(new Error(apres === 1 ? 'illisible' : 'QUOTA'));
+      charge: function () {
+        essais++;
+        return Promise.reject(new Error('RESEAU'));
       }
     });
-    ok('import · un quota arrête l’import, une sortie illisible non  (' +
-       apres + ' appel(s) pour 20 sorties)',
-       r3.arret === 'QUOTA' && r3.echoues === 1 && apres <= 3);
+    ok('import · un refus de rythme est retenté avant d’être compté  (' +
+       essais + ' appels pour 5 sorties abandonnées)',
+       essais === 15 && r3.refusees === 5,
+       'trois essais par sortie, cinq sorties avant de renoncer');
+    ok('import · cinq refus de suite arrêtent l’import  (' + r3.arret + ')',
+       r3.arret === 'RYTHME' && r3.echoues === 0,
+       'insister sur une limite de rythme ne fait que l’entretenir');
+
+    /* 3 bis. UNE SORTIE VRAIMENT ILLISIBLE N'ARRÊTE RIEN et ne se retente
+     *        pas : ce n'est pas le réseau qui a fléchi. */
+    var appelsIl = 0;
+    var r3b = await App.importePeriode({
+      jours: 7, front: 1, pause: 0,
+      dors: function () { return Promise.resolve(); },
+      liste: function () { return Promise.resolve([{ id: 'z1' }, { id: 'z2' }]); },
+      charge: function (id) {
+        appelsIl++;
+        if (String(id) === 'z1') return Promise.reject(new Error('illisible'));
+        return Promise.resolve(fausseSortie(77));
+      }
+    });
+    ok('import · une sortie illisible est comptée sans être retentée  (' +
+       appelsIl + ' appels pour 2 sorties)',
+       appelsIl === 2 && r3b.echoues === 1 && r3b.charges === 1 && !r3b.arret);
 
     /* 4. LE PLAFOND EST DIT. Une année peut compter des centaines de sorties ;
      *    en tronquer en silence ferait une affiche incomplète sans le dire. */
@@ -397,11 +428,15 @@
     /* 5. LE COMPTE RENDU DIT TOUT. Une ligne qui n'annoncerait que les
      *    chargements laisserait croire que la période n'en comptait pas plus. */
     App.ditImport({ etat: 'fini', charges: 3, ignorees: 2, echoues: 1,
-                    total: 6, tronquee: true, arret: 'QUOTA' });
+                    refusees: 4, total: 6, tronquee: true });
     var ligne = $('#icu-progres').textContent;
-    ok('import · le compte rendu dit ce qui est entré, ignoré, raté et arrêté  (' +
+    ok('import · le compte rendu dit ce qui est entré, ignoré, raté et refusé  (' +
        ligne + ')',
-       /3/.test(ligne) && /2/.test(ligne) && /1/.test(ligne) && /quota/i.test(ligne));
+       /3/.test(ligne) && /2/.test(ligne) && /1/.test(ligne) && /4/.test(ligne));
+    /* IL DIT QUOI FAIRE. « 26 refusées » laisse devant un mur ; l'import est
+     * repartable, et c'est le seul renseignement qui serve ici. */
+    ok('import · devant un refus de rythme, il dit que l’import se relance',
+       /reprend/.test(ligne), ligne);
     /* LE NOMBRE TROUVÉ EST ÉCRIT, ET EN TÊTE. Sans lui, une période qui ne rend
      * que cinq sorties oblige à additionner pour s'en apercevoir — et c'est
      * exactement le chiffre qu'on cherche quand on soupçonne un plafond. */

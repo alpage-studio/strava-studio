@@ -209,7 +209,40 @@
     var jours = opts.jours;
     var dit = opts.dit || function () {};
     var PLAFOND = opts.plafond || 400;
-    var FRONT = opts.front || 3;
+    /* ---------- LE RYTHME ----------
+     *
+     * TROIS DE FRONT, C'ÉTAIT TROP. intervals.icu répond 429 au bout de
+     * quelques dizaines de requêtes rapprochées, et — c'est le piège — sa
+     * réponse 429 NE PORTE PAS D'EN-TÊTE CORS. Le navigateur la bloque donc
+     * avant que le code puisse lire le statut : l'appel lève « RESEAU », la
+     * règle « un quota arrête tout » ne se déclenche jamais, et vingt-six
+     * refus se comptent comme vingt-six sorties illisibles.
+     *
+     * On ne peut pas lire ce statut depuis un navigateur. On peut, en
+     * revanche, ne pas provoquer la limite : une requête à la fois, espacées,
+     * et une nouvelle tentative après une pause qui double. */
+    var FRONT = opts.front || 1;
+    var PAUSE = opts.pause == null ? 180 : opts.pause;
+    var ESSAIS = opts.essais || 4;
+    var dors = opts.dors || function (ms) {
+      return new Promise(function (r) { setTimeout(r, ms); });
+    };
+
+    /* Un refus de rythme n'est pas une sortie illisible : il se retente.
+     * Une sortie vraiment illisible échoue quatre fois de la même façon et
+     * finit par être comptée comme telle. */
+    async function avecPatience(fn) {
+      var attente = 1200;
+      for (var n = 0; n < ESSAIS; n++) {
+        try { return await fn(); }
+        catch (e) {
+          var recuperable = e && (e.message === 'RESEAU' || e.message === 'QUOTA');
+          if (!recuperable || n === ESSAIS - 1) throw e;
+          await dors(attente);
+          attente *= 2;
+        }
+      }
+    }
 
     var trouvees;
     try {
@@ -241,27 +274,37 @@
       return { charges: 0, ignorees: ignorees, total: trouvees.length, arret: null };
     }
 
-    var faits = 0, echoues = 0, arret = null, i = 0;
+    var faits = 0, echoues = 0, refusees = 0, dSuite = 0, arret = null, i = 0;
     dit({ etat: 'debut', total: aFaire.length, ignorees: ignorees, tronquee: tronquee });
 
     async function ouvrier() {
       while (i < aFaire.length && !arret) {
         var a = aFaire[i++];
         try {
-          var j = await charge(a.id);
+          var j = await avecPatience(function () { return charge(a.id); });
           Library.add(Activity.fromIntervals(j.detail, j.streams));
           faits++;
+          dSuite = 0;
         } catch (e) {
-          /* UN QUOTA ARRÊTE TOUT, une sortie illisible non. Continuer après
-           * un quota atteint, c'est cent requêtes refusées de plus et un
-           * message qui arrive cent fois trop tard. */
-          if (e && (e.message === 'QUOTA' || e.message === 'CLE_REFUSEE')) {
+          /* UNE CLÉ REFUSÉE ARRÊTE TOUT : rien de ce qui suit ne passera.
+           * Un refus de rythme, lui, a déjà été retenté quatre fois ; on le
+           * compte à part et on continue, mais s'ils s'enchaînent c'est que
+           * la limite est franchement atteinte et insister ne fait que
+           * l'entretenir. */
+          if (e && e.message === 'CLE_REFUSEE') {
             arret = e.message;
+          } else if (e && (e.message === 'RESEAU' || e.message === 'QUOTA')) {
+            refusees++;
+            dSuite++;
+            if (dSuite >= 5) arret = 'RYTHME';
           } else {
             echoues++;
+            dSuite = 0;
           }
         }
-        dit({ etat: 'avance', faits: faits, echoues: echoues, total: aFaire.length });
+        dit({ etat: 'avance', faits: faits, echoues: echoues + refusees,
+              total: aFaire.length });
+        if (PAUSE && i < aFaire.length && !arret) await dors(PAUSE);
       }
     }
 
@@ -269,10 +312,11 @@
     for (var k = 0; k < Math.min(FRONT, aFaire.length); k++) ouvriers.push(ouvrier());
     await Promise.all(ouvriers);
 
-    dit({ etat: 'fini', charges: faits, echoues: echoues, ignorees: ignorees,
-          total: trouvees.length, tronquee: tronquee, arret: arret });
-    return { charges: faits, echoues: echoues, ignorees: ignorees,
-             total: trouvees.length, arret: arret };
+    dit({ etat: 'fini', charges: faits, echoues: echoues, refusees: refusees,
+          ignorees: ignorees, total: trouvees.length, tronquee: tronquee,
+          arret: arret, reste: aFaire.length - faits - echoues - refusees });
+    return { charges: faits, echoues: echoues, refusees: refusees,
+             ignorees: ignorees, total: trouvees.length, arret: arret };
   }
   A.importePeriode = importePeriode;
 
@@ -303,10 +347,19 @@
     bouts.push(e.charges + ' ' + T(e.charges > 1 ? 'chargées' : 'chargée'));
     if (e.ignorees) bouts.push(e.ignorees + ' ' + T('déjà présentes'));
     if (e.echoues) bouts.push(e.echoues + ' ' + T('illisibles'));
+    if (e.refusees) bouts.push(e.refusees + ' ' + T('refusées'));
     if (e.tronquee) bouts.push(T('période tronquée'));
-    if (e.arret === 'QUOTA') bouts.push(T('arrêté : quota atteint'));
     if (e.arret === 'CLE_REFUSEE') bouts.push(T('arrêté : clé refusée'));
     n.textContent = bouts.join(' · ');
+    /* CE QU'IL FAUT FAIRE, PAS SEULEMENT CE QUI S'EST PASSÉ.
+     *
+     * « 26 refusées » laisse devant un mur. L'import est repartable — ce qui
+     * est déjà là n'est pas retéléchargé — et c'est le seul renseignement qui
+     * serve vraiment ici. */
+    if (e.refusees || e.arret === 'RYTHME') {
+      n.textContent += '. ' +
+        T('intervals.icu limite le rythme. Relance l’import : il reprend où il s’est arrêté.');
+    }
   }
   A.ditImport = ditImport;
 

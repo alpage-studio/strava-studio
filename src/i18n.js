@@ -48,8 +48,10 @@
     'chargées': 'loaded',
     'déjà présentes': 'already there',
     'illisibles': 'unreadable',
+    'refusées': 'refused',
+    'intervals.icu limite le rythme. Relance l’import : il reprend où il s’est arrêté.':
+      'intervals.icu is rate limiting. Run the import again: it resumes where it stopped.',
     'période tronquée': 'period truncated',
-    'arrêté : quota atteint': 'stopped: quota reached',
     'arrêté : clé refusée': 'stopped: key refused',
     'Un mois précis': 'A given month',
     'Une année précise': 'A given year',

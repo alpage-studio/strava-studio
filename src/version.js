@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.15.2';
+var STUDIO_VERSION = '3.15.3';
 var STUDIO_DATE = '30.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,11 @@ var STUDIO_DATE = '30.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.15.3', d: '30.09.2026', points: [
+    'L’import allait trop vite. intervals.icu répond 429 au bout de quelques dizaines de requêtes rapprochées — et sa réponse 429 ne porte pas d’en-tête CORS, donc le navigateur la bloque AVANT que le statut soit lisible. Vingt-six refus de rythme se comptaient comme vingt-six sorties illisibles.',
+    'Une requête à la fois, espacées, et une nouvelle tentative après une pause qui double. Cinq abandons de suite arrêtent l’import : insister sur une limite de rythme ne fait que l’entretenir.',
+    'Un refus et une sortie illisible ne se comptent plus ensemble, et le compte rendu dit quoi faire : « intervals.icu limite le rythme. Relance l’import : il reprend où il s’est arrêté. » Ce qui est déjà chargé n’est jamais retéléchargé.'
+  ] },
   { v: '3.15.2', d: '30.09.2026', points: [
     'L’import d’une période rendait CINQ sorties, quelle que soit la fenêtre. La cause n’était ni intervals.icu ni ton compte : l’API en rendait 471 sur l’année. C’était une ligne à moi — `limit = limit || 5`, restée en place quand la fenêtre a été ajoutée. L’import demandait « zéro » pour dire « pas de plafond », et cette ligne le changeait en cinq avant le garde-fou censé l’en empêcher.',
     'Le menu déroulant garde ses cinq dernières, l’import prend toute la fenêtre : les deux besoins partagent une fonction, et le plafond se calcule maintenant une seule fois en disant lequel on sert.',
