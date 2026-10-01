@@ -1080,6 +1080,54 @@ function testsCoherence() {
          ' — la galerie ne les montre nulle part et le dépôt les porte');
     }());
 
+    /* ---------- LA GALERIE CHARGE CE QU'ELLE NOMME ----------
+     *
+     * LE DÉFAUT RÉEL : la page ne chargeait que SIX fichiers de template pour
+     * un catalogue qui en référence douze. Elle tire le nom d'une famille du
+     * template (« le catalogue écrit Encre, l'outil affiche Ink ») — mais
+     * `Studio.get` rend la PREMIÈRE planche enregistrée pour un identifiant
+     * inconnu. Les six familles absentes prenaient donc toutes le nom de la
+     * première : sept sections intitulées « Encre ».
+     *
+     * Le repli de `get` est voulu — un réglage sauvegardé qui désigne une
+     * planche disparue ne doit pas casser l'outil — mais il MENT à qui ne l'a
+     * pas prévu. Le rempart sûr est en amont : que rien ne manque.
+     *
+     * Les relecteurs n'en avaient vu que cinq. Il y en avait sept au moment de
+     * la correction : une classe non gardée grandit. */
+    (function () {
+      const gal = path.join(dossier, 'index.html');
+      if (!fs.existsSync(gal)) { saute('galerie · templates', 'page absente'); return; }
+      const page = fs.readFileSync(gal, 'utf8');
+      const charges = (page.match(/templates\/([a-z0-9-]+)\.js/g) || [])
+        .map(function (m) { return m.replace(/.*templates\//, '').replace(/[.]js$/, ''); });
+      const voulus = Array.from(new Set(A.CATALOGUE.map(function (e) { return e.t; })));
+      const absents = voulus.filter(function (t) { return charges.indexOf(t) < 0; });
+      ok('galerie · elle charge tous les templates qu’elle montre  (' +
+         charges.length + ' pour ' + voulus.length + ' référencés)',
+         absents.length === 0,
+         'absents : ' + absents.join(', ') +
+         ' — leurs familles prendraient le nom de la première planche chargée');
+
+      /* ET LE SYMPTÔME, PAS SEULEMENT LA CAUSE. Deux familles qui s'affichent
+       * sous le même nom sont indistinguables, quelle qu'en soit la raison. */
+      const parNom = {};
+      voulus.forEach(function (t) {
+        const e = A.CATALOGUE.filter(function (x) { return x.t === t; })[0];
+        /* Le nom se lit dans le FICHIER du template : ce contrôle est
+         * statique, il n'a pas de studio sous la main et n'en a pas besoin. */
+        const src = path.join(ROOT, 'src', 'templates', t + '.js');
+        const m = fs.existsSync(src)
+          ? /name:\s*'((?:[^'\\]|\\.)*)'/.exec(fs.readFileSync(src, 'utf8')) : null;
+        const nom = m ? m[1].split(' —')[0] : e.f;
+        (parNom[nom] = parNom[nom] || []).push(e.f);
+      });
+      const collisions = Object.keys(parNom).filter(function (n) { return parNom[n].length > 1; });
+      ok('galerie · deux familles ne portent pas le même nom',
+         collisions.length === 0,
+         collisions.map(function (n) { return n + ' = ' + parNom[n].join(' + '); }).join(' | '));
+    }());
+
     /* La page ne doit pointer que sur des fichiers PUBLIÉS. photo-demo.png
      * reste hors du dépôt : la page doit donc viser sa vignette, sinon le
      * fond des surcouches est un 404 une fois en ligne. */

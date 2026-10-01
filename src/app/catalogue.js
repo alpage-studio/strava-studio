@@ -159,7 +159,28 @@
      * Studio.render attrape déjà toute exception et peint une carte d'erreur :
      * pas de try/catch ici, il ne pourrait rien attraper. */
     poseEtatGlobal();
-    Studio.render(cv, tplId, modele(), resolvedOptions(tplId, valeurs), [L, H2]);
+    /* ---------- UNE VIGNETTE NE PORTE PAS DE LÉGENDE ----------
+     *
+     * LE DÉFAUT, MESURÉ : la vignette est rendue en 300 pixels de large et
+     * affichée en 144. Le texte d'une planche est proportionnel à sa
+     * largeur, donc la légende tombe à 2,3 pixels à l'écran et le titre à
+     * 4,6. Ce n'est plus de l'information, c'est du bruit — et un bruit
+     * qui coûte une mise en page complète par carte.
+     *
+     * CE QUE ÇA COÛTE, ET POURQUOI C'EST LE BON PRIX. Le principe de cette
+     * grille est que la carte montre ce qu'elle produira ; retirer le
+     * texte s'en écarte. Mais une légende de deux pixels ne montre PAS ce
+     * qu'elle produira : elle montre une tache. Et le nom de la planche
+     * est déjà sous la carte, en vrai texte, lisible.
+     *
+     * VÉRIFIÉ AVANT DE LE FAIRE : aucune des trente-sept planches ne
+     * s'effondre sans son texte. La plus touchée, Sous-bois, passe de
+     * 1,89 % à 1,01 % d'encre ; aucune ne descend sous 0,4 %. Les planches
+     * dont le texte EST la composition — Mots, Chiffres, Éditorial — ne
+     * perdent rien : leurs mots ne sont pas des « mentions ». */
+    var pourLaCarte = resolvedOptions(tplId, valeurs);
+    pourLaCarte.mentions = 'aucun';
+    Studio.render(cv, tplId, modele(), pourLaCarte, [L, H2]);
   }
 
   /* La sortie sur laquelle les vignettes se rendent : la tienne, ou l'exemple

@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17';
+var STUDIO_VERSION = '3.17.1';
 var STUDIO_DATE = '30.09.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,11 @@ var STUDIO_DATE = '30.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.1', d: '01.10.2026', points: [
+    'Trois constats de relecteurs, restés ouverts. « Recentrer » remettait aussi l’échelle à 100 : on réglait sa taille, on recentrait, et on perdait son réglage sans l’avoir demandé. L’échelle a son propre curseur juste à côté.',
+    'Dans la galerie, sept familles s’affichaient toutes sous le nom « Encre ». La page ne chargeait que six fichiers de planche pour douze référencés, et le moteur rend la PREMIÈRE planche quand on lui demande un identifiant inconnu — un repli qui ne dit pas son nom. Les relecteurs en avaient vu cinq ; il y en avait sept.',
+    'Les vignettes du catalogue ne portent plus de légende. Rendues en 300 pixels de large et affichées en 144, leur texte tombait à 2,3 pixels à l’écran : une tache, pas une information — et le nom de la planche est déjà sous la carte, en vrai texte.'
+  ] },
   { v: '3.17', d: '30.09.2026', points: [
     'LA VIDÉO S’ENCODE IMAGE PAR IMAGE. Elle était filmée pendant que la planche s’animait à l’écran : si l’onglet passait en arrière-plan ou si la machine ralentissait, l’enregistrement se figeait ou saccadait — essayé dans un onglet caché, il a livré une seule image en trois secondes. Chaque image est maintenant dessinée puis encodée à son instant exact : la vidéo est la même sur un ordinateur lent et sur un rapide, onglet visible ou non.',
     'C’est un MP4 H.264 à 30 images par seconde, rangé sans bibliothèque, l’index en tête pour qu’Instagram le lise dès le début. L’encodage va plus vite que la vidéo elle-même.',

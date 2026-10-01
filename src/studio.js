@@ -73,9 +73,26 @@
       }
     };
   }
+  /* ATTENTION : `get` NE REND JAMAIS RIEN DE VIDE.
+   *
+   * Un identifiant inconnu rend la PREMIÈRE planche enregistrée. C'est voulu
+   * — un réglage sauvegardé qui désigne une planche disparue ne doit pas
+   * casser l'outil — mais c'est un repli qui MENT : « je ne connais pas cette
+   * planche » devient « en voici une autre ».
+   *
+   * La galerie s'y est fait prendre : elle ne chargeait que six fichiers de
+   * template pour un catalogue qui en référence douze, et sept familles
+   * s'affichaient toutes sous le nom de la première, « Encre ».
+   *
+   * Qui a besoin de savoir demande `connait()` AVANT. */
   function get(id) {
     for (var i = 0; i < registry.length; i++) if (registry[i].id === id) return registry[i];
     return registry[0];
+  }
+
+  function connait(id) {
+    for (var i = 0; i < registry.length; i++) if (registry[i].id === id) return true;
+    return false;
   }
 
   /* ---------- le support, réglage GLOBAL ----------
@@ -886,7 +903,7 @@
   }
 
   global.Studio = {
-    template: template, all: all, get: get, chrono: chrono,
+    template: template, all: all, get: get, connait: connait, chrono: chrono,
     estTransparent: estTransparent,
     render: render, exportPNG: exportPNG, posePhys: posePhys, setPhoto: setPhoto, setMinimal: setMinimal,
     setLibrary: setLibrary, setHistorique: setHistorique,

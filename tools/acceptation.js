@@ -248,6 +248,73 @@
   $('#support').dispatchEvent(new Event('change'));
   await attends(400);
 
+  /* ---------- UN BOUTON FAIT CE QU'IL DIT ----------
+   *
+   * LE DÉFAUT : « Recentrer » remettait aussi l'échelle à 100. On réglait sa
+   * taille, on recentrait, et on perdait son réglage sans l'avoir demandé.
+   * L'échelle a son propre curseur juste à côté : la ramener à 100 était déjà
+   * un geste direct, qui n'avait pas à être caché dans un autre. */
+  if ($('#recentrer') && $('#echelle')) {
+    var supportAvant = $('#support').value;
+    $('#support').value = 'surcouche';
+    $('#support').dispatchEvent(new Event('change'));
+    await attends(400);
+
+    $('#echelle').value = 160;
+    $('#echelle').dispatchEvent(new Event('input'));
+    App.etat.placement.x = 0.2;
+    App.etat.placement.y = -0.15;
+    await attends(300);
+
+    $('#recentrer').click();
+    await attends(400);
+
+    ok('placement · recentrer ramène bien la planche au centre  (' +
+       App.etat.placement.x + ', ' + App.etat.placement.y + ')',
+       App.etat.placement.x === 0 && App.etat.placement.y === 0);
+    ok('placement · recentrer ne touche PAS à l’échelle  (' + $('#echelle').value + ')',
+       String($('#echelle').value) === '160',
+       'le bouton dit une chose et en faisait deux');
+
+    $('#echelle').value = 100;
+    $('#echelle').dispatchEvent(new Event('input'));
+    $('#support').value = supportAvant;
+    $('#support').dispatchEvent(new Event('change'));
+    await attends(300);
+  }
+
+  /* ---------- UNE VIGNETTE NE PORTE PAS DE LÉGENDE ----------
+   *
+   * LE DÉFAUT, MESURÉ : la vignette est rendue en 300 pixels de large et
+   * affichée en 144. Le texte d'une planche étant proportionnel à sa largeur,
+   * la légende tombait à 2,3 pixels à l'écran — une tache, pas une
+   * information.
+   *
+   * CE CONTRÔLE NE DEMANDE PAS L'ABSENCE DE TOUT TEXTE. Cinq planches SONT du
+   * texte : Métro, Saisons et ov-heros tombent à zéro pour cent d'encre si on
+   * le supprime. Il vérifie que la vignette reçoit bien le réglage « sans
+   * texte », ce qui silence les légendes des dix planches qui le lisent. */
+  if (App.construitChoixStyle) {
+    var vuMentions = [];
+    var vraiRender = Studio.render;
+    Studio.render = function (cv, id, a, o, taille) {
+      if (taille && taille[0] <= 400) vuMentions.push(o && o.mentions);
+      return vraiRender.apply(this, arguments);
+    };
+    try {
+      App.construitChoixStyle();
+      await attends(900);
+    } finally {
+      Studio.render = vraiRender;
+    }
+    ok('catalogue · les vignettes ont été rendues  (' + vuMentions.length + ')',
+       vuMentions.length >= 4,
+       'à zéro vignette, le cas suivant serait vert sans rien avoir regardé');
+    ok('catalogue · une vignette est rendue sans ses mentions',
+       vuMentions.length > 0 && vuMentions.every(function (m) { return m === 'aucun'; }),
+       'vu : ' + Array.from(new Set(vuMentions)).join(', '));
+  }
+
   /* ---------- UN PNG D'IMPRESSION DIT SA RÉSOLUTION ----------
    *
    * LE DÉFAUT RÉEL : A4 et A3 sont CALCULÉS à 300 points par pouce — 2480×3508

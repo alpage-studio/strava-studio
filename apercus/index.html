@@ -289,6 +289,17 @@
 <script src="../src/templates/atlas.js"></script>
 <script src="../src/templates/medaillon.js"></script>
 <script src="../src/templates/almanac.js"></script>
+<!-- LE CATALOGUE DECIDE CE QU'IL FAUT CHARGER. Six fichiers pour douze
+     planches referencees : les six absentes prenaient le nom de la
+     premiere, parce que `Studio.get` rend `registry[0]` pour un
+     identifiant inconnu. Un controle du harnais refuse desormais qu'un
+     template du catalogue manque ici. -->
+<script src="../src/templates/gravure.js"></script>
+<script src="../src/templates/gravure-puissance.js"></script>
+<script src="../src/templates/sous-bois.js"></script>
+<script src="../src/templates/versants.js"></script>
+<script src="../src/templates/trame.js"></script>
+<script src="../src/templates/partition.js"></script>
 <script src="../apercus-catalogue.js"></script>
 <script>
 var C = window.Apercus.CATALOGUE;
@@ -359,7 +370,12 @@ function chemin(e) {
  * Deux mots pour une planche, c'est exactement ce qu'une copie produit. */
 function nomFamille(f) {
   var e = C.filter(function (x) { return x.f === f; })[0];
-  var tpl = e && window.Studio && window.Studio.get(e.t);
+  /* `Studio.get` rend la PREMIÈRE planche pour un identifiant inconnu :
+   * sans ce `connait`, sept familles s'affichaient toutes « Encre ». Le nom
+   * du catalogue est alors le bon repli — c'est à cela qu'il sert. */
+  var connu = e && window.Studio && window.Studio.connait &&
+              window.Studio.connait(e.t);
+  var tpl = connu ? window.Studio.get(e.t) : null;
   return tpl ? T(tpl.name).split(' —')[0] : T(f);
 }
 

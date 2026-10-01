@@ -444,10 +444,17 @@
     $('#echelle').addEventListener('input', function () { draw(); });
     $('#echelle').addEventListener('change', function () { save(); });
   }
+  /* RECENTRER RECENTRE, ET RIEN D'AUTRE.
+   *
+   * Le bouton remettait aussi l'échelle à 100 : on réglait sa taille, on
+   * recentrait, et on perdait son réglage sans l'avoir demandé. Un bouton qui
+   * dit une chose et en fait deux apprend à ne plus s'y fier.
+   *
+   * L'échelle a son propre curseur, juste à côté : la ramener à 100 est déjà
+   * un geste direct, qui n'a pas besoin d'être caché dans un autre. */
   if ($('#recentrer')) {
     $('#recentrer').addEventListener('click', function () {
       E.placement.x = 0; E.placement.y = 0;
-      if ($('#echelle')) $('#echelle').value = 100;
       draw();
       save();
     });
