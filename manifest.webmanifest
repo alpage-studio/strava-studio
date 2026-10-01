@@ -7,7 +7,7 @@
   "display": "standalone",
   "background_color": "#F2EFE6",
   "theme_color": "#F7F5EF",
-  "lang": "en",
+  "lang": "fr",
   "icons": [
     { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },

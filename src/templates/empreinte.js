@@ -35,6 +35,12 @@ Studio.template({
   /* La transparence est une OPTION : la même planche s'exporte sur papier
    * ou en surcouche à poser sur une photo. */
   transparent: function (o) { return o.fond === 'transparent'; },
+  /* Multi-sorties dans TROIS compositions seulement. Sceau, Soleil,
+   * Contre-empreinte et Sceau cercle ne dessinent que la sortie chargee :
+   * leur ouvrir le selecteur de periode serait un reglage sans effet. */
+  multi: function (o) {
+    return ['triptyque', 'collection', 'ilots'].indexOf(o.composition) >= 0;
+  },
 
   options: [
     { key: 'composition', type: 'select', label: 'Composition', default: 'sceau', reflow: true,

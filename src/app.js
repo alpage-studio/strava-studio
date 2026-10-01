@@ -101,8 +101,10 @@
    * pas une erreur — mais elle doit être ANNONCÉE, sinon elle ressemble à
    * une panne. */
   function majPeriode() {
-    var tpl = Studio.get($('#tpl').value);
-    var multi = !!(tpl && tpl.multi);
+    /* `estMulti` et non `tpl.multi` : Empreinte declare sa portee comme une
+     * FONCTION de ses options, et une fonction est vraie. */
+    var idTpl = $('#tpl').value;
+    var multi = Studio.estMulti(idTpl, resolvedOptions(idTpl));
     var bloc = $('#opt-periode'), note = $('#periode-state');
     if (!bloc) return;
     bloc.hidden = !multi;
@@ -599,6 +601,13 @@
           : (def.type === 'range') ? parseFloat(input.value)
           : input.value;
         changement();
+        /* Une planche peut être multi-sorties dans certaines compositions
+         * seulement — Empreinte l'est en Triptyque, Collection et Îlots. Le
+         * bloc de période ne se rafraîchissait qu'au changement de PLANCHE :
+         * on passait de Sceau à Collection et le sélecteur restait caché,
+         * puis il apparaîssait au réglage suivant. Il était en retard d'un cran.
+         * Seules les planches à portée dynamique paient ce rappel. */
+        if (tpl && tpl.multiDynamique) majPeriode();
       });
 
       /* Certains réglages décident si d'AUTRES réglages servent encore —

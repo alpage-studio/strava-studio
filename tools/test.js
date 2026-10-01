@@ -1958,6 +1958,84 @@ function testsReglageTexte() {
      offreSansLire.join(', '));
 }
 
+/* ========== 2 duodecies. UNE DECLARATION DYNAMIQUE SE LIT PAR SON RESOLVEUR ==
+ *
+ * `transparent` et `multi` peuvent être déclarés comme des FONCTIONS des
+ * options : une planche est transparente selon son fond, multi-sorties selon
+ * sa composition. Une fonction est VRAIE. Qui lit la propriété en direct
+ * reçoit donc `true` quelles que soient les options — sans erreur, et sans
+ * rien à voir.
+ *
+ * CE QUE ÇA A DÉJÀ COÛTÉ, DEUX FOIS.
+ *   `transparent` : trois endroits lisaient la propriété nue et croyaient les
+ *   six planches Alpage toujours transparentes. D'où `estTransparent`.
+ *
+ *   `multi` : la leçon ne s'est pas propagée. Empreinte lit la bibliothèque
+ *   dans ses compositions Triptyque, Collection et Îlots, mais ne déclarait
+ *   rien — le sélecteur de période ne s'ouvrait jamais pour elle. La déclarer
+ *   `true` aurait ouvert ce sélecteur sur un Sceau mono-sortie ET fait refuser
+ *   son export quand la période ne retient rien.
+ *
+ * Deux fois le même piège valent une garde, pas un troisième commentaire. */
+
+function testsPorteeDynamique() {
+  titre('2 duodecies. UNE DÉCLARATION DYNAMIQUE SE LIT PAR SON RÉSOLVEUR');
+
+  const racine = path.join(ROOT, 'src');
+  const fichiers = [];
+  (function balaye(d) {
+    fs.readdirSync(d, { withFileTypes: true }).forEach(function (e) {
+      const p = path.join(d, e.name);
+      if (e.isDirectory()) balaye(p);
+      else if (/[.]js$/.test(e.name)) fichiers.push(p);
+    });
+  }(racine));
+
+  /* On vise le RECEVEUR, pas le nom. `socle.transparent` est un booléen déjà
+   * résolu par `Alpage.socle`, et quatre planches le lisent légitimement ; ce
+   * qui tue, c'est la lecture sur l'objet TEMPLATE. Les trois sites fautifs de
+   * l'histoire écrivaient tous `tpl.`.
+   *
+   * Les commentaires sont retirés du FICHIER ENTIER avant le découpage en
+   * lignes : sinon un bloc sur plusieurs lignes survit, et ce contrôle a
+   * commencé par dénoncer ses propres commentaires.
+   *
+   * Ils sont BLANCHIS, pas supprimés — chaque caractère devient une espace et
+   * les sauts de ligne restent. Écrasés, ils décalaient la numérotation, et la
+   * garde désignait une ligne qui n'avait rien à voir. Même technique qu'au
+   * contrôle des morceaux plus haut. */
+  const lectures = [
+    /\b(?:tpl|template)\s*\.\s*(?:multi|transparent)(?![\w$])/,
+    /Studio\.get\([^)]*\)\s*\.\s*(?:multi|transparent)(?![\w$])/
+  ];
+  const fautifs = [];
+  let inspectes = 0;
+
+  fichiers.forEach(function (p) {
+    const rel = path.relative(ROOT, p).split('\\').join('/');
+    if (rel === 'src/studio.js') return;       // il DÉFINIT les résolveurs
+    inspectes++;
+    const nu = fs.readFileSync(p, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' '))
+      .replace(/\/\/[^\n]*/g, c => c.replace(/[^\n]/g, ' '));
+    nu.split('\n').forEach(function (ligne, i) {
+      if (lectures.some(function (r) { return r.test(ligne); })) {
+        fautifs.push(rel + ':' + (i + 1));
+      }
+    });
+  });
+
+  ok('portée · le contrôle a bien des fichiers à lire  (' + inspectes + ')',
+     inspectes >= 30,
+     'à zéro fichier inspecté, le cas suivant serait vert sans rien regarder');
+
+  ok('portée · personne ne lit `transparent` ni `multi` sans passer par son résolveur',
+     fautifs.length === 0,
+     fautifs.slice(0, 6).join(', ') +
+     ' — une déclaration devenue fonction est toujours vraie ; ' +
+     'utilise Studio.estTransparent / Studio.estMulti');
+}
+
 /* ================= 2 quater. MENUS REMPLIS =================
  *
  * Le défaut réel : `<select id="collection">` était vide dans index.html et
@@ -2322,6 +2400,7 @@ async function testsServeur() {
   testsThemes();
   testsMorceaux();
   testsReglageTexte();
+  testsPorteeDynamique();
   testsMenus();
   testsChaine();
   testsBibliotheque(chargeLibrary());

@@ -26,6 +26,9 @@
      * Ce qui suit — le fond de contrôle, la légende, la composition vidéo —
      * doit donc interroger l'état RÉSOLU, pas la déclaration. */
     if (typeof def.transparent === 'function') def.transparentDynamique = true;
+    /* Meme traitement pour `multi` : une planche peut etre multi-sorties
+     * dans certaines compositions seulement. */
+    if (typeof def.multi === 'function') def.multiDynamique = true;
     registry.push(def);
     return def;
   }
@@ -261,6 +264,30 @@
       if (opts[k] !== undefined && opts[k] !== null) o[k] = opts[k];
     });
     return !!tpl.transparent(o);
+  }
+
+  /* Un template est-il MULTI-SORTIES pour ces options ?
+   *
+   * Meme piege que `transparent`, et le commentaire ci-dessus dit ce qu'il
+   * a coute : une fonction est VRAIE, donc les deux endroits qui lisaient
+   * `tpl.multi` directement auraient cru la planche toujours multi.
+   *
+   * Empreinte est le cas qui l'exige : ses compositions Triptyque,
+   * Collection et Ilots lisent la bibliotheque, Sceau et les trois
+   * explorations non. Declaree `true`, elle aurait ouvert le selecteur de
+   * periode sur un Sceau — un reglage sans effet — et pire, l'export d'un
+   * Sceau aurait ete REFUSE quand la periode ne retient rien, alors qu'il
+   * ne depend que de la sortie chargee. */
+  function estMulti(tpl, opts) {
+    if (typeof tpl === 'string') tpl = get(tpl);
+    if (!tpl) return false;
+    if (typeof tpl.multi !== 'function') return !!tpl.multi;
+    var o = {};
+    tpl.options.forEach(function (def) { o[def.key] = def.default; });
+    Object.keys(opts || {}).forEach(function (k) {
+      if (opts[k] !== undefined && opts[k] !== null) o[k] = opts[k];
+    });
+    return !!tpl.multi(o);
   }
 
   /* ---------- rendu achromatique ----------
@@ -905,6 +932,7 @@
   global.Studio = {
     template: template, all: all, get: get, connait: connait, chrono: chrono,
     estTransparent: estTransparent,
+    estMulti: estMulti,
     render: render, exportPNG: exportPNG, posePhys: posePhys, setPhoto: setPhoto, setMinimal: setMinimal,
     setLibrary: setLibrary, setHistorique: setHistorique,
     setAchromatique: setAchromatique,

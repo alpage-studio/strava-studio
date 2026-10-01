@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.4';
+var STUDIO_VERSION = '3.17.5';
 var STUDIO_DATE = '01.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,13 @@ var STUDIO_DATE = '01.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.5', d: '01.10.2026', points: [
+    'EMPREINTE PEUT ENFIN CHOISIR SA PÉRIODE. Ses compositions Triptyque, Collection et Îlots dessinent plusieurs sorties — mais la planche ne déclarait nulle part qu’elle était multi-sorties, et le sélecteur de période ne s’ouvrait jamais pour elle. On composait une Collection sur ce que la bibliothèque contenait, sans pouvoir le restreindre.',
+    'Elle ne le déclare pas pour autant en bloc : Sceau, Soleil, Contre-empreinte et Sceau cerclé ne dessinent que la sortie chargée. Leur ouvrir le sélecteur aurait été un réglage sans effet — et pire, l’export d’un Sceau aurait été REFUSÉ quand la période ne retient rien, alors qu’il n’en dépend pas.',
+    'Le bloc de période suit maintenant les RÉGLAGES, pas seulement la planche. Il ne se rafraîchissait qu’au changement de composition suivant : on passait de Sceau à Collection, le sélecteur restait caché, puis il apparaissait au réglage d’après. Il était en retard d’un cran.',
+    'L’application installée s’annonçait en ANGLAIS. Le manifeste portait « lang: en » avec une description en français, resté de l’époque où l’interface était anglaise — avant la 3.12. Les trois pages, elles, disaient français depuis.',
+    'Un contrôle refuse désormais qu’on lise « transparent » ou « multi » sans passer par son résolveur. Les deux peuvent être déclarés comme des fonctions des réglages, et une fonction est toujours vraie : la planche passerait pour transparente, ou multi-sorties, quoi qu’on choisisse. Le piège avait déjà coûté une fois — c’est la seconde.'
+  ] },
   { v: '3.17.4', d: '01.10.2026', points: [
     'Rien ne change dans le studio. Le carnet de route gagne l’écran « Le voyage » : le titre, les étapes par leurs lieux — le départ, chaque nuit et son kilomètre, l’arrivée — et les repères du GPX, à renommer, garder ou retirer, avec une proposition de noms français pour ceux que Komoot écrit en anglais.'
   ] },

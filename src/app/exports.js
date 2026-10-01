@@ -500,8 +500,10 @@
    *
    * On refuse et on DIT pourquoi, plutot que de livrer le vide. */
   function rienAExporter() {
-    var tpl = Studio.get($('#tpl').value);
-    if (!tpl || !tpl.multi) return null;
+    var idTpl = $('#tpl').value;
+    /* Voir `Studio.estMulti` : lire `tpl.multi` directement refuserait
+     * l'export d'un Sceau d'Empreinte, qui ne depend pas de la periode. */
+    if (!Studio.estMulti(idTpl, A.resolvedOptions ? A.resolvedOptions(idTpl) : null)) return null;
     if (!A.entreesRetenues) return null;
     if (A.entreesRetenues().length) return null;
     return Library.count()
