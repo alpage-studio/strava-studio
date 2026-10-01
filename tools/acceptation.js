@@ -494,6 +494,123 @@
     Studio.setLibrary(App.entreesRetenues ? App.entreesRetenues() : Library.list());
   }());
 
+
+  /* ---------- COUPER LE TEXTE NE VIDE PAS LA PLANCHE ----------
+   *
+   * Trente-trois planches sur trente-sept obéissent au réglage « Texte ». Deux
+   * choses pouvaient mal tourner, et aucune ne lève d'erreur :
+   *
+   *   1. Une planche dont TOUT le texte se tait sans rien avoir dessiné rend
+   *      une feuille blanche. Les surcouches y étaient exposées : elles sont
+   *      transparentes, et une surcouche muette qui ne dessine pas exporte un
+   *      PNG vide. Une mesure à la main l'a écarté une fois ; une mesure à la
+   *      main ne tient pas.
+   *
+   *   2. Une planche multi-sorties sans sortie ne rend QUE son message — « Charge
+   *      au moins deux sorties ». Si ce message obéissait au réglage, l'écran
+   *      deviendrait vide et muet au moment précis où il doit dire quoi faire.
+   *
+   * LES DEUX SE DISENT D'UNE SEULE RÈGLE : aucune planche, bibliothèque pleine
+   * OU vide, ne doit rendre à la fois zéro texte et zéro encre. Vide et muet ne
+   * se distingue pas d'une panne.
+   *
+   * Une première version de ce contrôle posait autre chose : « ce qui parle en
+   * Données avec une bibliothèque vide doit parler en Sans texte ». Elle
+   * dénonçait dix-sept planches innocentes — les MONO-SORTIE, qui dessinent la
+   * sortie chargée quelle que soit la bibliothèque et n'ont donc aucun état
+   * vide. Leur encre valait 5 976 : elles n'étaient pas blanches du tout.
+   *
+   * Il compte ses planches : à zéro rendue il serait vert sans avoir regardé. */
+  (function () {
+    var base = App.etat.base;
+    if (!base) {
+      resultats.push({ cas: 'texte · couper le texte ne vide pas la planche',
+                       verdict: 'sauté', detail: 'aucune sortie chargée' });
+      return;
+    }
+    var pleine = Library.list();
+    if (pleine.length < 2) {
+      resultats.push({ cas: 'texte · couper le texte ne vide pas la planche',
+                       verdict: 'sauté', detail: 'moins de deux sorties' });
+      return;
+    }
+
+    var proto = CanvasRenderingContext2D.prototype;
+    var vraiFill = proto.fillText, vraiStroke = proto.strokeText;
+    var nTextes = 0;
+
+    /* `encre()` compte l'ALPHA, et une feuille blanche OPAQUE a l'alpha au
+     * maximum partout : elle passerait pour pleine. On compte donc ce qui
+     * DIFFÈRE du pixel du coin — la définition marche des deux côtés, pour le
+     * papier comme pour une surcouche transparente. */
+    function marques(cv) {
+      var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      var r0 = d[0], v0 = d[1], b0 = d[2], a0 = d[3];
+      var n = 0;
+      for (var i = 0; i < d.length; i += 4 * 17) {
+        if (Math.abs(d[i] - r0) + Math.abs(d[i + 1] - v0) +
+            Math.abs(d[i + 2] - b0) + Math.abs(d[i + 3] - a0) > 24) n++;
+      }
+      return n;
+    }
+
+    function rend(id, biblio, mentions) {
+      nTextes = 0;
+      proto.fillText = function (t) { if (String(t).trim()) nTextes++; return vraiFill.apply(this, arguments); };
+      proto.strokeText = function (t) { if (String(t).trim()) nTextes++; return vraiStroke.apply(this, arguments); };
+      var cv = document.createElement('canvas');
+      var pose = null;
+      try {
+        Studio.setSupport(false); Studio.setVoile('aucun');
+        Studio.setAchromatique(false);
+        if (Studio.setSurface) Studio.setSurface('papier');
+        Studio.setLibrary(biblio);
+        Studio.render(cv, id, base, { mentions: mentions, voile: false }, [540, 675]);
+        pose = { textes: nTextes, encre: marques(cv) };
+      } catch (e) { pose = null; }
+      proto.fillText = vraiFill;
+      proto.strokeText = vraiStroke;
+      return pose;
+    }
+
+    var blanches = [], muettes = [], rendues = 0, parlantes = 0;
+    try {
+      Studio.all().forEach(function (tpl) {
+        /* 1. bibliothèque pleine : la planche doit rester visible. */
+        var p = rend(tpl.id, pleine, 'aucun');
+        if (!p) return;
+        rendues++;
+        if (p.textes === 0 && p.encre === 0) blanches.push(tpl.id);
+
+        /* 2. bibliothèque VIDE : les multi-sorties y tombent sur leur message.
+         *    Il est tout ce qu'elles rendent — s'il se tait, il ne reste rien. */
+        var sans = rend(tpl.id, [], 'aucun');
+        if (!sans) return;
+        parlantes++;
+        if (sans.textes === 0 && sans.encre === 0) muettes.push(tpl.id);
+      });
+    } finally {
+      proto.fillText = vraiFill;
+      proto.strokeText = vraiStroke;
+    }
+
+    ok('texte · toutes les planches ont été rendues sans texte  (' +
+       rendues + '/' + Studio.all().length + ', et ' + parlantes + ' aussi sans bibliothèque)',
+       rendues >= Studio.all().length - 1 && parlantes >= Studio.all().length - 1,
+       'à zéro planche rendue, les deux cas suivants seraient verts pour rien');
+
+    ok('texte · aucune planche ne rend une feuille blanche quand le texte se tait',
+       blanches.length === 0,
+       blanches.join(', ') + ' — une surcouche muette qui ne dessine rien exporte un PNG vide');
+
+    ok('texte · sans aucune sortie, la planche dit encore quoi faire',
+       muettes.length === 0,
+       muettes.join(', ') + ' — vide ET muet ne se distingue pas d’une panne, ' +
+       'et c’est là qu’il faut dire quoi faire');
+
+    Studio.setLibrary(App.entreesRetenues ? App.entreesRetenues() : Library.list());
+  }());
+
   /* ---------- CE QUE L'APPEL RÉEL RAMÈNE ----------
    *
    * LE DÉFAUT QUE CE CAS AURAIT ATTRAPÉ, ET QUE RIEN N'A ATTRAPÉ :

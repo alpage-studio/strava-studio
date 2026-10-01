@@ -51,7 +51,7 @@ Studio.template({
     { key: 'encre', type: 'color', label: 'Encre', default: '#F2F0EA' },
     { key: 'chiffres', type: 'toggle', label: 'Afficher les chiffres', default: true },
     { key: 'titre', type: 'text', label: 'Titre', default: '' }
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   inert: function (a, vals) {
     var morts = [];
@@ -87,9 +87,18 @@ Studio.template({
     var compo = o.compo;
     if (compo === 'auto') compo = passages.length <= 2 ? 'diptyque' : 'grille';
 
+    /* Comme pour Metro, le réglage se lit APRÈS l'état vide : « Charge deux à
+     * quatre sorties » ne lui obéit pas.
+     *
+     * Les DATES des panneaux restent : elles sont l'axe de la comparaison.
+     * Quatre vignettes du même lieu sans leur date ne comparent plus rien.
+     * Restent aussi « ne passe pas ici » et la taille de la fenêtre — sans
+     * elle on ne sait pas à quoi on compare, le fichier le dit déjà. */
+    var dit = Alpage.dit(o);
     var titre = String(o.titre || '').trim() || 'Le même endroit';
-    H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
-    H.text(passages.length + ' passages', g.right, g.top + u(3.6),
+    if (dit.titre)
+      H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
+    if (dit.mesures) H.text(passages.length + ' passages', g.right, g.top + u(3.6),
            H.t('label', { color: faint, align: 'right' }));
 
     var haut = g.top + u(9);
@@ -220,7 +229,7 @@ Studio.template({
         var bouts = [];
         if (a.distance_km != null) bouts.push(H.fmt.km(a.distance_km, 1) + ' km');
         if (a.elev_gain_m != null) bouts.push(Math.round(a.elev_gain_m) + ' m');
-        H.text(bouts.join(' · '), x, y + u(4),
+        if (dit.mesures) H.text(bouts.join(' · '), x, y + u(4),
                H.t('label', { color: faint, maxWidth: larg }));
       }
       if (leg && a.date) {

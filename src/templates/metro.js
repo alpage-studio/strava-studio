@@ -50,7 +50,7 @@ Studio.template({
     { key: 'noms', type: 'text', label: 'Renommer (dans l’ordre, séparés par ;)', default: '' },
     { key: 'legende', type: 'toggle', label: 'Légende des lignes', default: true },
     { key: 'chiffres', type: 'toggle', label: 'Totaux en pied', default: true }
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, o = s.o, H = s.H, u = H.u;
@@ -84,9 +84,17 @@ Studio.template({
     var plan = { x: g.left, y: hautPlan, w: g.width, h: Math.max(u(30), basPlan - hautPlan) };
 
     /* ---------- en-tête ---------- */
-    H.text(String(o.titre || '').trim() || 'Réseau', g.left, g.top + u(3.6),
+    /* Le réglage se lit ICI, après l'état vide : « Charge au moins deux
+     * sorties » n'a pas à lui obéir. Un plan muet ET vide ne se distingue
+     * pas d'une panne, et c'est là qu'on a le plus besoin qu'il parle.
+     *
+     * Restent aussi : les couleurs des lignes, les pastilles de station, et
+     * l'avertissement sur les réseaux séparés. Se taisent : les noms (des
+     * titres) et les chiffres (des mesures). */
+    var dit = Alpage.dit(o);
+    if (dit.titre) H.text(String(o.titre || '').trim() || 'Réseau', g.left, g.top + u(3.6),
            H.t('title', { color: ink, maxWidth: g.w(4) }));
-    H.text(entrees.length + ' lignes', g.right, g.top + u(3.6),
+    if (dit.mesures) H.text(entrees.length + ' lignes', g.right, g.top + u(3.6),
            H.t('label', { color: faint, align: 'right' }));
 
     /* ---------- les lignes ---------- */
@@ -122,11 +130,11 @@ Studio.template({
     /* ---------- dessin ---------- */
     lignes.forEach(function (l) { traceLigne(l); });
     stations.forEach(function (st) { pastille(st); });
-    etiquettes(stations);
+    if (dit.mesures) etiquettes(stations);
 
     if (separe) {
       lignes.forEach(function (l, i) {
-        H.text(Library.nomCourt(l.entree.activity, 22).toUpperCase(),
+        if (dit.titre) H.text(Library.nomCourt(l.entree.activity, 22).toUpperCase(),
                l.boite.x, l.boite.y + l.boite.h + u(4),
                H.t('label', { color: faint, maxWidth: l.boite.w }));
       });
@@ -143,10 +151,11 @@ Studio.template({
         ctx.strokeStyle = l.couleur; ctx.lineWidth = u(0.9); ctx.lineCap = 'round';
         ctx.beginPath(); ctx.moveTo(g.left, y - u(1)); ctx.lineTo(g.left + u(5), y - u(1)); ctx.stroke();
         ctx.restore();
-        H.text(Library.nomCourt(l.entree.activity, 26), g.left + u(7), y,
+        if (dit.titre) H.text(Library.nomCourt(l.entree.activity, 26), g.left + u(7), y,
                H.t('label', { color: ink, maxWidth: g.w(4) }));
-        H.text(H.fmt.km(l.entree.activity.distance_km, 1) + ' km · ' + st.length + ' stations',
-               g.right, y, H.t('label', { color: faint, align: 'right' }));
+        if (dit.mesures)
+          H.text(H.fmt.km(l.entree.activity.distance_km, 1) + ' km · ' + st.length + ' stations',
+                 g.right, y, H.t('label', { color: faint, align: 'right' }));
         y += u(4.5);
       });
     }
@@ -158,6 +167,7 @@ Studio.template({
       [['réseau', H.fmt.km(totKm, 0) + ' km'],
        ['lignes', String(entrees.length)],
        ['correspondances', String(corr)]].forEach(function (c, i) {
+        if (!dit.mesures) return;
         H.field(c[0], c[1], g.left + i * (g.width / 3), g.bottom - u(4),
                 { color: ink, labelColor: faint, size: 4.2, maxWidth: g.width / 3 - u(2) });
       });

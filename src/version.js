@@ -35,7 +35,7 @@ var STUDIO_DATE = '01.10.2026';
  */
 var STUDIO_JOURNAL = [
   { v: '3.17.3', d: '01.10.2026', points: [
-    'LE RÉGLAGE « TEXTE » ATTEINT VINGT-TROIS PLANCHES DE PLUS — trente-trois sur trente-sept au lieu de dix. Les autres gravaient leur titre et leur rangée de mesures quel que soit ton choix : le réglage existait, il ne portait simplement pas jusqu’à elles.',
+    'LE RÉGLAGE « TEXTE » ATTEINT VINGT-CINQ PLANCHES DE PLUS — trente-cinq sur trente-sept au lieu de dix. Les autres gravaient leur titre et leur rangée de mesures quel que soit ton choix : le réglage existait, il ne portait simplement pas jusqu’à elles.',
     'Ce qui se tait est ce que la planche dit D’ELLE : son titre, ses mesures, et — en « Signature » — ses notes de fabrication. Trace, Médaillon et la partition musicale deviennent entièrement muettes ; il ne reste que le dessin.',
     'Ce qui RESTE, et ce n’est pas un oubli : les graduations et les avertissements. L’axe des kilomètres de Ressenti, les jours de la semaine de Tissage, le seuil d’Allumettes — « au-dessus de 280 W » — sans lequel le grand nombre affirmerait une mesure universelle. Et les phrases qui empêchent de mal lire : « hauteur expressive — ce n’est pas une altitude », « ce n’est pas un itinéraire ».',
     'Le grand nombre d’Allumettes ne se tait pas non plus : il EST la planche. En composition « Bandeau » il descend dans le pied avec les mesures — c’est la rangée qui est filtrée, pas supprimée, sinon la planche se vidait d’elle-même.',
@@ -46,6 +46,9 @@ var STUDIO_JOURNAL = [
     'Celles qui dessinent — Tracé, Profil, Tranche, Sommet — deviennent entièrement muettes : il reste le graphique seul sur ta photo. Mesuré : le parcours de Tracé occupe encore la moitié de l’encre une fois le texte parti, et aucune ne tombe à zéro.',
     'Celles qui portent un chiffre-héros — Héros, Chiffres, Éditorial — gardent ce chiffre ET SON UNITÉ. « 355 » sans « MÈTRES DE DÉNIVELÉ » n’est pas plus sobre, c’est faux. Le nom de la sortie et les mesures secondaires, eux, se taisent.',
     'Filet et Ardoise n’ont pas de héros : leur rangée de statistiques EST la surcouche, et ses petites capitales en sont les unités. Seul le nom de la sortie s’y tait.',
+    'MÉTRO ET SAISONS FERMENT LA MARCHE — trente-cinq planches sur trente-sept. Le plan de Métro passe de quarante et un textes à un seul : il ne garde que « RÉSEAUX SÉPARÉS — LES CORRESPONDANCES DEMANDENT UN CADRAGE COMMUN ». Les couleurs des lignes et les pastilles de station restent : c’est le plan.',
+    'Saisons garde ses DATES. Quatre vignettes du même lieu sans leur date ne comparent plus rien — la date est l’axe de la comparaison, pas une légende. Restent aussi « NE PASSE PAS ICI » et la taille de la fenêtre, sans laquelle on ne sait pas à quoi on compare.',
+    'LE MESSAGE D’UNE PLANCHE SANS SORTIE N’OBÉIT JAMAIS AU RÉGLAGE. « Charge au moins deux sorties » doit s’afficher même en « Sans texte » : une planche vide ET muette ne se distingue pas d’une panne, et c’est le moment où il faut dire quoi faire. Un contrôle le tient désormais pour les trente-sept : aucune ne peut rendre à la fois zéro texte et zéro marque.',
     'Le film et Mots restent dehors, exprès : la dernière scène du film n’est QUE trois chiffres, et les mots de Mots sont ceux que TU tapes. Un réglage global n’a pas à effacer ce que tu as écrit.'
   ] },
   { v: '3.17.2', d: '01.10.2026', points: [
