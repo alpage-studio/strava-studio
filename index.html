@@ -806,24 +806,30 @@
        qu'on se pose devant un ecran qui surprend. */
     @media (max-width: 360px) { header #header-date { display: none; } }
   }
+  /* LA MARQUE MÈNE À LA SUITE, la pastille « Suite » n'en est que le rappel.
+     Sur un téléphone la rangée n'a pas la place des deux : l'entête débordait
+     de 13 px à 390 et de 21 px à 430 (acceptation). On retire le DOUBLON, pas
+     l'accès — la marque reste un lien. */
+  a.marque-nom { color: inherit; text-decoration: none; }
+  @media (max-width: 500px) { header .lien-suite { display: none; } }
 </style>
 </head>
 <body>
 
 <header>
-  <span class="marque-nom">
+  <a class="marque-nom" href="suite.html" title="La suite alpage studio">
     <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M5.7 20.4 C7.2 14.3 9.5 8.5 12.4 4.5 C14.5 9.3 16.4 14.7 17.9 19.8
                C16.6 19.2 13.3 17 6.7 16.5"/>
     </svg>
     <h1>alpage <span class="second">studio</span></h1>
-  </span>
+  </a>
   <span class="sub">tes données, tes templates, ton code</span>
   <div class="spacer"></div>
   <span class="sub" id="header-note"><span id="header-date"></span></span>
   <!-- La revue des compositions. Elle vit à côté du studio et non dedans :
        c'est une page de contact, pas un écran de l'outil. -->
-  <a class="lien-galerie" href="suite.html">Suite</a>
+  <a class="lien-galerie lien-suite" href="suite.html">Suite</a>
   <a class="lien-galerie" href="apercus/">Galerie</a>
   <!-- L'INTERFACE EST EN ANGLAIS, ET IL N'Y A PLUS DE CHOIX.
        Le studio se partage, et « Épaisseur par » ne se devine pas. Le
