@@ -409,7 +409,7 @@
       ctx.fillStyle = th.acc; ctx.font = '20px ' + O_.MONO; ctx.fillText('ÉTAPE ' + (j + 1), 60, y);
       ctx.fillStyle = th.ink; ctx.font = '700 32px ' + O_.SANS; ctx.fillText(et.de + ' → ' + et.a, 60, y + 40);
       ctx.fillStyle = th.mut; ctx.font = '21px ' + O_.MONO;
-      ctx.fillText(O_.fKm(et.kmFin - et.kmDebut) + ' · +' + O_.fM(et.dplus) + ' · ↑ ' + O_.fM(et.altMax), 60, y + 74);
+      ctx.fillText(O_.fKm(et.kmFin - et.kmDebut) + ' · ' + O_.fM(et.dplus) + ' D+ · alt. max. ' + O_.fM(et.altMax), 60, y + 74);
       y += 132;
     });
     // la boucle, sur le vrai relief

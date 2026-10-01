@@ -13,7 +13,7 @@
   img-src 'self' blob: data:;
   media-src 'self' blob: data:;
   font-src 'self';
-  connect-src 'self' blob:;
+  connect-src 'self' blob: https://api3.geo.admin.ch;
   form-action 'none';
   frame-src 'none';
   object-src 'none';
@@ -147,6 +147,7 @@
 <div class="outils" id="outils" hidden>
   <button class="bouton clair" id="bCaler" aria-pressed="false">Caler les photos</button>
   <button class="bouton clair" id="bHorizon">Instagram · Horizon</button>
+  <button class="bouton clair" id="bRelief" hidden title="Les courbes de niveau et l’ombrage, depuis swisstopo">Ajouter la topo</button>
   <button class="bouton clair" id="bEnregistrer" title="Un fichier .carnet à rouvrir sur un autre ordinateur">Enregistrer le carnet</button>
   <button class="bouton" id="bExport">Exporter le carnet</button>
   <a class="bouton clair" id="bGalerie" href="carnet-local/galerie.html" hidden>Galerie</a>
@@ -201,6 +202,7 @@
 <script src="src/activity.js"></script>
 <script src="src/carnet/exif.js"></script>
 <script src="src/carnet/composer.js"></script>
+<script src="src/carnet/relief.js"></script>
 <script src="src/carnet/lecteur.js"></script>
 <script src="src/zip.js"></script>
 <script src="src/carnet/horizon.js"></script>

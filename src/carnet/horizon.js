@@ -434,13 +434,33 @@
       ctx.fillStyle = '#FFFFFF';
     }
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = '800 ' + Math.round(30 * k) + 'px ' + SANS;
-    if (mots.length > 1) {
-      ctx.fillText(mots[0], cx, yCentre - 16 * k);
-      ctx.fillText(mots.slice(1).join(' '), cx, yCentre + 17 * k);
-    } else ctx.fillText(nom, cx, yCentre);
+    /* le texte tient TOUJOURS dans le rond : deux lignes au plus (les premiers
+     * mots, puis le reste), et la taille descend jusqu'à ce que la plus large
+     * entre dans la corde du cercle. « By LSN GRVL » sortait du rond. */
+    var lignes = mots.length > 1 ? [mots.slice(0, Math.ceil(mots.length / 2)).join(' '), mots.slice(Math.ceil(mots.length / 2)).join(' ')] : [nom];
+    var taille = Math.round(30 * k);
+    for (; taille > 9; taille--) {
+      ctx.font = '800 ' + taille + 'px ' + SANS;
+      var large = Math.max.apply(null, lignes.map(function (l) { return ctx.measureText(l).width; }));
+      if (large <= r * (lignes.length > 1 ? 1.5 : 1.7)) break;
+    }
+    var pasL = taille * 1.1;
+    lignes.forEach(function (l, i) { ctx.fillText(l, cx, yCentre + (i - (lignes.length - 1) / 2) * pasL); });
     // pas de « by » devant : la pastille signe seule
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  }
+
+  /* un titre tient en DEUX lignes au plus : sa taille descend jusqu'à ce que
+   * ce soit le cas. Le nom d'un GPX Komoot (« Tour des Combins – GRVL – Full
+   * 2-day route ») prenait quatre lignes et écrasait tout ce qui suit. */
+  function titreAjuste(ctx, txt, largeur, taille, mini) {
+    for (var t = taille; t >= mini; t -= 4) {
+      ctx.font = '800 ' + t + 'px ' + SANS;
+      var l = titreEnLignes(ctx, txt, largeur);
+      if (l.length <= 2) return { lignes: l, taille: t, pas: Math.round(t * 0.94) };
+    }
+    ctx.font = '800 ' + mini + 'px ' + SANS;
+    return { lignes: titreEnLignes(ctx, txt, largeur).slice(0, 3), taille: mini, pas: Math.round(mini * 0.94) };
   }
 
   function titreEnLignes(ctx, txt, largeur) {
@@ -463,7 +483,7 @@
     return [
       [fKm(data.total.km).replace(' km', ''), 'KILOMÈTRES'],
       ['+' + fM(data.total.dplus).replace(' m', ''), 'MÈTRES DE MONTÉE'],
-      [fM(hautMax).replace(' m', ''), 'AU PLUS HAUT'],
+      [fM(hautMax).replace(' m', ''), 'ALT. MAX. (M)'],
       [String(data.etapes.length), data.etapes.length > 1 ? 'ÉTAPES' : 'ÉTAPE']
     ];
   }
@@ -499,10 +519,10 @@
     ctx.fillText('CARNET DE ROUTE', 64, 104);
     if (opts.signature) signer(ctx, W - 64, 88, opts.signature, th, 0.9, opts.signatureSobre);
 
-    ctx.fillStyle = th.ink; ctx.font = '800 104px ' + SANS;
-    var lignes = titreEnLignes(ctx, opts.titre || data.titre, 820);
-    lignes.forEach(function (l, j) { ctx.fillText(l, 58, 222 + j * 98); });
-    var yt = 222 + (lignes.length - 1) * 98 + 56;
+    ctx.fillStyle = th.ink;
+    var TA = titreAjuste(ctx, opts.titre || data.titre, 820, 104, 64), lignes = TA.lignes;
+    lignes.forEach(function (l, j) { ctx.fillText(l, 58, 222 + j * TA.pas); });
+    var yt = 222 + (lignes.length - 1) * TA.pas + 56;
     var sous = opts.sousTitre != null ? opts.sousTitre : data.sousTitre;
     if (sous) {
       ctx.font = '400 32px ' + SANS;
@@ -577,14 +597,21 @@
       pastilleLettre(ctx, q[0], q[1], l.lettre, th, false);
     });
     // la légende des lettres, en colonne à gauche du plan
-    var yl = py0 + 30;
+    /* la légende : le nom, puis « km · passage à … » s'il y a la place. Une
+     * ligne serrée s'écrit en caractères d'imprimerie : la main prend trop
+     * de hauteur pour tenir sous 60 px. */
+    var yl = py0 + 30, pasL = Math.min(74, (py1 - py0 - 30) / Math.max(1, lieux.length));
+    var detail = pasL >= 60, main = opts.manuscrit && pasL >= 60;
     lieux.forEach(function (l) {
       pastilleLettre(ctx, 76, yl - 8, l.lettre, th, false);
-      ctx.fillStyle = th.ink; ctx.font = (opts.manuscrit ? '34px ' + MAIN : '600 27px ' + SANS); ctx.textAlign = 'left';
-      ctx.fillText(l.r.nom, 106, yl);
-      ctx.fillStyle = th.mut; ctx.font = '20px ' + MONO;
-      ctx.fillText(fKm(l.r.km) + ' · ' + fM(eleAuKm(data, l.r.km)), 106, yl + 26);
-      yl += Math.min(74, (py1 - py0 - 30) / Math.max(1, lieux.length));
+      ctx.fillStyle = th.ink; ctx.font = (main ? '34px ' + MAIN : '600 ' + (pasL < 44 ? 23 : 27) + 'px ' + SANS); ctx.textAlign = 'left';
+      var nomL = l.r.nom; while (ctx.measureText(nomL).width > 400 && nomL.length > 8) nomL = nomL.slice(0, -2);
+      ctx.fillText(nomL === l.r.nom ? nomL : nomL.replace(/\s*$/, '') + '…', 106, yl);
+      if (detail) {
+        ctx.fillStyle = th.mut; ctx.font = '20px ' + MONO;
+        ctx.fillText(fKm(l.r.km) + ' · passage à ' + fM(l.r.alt != null ? l.r.alt : eleAuKm(data, l.r.km)), 106, yl + 26);
+      }
+      yl += pasL;
     });
     ctx.fillStyle = th.mut; ctx.font = '22px ' + MONO; ctx.textAlign = 'right';
     ctx.fillText('glisse  →', W - 56, H - 22);
@@ -603,10 +630,10 @@
     ctx.fillStyle = th.acc; ctx.font = '26px ' + MONO;
     ctx.fillText('CARNET DE ROUTE', 64, 104);
     if (opts.signature) signer(ctx, W - 64, 88, opts.signature, th, 0.9);
-    ctx.fillStyle = th.ink; ctx.font = '800 104px ' + SANS;
-    var lignes = titreEnLignes(ctx, opts.titre || data.titre, 820);
-    lignes.forEach(function (l, j) { ctx.fillText(l, 58, 222 + j * 98); });
-    var yt = 222 + (lignes.length - 1) * 98 + 50;
+    ctx.fillStyle = th.ink;
+    var TA = titreAjuste(ctx, opts.titre || data.titre, 820, 104, 64), lignes = TA.lignes;
+    lignes.forEach(function (l, j) { ctx.fillText(l, 58, 222 + j * TA.pas); });
+    var yt = 222 + (lignes.length - 1) * TA.pas + 50;
     ctx.font = '26px ' + MONO; ctx.fillStyle = th.mut;
     var ch = chiffresDe(data);
     ctx.fillText(ch[0][0] + ' KM  ·  ' + ch[1][0] + ' M  ·  ↑ ' + ch[2][0] + ' M  ·  ' + ch[3][0] + ' ' + ch[3][1], 62, yt);
@@ -725,10 +752,10 @@
     ctx.fillStyle = th.acc; ctx.font = '26px ' + MONO;
     ctx.fillText('CARNET DE ROUTE', 64, 118);
     if (opts.signature) signer(ctx, W - 64, 96, opts.signature, th, 1);
-    ctx.fillStyle = th.ink; ctx.font = '800 124px ' + SANS;
-    var lignes = titreEnLignes(ctx, opts.titre || data.titre, 940);
-    lignes.forEach(function (l, j) { ctx.fillText(l, 58, 250 + j * 116); });
-    var yt = 250 + (lignes.length - 1) * 116 + 64;
+    ctx.fillStyle = th.ink;
+    var TA = titreAjuste(ctx, opts.titre || data.titre, 940, 124, 72), lignes = TA.lignes;
+    lignes.forEach(function (l, j) { ctx.fillText(l, 58, 250 + j * TA.pas); });
+    var yt = 250 + (lignes.length - 1) * TA.pas + 64;
     var sous = opts.sousTitre != null ? opts.sousTitre : data.sousTitre;
     if (sous) {
       ctx.font = '400 36px ' + SANS; ctx.fillStyle = th.ink;
@@ -749,7 +776,9 @@
     carte(ctx, T, L, data, bx, by, bw, bh, th, 6, true);
     var y0 = L.Y(e[0].ele);
     ctx.fillStyle = th.mut; ctx.font = '26px ' + MONO; ctx.textAlign = 'right';
-    ctx.fillText('DÉPART · ' + data.etapes[0].de.toUpperCase(), e[0].x - 26, y0 + 60);
+    // « DÉPART · DÉPART » quand l'étape n'a pas de nom propre : on ne le répète pas
+    var nomDep = data.etapes[0].de, depart = /^d[ée]part$/i.test(nomDep) ? 'DÉPART' : 'DÉPART · ' + nomDep.toUpperCase();
+    ctx.fillText(depart, e[0].x - 26, y0 + 60);
     ctx.fillText('glisse  →', W - 56, H - 30);
   }
 
@@ -785,7 +814,7 @@
       ctx.fillStyle = th.ink; ctx.font = '700 30px ' + SANS;
       ctx.fillText(et.de + ' → ' + et.a, x, y + 38);
       ctx.fillStyle = th.mut; ctx.font = '21px ' + MONO;
-      ctx.fillText(fKm(et.kmFin - et.kmDebut) + ' · +' + fM(et.dplus) + ' · ↑ ' + fM(et.altMax), x, y + 70);
+      ctx.fillText(fKm(et.kmFin - et.kmDebut) + ' · ' + fM(et.dplus) + ' D+ · alt. max. ' + fM(et.altMax), x, y + 70);
       y += 118;
     });
 
@@ -806,13 +835,12 @@
     // la plage du voyage, de son point bas à son toit
     ctx.fillStyle = th.crete || th.acc;
     ctx.fillRect(AX(data.trace.eleMin), y + 46, AX(data.trace.eleMax) - AX(data.trace.eleMin), 4);
-    ctx.textAlign = 'left'; ctx.font = '18px ' + MONO; ctx.fillStyle = th.ink;
-    ctx.fillText('le voyage', AX(data.trace.eleMin), y + 72);
+    ctx.textAlign = 'left';
     y += 110;
 
-    // les échantillons
-    ctx.fillStyle = th.acc; ctx.font = '20px ' + MONO; ctx.textAlign = 'left';
-    ctx.fillText('ÉCHANTILLONS', x, y);
+    // les temps forts : seulement s'il y a des photos pour les montrer
+    var aDesPhotos = L.places.some(function (p) { return legendeDe(data, p.m); });
+    if (aDesPhotos) { ctx.fillStyle = th.acc; ctx.font = '20px ' + MONO; ctx.textAlign = 'left'; ctx.fillText('TEMPS FORTS', x, y); }
     y += 20;
     var vus = {}, ech = L.places.map(function (p) { return { p: p, nom: legendeDe(data, p.m), alt: eleAuKm(data, p.m.km) }; })
       .filter(function (q) { return q.nom && !vus[q.nom] && (vus[q.nom] = true); })
@@ -830,7 +858,8 @@
       var ly = y + cote + 26;
       titreEnLignes(ctx, q.nom, cote - 36).slice(0, 2).forEach(function (l) { ctx.fillText(l, ex + 34, ly); ly += 26; });
       ctx.fillStyle = th.mut; ctx.font = '17px ' + MONO;
-      ctx.fillText(fM(q.alt) + ' · ' + fKm(q.p.m.km), ex, y + cote + 90);
+      // la position seule : l'altitude d'une photo n'est pas celle du lieu qu'elle nomme
+      ctx.fillText(fKm(q.p.m.km), ex, y + cote + 90);
     });
     y += cote + 170;
 
@@ -937,8 +966,9 @@
     /* les repères : un point sur la crête et un nom dans la gravure.
      * En manuscrit, le nom est écrit à la main, penché, et une flèche
      * remonte vers le point — l'annotation d'un carnet de terrain. */
-    var finEtage = [-1e9, -1e9, -1e9];
-    (data.reperes || []).forEach(function (r) {
+    var poses = [];   // les rectangles des noms déjà écrits
+    var reperesTries = (data.reperes || []).slice().sort(function (a, b) { return a.km - b.km; });
+    reperesTries.forEach(function (r) {
       if (r.fort || att.portes[r.nom]) return;
       var xr = L.X(r.km), yr = L.Y(eleAuKm(data, r.km));
       ctx.fillStyle = th.ink;
@@ -947,11 +977,23 @@
       var tw = ctx.measureText(r.nom).width, ty = Math.min(yr + (opts.manuscrit ? 96 : 64), Y_HACH - 60);
       var gaucheT = (xr % W) + tw + 30 > W;
       var x0 = gaucheT ? xr - tw + 10 : xr - 10;
-      // le premier étage libre à cet endroit ; à défaut, le moins encombré
-      var niveau = 0;
-      while (niveau < 2 && finEtage[niveau] > x0 - 20) niveau++;
-      ty += niveau * (opts.manuscrit ? 56 : 46);
-      finEtage[niveau] = x0 + tw;
+      /* une place LIBRE pour le nom : son rectangle ne doit toucher aucun nom
+       * déjà posé, ni une photo. On essaie quelques hauteurs sous la crête ;
+       * sans place, le nom se TAIT (son point reste) — deux noms écrits l'un
+       * sur l'autre ne se lisent ni l'un ni l'autre. Les « étages » comptés
+       * depuis chaque point ne suffisaient pas : deux points à des altitudes
+       * différentes mettaient leurs étages à la même hauteur. */
+      var hT = opts.manuscrit ? 46 : 36, base = ty, trouve = null;
+      [0, 1, 2, 3].some(function (k) {
+        var y = Math.min(base + k * (hT + 14), Y_HACH - 10);
+        var R = { x0: x0 - 10, x1: x0 + tw + 10, y0: y - hT, y1: y + 12 };
+        var libre = poses.every(function (q) { return R.x1 < q.x0 || R.x0 > q.x1 || R.y1 < q.y0 || R.y0 > q.y1; }) &&
+          L.places.every(function (p) { return R.x1 < p.x - 12 || R.x0 > p.x + p.w + 12 || R.y1 < p.y - 12 || R.y0 > p.y + p.h + 130; });
+        if (libre) { trouve = R; ty = y; }
+        return libre;
+      });
+      if (!trouve) return;
+      poses.push(trouve);
       if (opts.manuscrit) {
         ecrireMain(ctx, r.nom, x0, ty, 38, th, -0.05);
         flecheMain(ctx, x0 + (gaucheT ? tw - 30 : 30), ty - 36, xr + (gaucheT ? 4 : -4), yr + 14, th.ink, gaucheT ? 24 : -24);
@@ -974,8 +1016,9 @@
       if (cache || bordT < 90 || bordT > W - 90) return;
       ctx.fillStyle = th.acc;
       ctx.beginPath(); ctx.moveTo(best.x, yb - 14); ctx.lineTo(best.x - 10, yb - 30); ctx.lineTo(best.x + 10, yb - 30); ctx.closePath(); ctx.fill();
+      // le chiffre est l'altitude BRUTE du point haut (GPX), pas celle du profil lissé
       ctx.font = '600 30px ' + SANS; ctx.textAlign = 'center';
-      ctx.fillText(fM(best.ele), best.x, yb - 44);
+      ctx.fillText(fM(et.altMax || best.ele), best.x, yb - 44);
       ctx.textAlign = 'left';
     });
 

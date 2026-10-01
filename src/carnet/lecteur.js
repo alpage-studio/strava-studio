@@ -280,10 +280,10 @@
             '<div class="cr-num">Étape ' + (it.n + 1) + ' / ' + data.etapes.length + '</div>' +
             '<h2>' + insecable(et.de) + ' <span>→</span> ' + insecable(et.a) + '</h2>' +
             '<p>' + fKm(et.kmFin - et.kmDebut) + ' · ' + fM(et.dplus) + ' de montée · ' +
-            fM(et.altMax) + ' au plus haut</p>');
+            'alt. max. ' + fM(et.altMax) + '</p>');
         } else if (it.type === 'rep') {
           n = el('div', 'cr-rep', '<i>' + fKm(it.r.km) + '</i><b>' + esc(it.r.nom) + '</b><span>' +
-            fM(auKm(data.trace, it.r.km).ele) + '</span>');
+            (it.r.alt != null ? 'passage à ' + fM(it.r.alt) : fM(auKm(data.trace, it.r.km).ele)) + '</span>');
         } else if (it.type === 'media') {
           var portrait = it.m.h > it.m.w;
           n = figure(data, it.m, 'cr-seul' + (portrait ? ' cr-portrait' + (cote++ % 2 ? ' cr-droite' : '') : ''));

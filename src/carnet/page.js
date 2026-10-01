@@ -54,6 +54,7 @@
     // combien de positions restent à valider : le bouton le dit
     var aValider = data.medias.filter(function (m) { return m.statut === 'estimee'; }).length;
     $('bCaler').textContent = 'Caler les photos' + (aValider ? ' · ' + aValider + ' à valider' : ' · tout est validé');
+    $('bRelief').hidden = !!entree.relief;   // la topo se prépare une fois, puis voyage avec le carnet
     if (edition) lecteur.racine.classList.add('cr-edition');
     poserCalage(data);
 
@@ -307,6 +308,34 @@
     }).catch(function (e) { $('etat').textContent = 'Ouverture impossible : ' + e.message; });
   }
   $('bEnregistrer').addEventListener('click', enregistrerCarnet);
+
+  /* ---------- la topo, depuis swisstopo ----------
+   * Le seul moment où le carnet parle au réseau, et il le dit AVANT : quelle
+   * zone part, à qui, combien de requêtes. Ni la trace ni les photos ne
+   * partent — seulement les coordonnées d'un rectangle autour du parcours,
+   * qui le situent pourtant. Le relief obtenu reste dans le carnet et part
+   * avec lui dans le fichier .carnet : on ne le redemande jamais. */
+  $('bRelief').addEventListener('click', function () {
+    var bouton = this, pts;
+    try { pts = Activity.parseGPX(entree.gpx).track; } catch (e) { note('Trace illisible : ' + e.message, 5000); return; }
+    var est = Relief.estimer(pts);
+    var ok = window.confirm('Ajouter la topo swisstopo ?\n\n' +
+      'Le carnet va demander à swisstopo (geo.admin.ch) le relief d’une zone d’environ ' +
+      Math.round(est.kmLarge) + ' × ' + Math.round(est.kmHaut) + ' km autour du parcours — ' + est.requetes + ' requêtes, une vingtaine de secondes.\n\n' +
+      'Seules les coordonnées de cette zone partent : ni la trace, ni les photos. Elles situent toutefois le parcours.\n\n' +
+      'Le relief couvre la Suisse et ses abords immédiats.');
+    if (!ok) return;
+    bouton.disabled = true;
+    Relief.preparer(pts, { progres: function (k) { note('Topo swisstopo… ' + Math.round(k * 100) + ' %', 60000); } })
+      .then(function (r) {
+        entree.relief = r;
+        rendre();
+        note('Topo ajoutée : ' + r.courbes.length + ' courbes de niveau. L’altitude swisstopo s’écarte de ' + r.controle.ecartMedian +
+          ' m du GPX en médiane. « Enregistrer le carnet » la garde.', 7000);
+      })
+      .catch(function (e) { note('Topo impossible : ' + e.message, 8000); })
+      .then(function () { bouton.disabled = false; });
+  });
 
   /* ---------- exporter ----------
    * UN fichier HTML, qui s'ouvre partout sans rien installer ni rien

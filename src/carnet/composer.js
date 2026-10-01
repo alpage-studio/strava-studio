@@ -231,11 +231,17 @@
       var best = 0, bd = Infinity;
       for (var i = 0; i < pts.length; i += 2) { var dd = dist(w, pts[i]); if (dd < bd) { bd = dd; best = i; } }
       if (bd > 400) return;   // un point d'intérêt à l'écart du chemin ne se pose pas dessus
-      reperes.push({ nom: noms[w.nom] || w.nom, km: pts[best].d / 1000 });
+      /* « PASSAGE À ». L'altitude qu'on écrit à côté d'un nom est celle du
+       * CHEMIN là où il passe le plus près — brute, prise au GPX, pas au
+       * profil lissé. Ce n'est pas l'altitude du lieu : le parcours longe un
+       * sommet à 2 521 m quand le sommet culmine plus haut. On le dit. */
+      reperes.push({ nom: noms[w.nom] || w.nom, km: pts[best].d / 1000,
+                     alt: pts[best].ele != null ? Math.round(pts[best].ele) : null, ecart: Math.round(bd) });
     });
+    function altBrute(km) { var p = pts[indice(kms, km)]; return p && p.ele != null ? Math.round(p.ele) : null; }
     etapes.forEach(function (et, i) {
-      if (i === 0) reperes.push({ nom: et.de, km: 0, fort: true });
-      reperes.push({ nom: et.a, km: et.kmFin, fort: true });
+      if (i === 0) reperes.push({ nom: et.de, km: 0, fort: true, alt: altBrute(0) });
+      reperes.push({ nom: et.a, km: et.kmFin, fort: true, alt: altBrute(et.kmFin) });
     });
     // une boucle : le départ et l'arrivée portent le même nom, un seul suffit
     reperes = reperes.filter(function (r, i) {
