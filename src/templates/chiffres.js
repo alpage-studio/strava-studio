@@ -13,16 +13,19 @@ Studio.template({
     { key: 'heros', type: 'select', label: 'Chiffre héros', default: 'distance',
       choices: [['distance', 'Distance'], ['duree', 'Temps'], ['deniv', 'Dénivelé']] },
     { key: 'splits', type: 'toggle', label: 'Barres des kilomètres', default: true }
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
     var m = u(9);
 
     H.fill(o.papier);
+    /* Le héros et son unité restent : une planche nommée « Chiffres » sans
+     * chiffre n'est pas une planche sobre, c'est une page blanche. */
+    var dit = Alpage.dit(o);
 
     /* --- bandeau de tête --- */
-    H.text(String(a.name).toUpperCase(), m, m + u(3), {
+    if (dit.titre) H.text(String(a.name).toUpperCase(), m, m + u(3), {
       size: u(2.6), weight: 700, color: o.encre, tracking: u(0.35)
     });
 
@@ -47,7 +50,7 @@ Studio.template({
     if (o.heros === 'distance') rows.shift(); // pas deux fois la même valeur
 
     var y = heroY + u(14);
-    rows.forEach(function (r) {
+    if (dit.mesures) rows.forEach(function (r) {
       ctx.save();
       ctx.strokeStyle = o.encre + '22';
       ctx.lineWidth = u(0.12);

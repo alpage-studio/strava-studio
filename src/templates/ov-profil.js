@@ -6,12 +6,16 @@ Studio.template({
   name: '1b · Profil',
   transparent: true,
 
-  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM],
+  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM]
+    .concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var w = s.w, h = s.h, a = s.a, o = s.o, H = s.H;
     var px = H.px, py = H.py;
     var f = Overlay.fields(a, o, H);
+    /* Le profil reste seul sur la photo : nom et ligne de données sont des
+     * mentions posées dessus, pas la surcouche. */
+    var dit = Alpage.dit(o);
       var P = Overlay.palette(o);
 
     if (o.voile) {
@@ -35,12 +39,12 @@ Studio.template({
     var nSize = px(38), dSize = px(24);
     var base = (h - py(150)) - nSize * 0.26;
 
-    H.text(f.name, left, base, {
+    if (dit.titre) H.text(f.name, left, base, {
       size: nSize, font: H.SANS, weight: 400, tracking: -nSize * 0.01,
       color: P.ink, maxWidth: (right - left) * 0.45
     });
 
-    H.text(f.line, right, base, {
+    if (dit.mesures) H.text(f.line, right, base, {
       size: dSize, font: H.MONO, weight: 400, tracking: dSize * 0.12,
       color: P.a(.85), align: 'right', maxWidth: (right - left) * 0.55
     });

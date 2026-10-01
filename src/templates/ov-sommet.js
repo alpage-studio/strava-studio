@@ -17,7 +17,7 @@
     { key: 'reperes', type: 'toggle', label: 'Repères de distance', default: true },
     { key: 'halo', type: 'toggle', label: 'Halo sur le parcours', default: true },
     Overlay.OPT_SCRIM
-  ];
+  ].concat(Alpage.optionsTexte());
 
   function niceStep(km) {
     var raw = km / 8, steps = [1, 2, 2.5, 5, 10, 20, 25, 50];
@@ -55,12 +55,16 @@
       var value = { size: px(44), font: H.SANS, weight: 400, tracking: -px(44) * 0.01,
                     color: P.ink };
 
+      /* Les positions se calculent TOUJOURS : la géométrie du parcours part
+       * du haut du nom. Seuls les H.text obéissent au réglage. */
+      var dit = Alpage.dit(o);
+
       /* ---------- le bas se pose en premier, du bas vers le haut ---------- */
 
       /* pied : une valeur, pas de notice */
       var capSize = px(20);
       var capBase = (h - py(132)) - capSize * 0.26;
-      H.text(f.ascentUpper + ' D+', left, capBase,
+      if (dit.mesures) H.text(f.ascentUpper + ' D+', left, capBase,
         Object.assign({}, label, { color: P.a(.85) }));
 
       /* filet, puis bande de profil */
@@ -127,7 +131,7 @@
         peakDrawn = true;
       }
 
-      if (peakDrawn && a.elev_max_m != null) {
+      if (peakDrawn && a.elev_max_m != null && dit.mesures) {
         var pxClamped = Math.max(box.x + px(60), Math.min(box.x + box.w - px(60), peakX));
         H.text(a.elev_max_m + ' m', pxClamped, box.y - px(26),
           Object.assign({}, label, { align: 'center', color: P.a(.85) }));
@@ -149,8 +153,10 @@
       var gap = (right - left - sum) / (cols.length - 1);
       var x = left;
       cols.forEach(function (c, i) {
-        H.text(c[0], x, H.bl(lTop, label.size), label);
-        H.text(c[1], x, H.bl(vTop, value.size), value);
+        if (dit.mesures) {
+          H.text(c[0], x, H.bl(lTop, label.size), label);
+          H.text(c[1], x, H.bl(vTop, value.size), value);
+        }
         x += widths[i] + gap;
       });
 
@@ -160,7 +166,7 @@
 
       var nSize = px(52);
       var nameBottom = hair2 - px(34);
-      H.text(f.name, left, H.bl(nameBottom - H.lh(nSize), nSize), {
+      if (dit.titre) H.text(f.name, left, H.bl(nameBottom - H.lh(nSize), nSize), {
         size: nSize, font: H.SANS, weight: 400, tracking: -nSize * 0.02,
         color: P.ink, maxWidth: right - left
       });

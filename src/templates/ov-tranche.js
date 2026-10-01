@@ -6,12 +6,14 @@ Studio.template({
   name: '1f · Tranche',
   transparent: true,
 
-  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM],
+  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM]
+    .concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H;
     var px = H.px, py = H.py;
     var f = Overlay.fields(a, o, H);
+    var dit = Alpage.dit(o);
       var P = Overlay.palette(o);
 
     if (o.voile) {
@@ -27,11 +29,15 @@ Studio.template({
     ctx.restore();
 
     /* colonne verticale : les colonnes se succèdent de droite à gauche */
-    H.vcolumn([
-      { text: f.name, size: px(44), tracking: -px(44) * 0.01, color: P.ink },
+    /* La colonne se FILTRE : une liste vide passerait quand même par
+     * H.vcolumn, qui n'a pas à connaître le réglage. */
+    var colonne = [];
+    if (dit.titre) colonne.push(
+      { text: f.name, size: px(44), tracking: -px(44) * 0.01, color: P.ink });
+    if (dit.mesures) colonne.push(
       { text: f.trio(' · '),
-        size: px(22), font: H.MONO, tracking: px(22) * 0.24, color: P.a(.7) }
-    ], w - px(96), py(180), px(30));
+        size: px(22), font: H.MONO, tracking: px(22) * 0.24, color: P.a(.7) });
+    if (colonne.length) H.vcolumn(colonne, w - px(96), py(180), px(30));
 
     /* petite marque de trace, en bas à gauche */
     H.route(a.route, { x: px(96), y: h - py(180) - px(300), w: px(300), h: px(300) }, {

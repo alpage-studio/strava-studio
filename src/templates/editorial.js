@@ -18,7 +18,7 @@ Studio.template({
                 ['allure', 'Allure par km'], ['fc', 'Fréquence cardiaque'],
                 ['aucun', 'Aucun']] },
     { key: 'photo', type: 'toggle', label: 'Photo en fond', default: false }
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
@@ -43,7 +43,10 @@ Studio.template({
     var CH = g.height; // hauteur utile : toutes les hauteurs s'y rapportent
 
     /* ---------- bandeau de tête ---------- */
-    H.text(a.name, g.left, g.top + u(3.6), H.t('title', {
+    /* Le chiffre héros et son « KM » restent, le graphique aussi. Le nom,
+     * les deux champs secondaires, l'annotation du pic et le pied obéissent. */
+    var dit = Alpage.dit(o);
+    if (dit.titre) H.text(a.name, g.left, g.top + u(3.6), H.t('title', {
       color: o.encre, maxWidth: g.w(4)
     }));
 
@@ -78,10 +81,12 @@ Studio.template({
     /* ---------- deux champs secondaires ---------- */
     var rowY = heroBase + CH * 0.055;
     var fieldU = 5;
-    H.field('en mouvement', H.fmt.duration(a.duration_s), g.x(0), rowY,
-      { color: o.encre, labelColor: gris, size: fieldU, maxWidth: g.w(2) });
-    H.field('vitesse moyenne', H.fmt.speed(a.speed_kmh) + ' km/h',
-      g.x(3), rowY, { color: o.encre, labelColor: gris, size: fieldU, maxWidth: g.w(2) });
+    if (dit.mesures) {
+      H.field('en mouvement', H.fmt.duration(a.duration_s), g.x(0), rowY,
+        { color: o.encre, labelColor: gris, size: fieldU, maxWidth: g.w(2) });
+      H.field('vitesse moyenne', H.fmt.speed(a.speed_kmh) + ' km/h',
+        g.x(3), rowY, { color: o.encre, labelColor: gris, size: fieldU, maxWidth: g.w(2) });
+    }
     var rowBottom = rowY + u(fieldU) * 0.98;
 
     /* ---------- graphique : il occupe ce qui reste ---------- */
@@ -107,7 +112,7 @@ Studio.template({
 
         // une seule valeur annotée, au-dessus de la barre concernée
         var bx = box.x + (peak + 0.5) * (box.w / serie.values.length);
-        H.text(serie.peakLabel, bx, box.y - u(1.6), H.t('label', {
+        if (dit.mesures) H.text(serie.peakLabel, bx, box.y - u(1.6), H.t('label', {
           color: o.accent, align: bx > box.x + box.w * 0.9 ? 'right' : 'center'
         }));
         H.rule(g.left, box.y + box.h + u(0.6), g.right, { color: alpha(o.encre, 0.16) });
@@ -117,11 +122,13 @@ Studio.template({
 
     /* ---------- pied : dénivelé ---------- */
     H.rule(g.left, footTop, g.right, { color: alpha(o.encre, 0.16) });
-    H.text('dénivelé positif', g.left, footY - u(7.4), H.t('label', { color: gris }));
-    H.text(H.fmt.int(a.elev_gain_m) + ' M', g.left, footY, H.t('value', {
-      size: 8, color: o.encre
-    }));
-    if (a.hr_avg) {
+    if (dit.mesures) {
+      H.text('dénivelé positif', g.left, footY - u(7.4), H.t('label', { color: gris }));
+      H.text(H.fmt.int(a.elev_gain_m) + ' M', g.left, footY, H.t('value', {
+        size: 8, color: o.encre
+      }));
+    }
+    if (a.hr_avg && dit.mesures) {
       H.text(a.hr_avg + ' BPM', g.right, footY, H.t('value', {
         size: 4.6, color: alpha(o.encre, 0.5), align: 'right'
       }));

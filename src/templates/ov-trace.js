@@ -6,12 +6,14 @@ Studio.template({
   name: '1c · Trace',
   transparent: true,
 
-  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM],
+  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM]
+    .concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var w = s.w, h = s.h, a = s.a, o = s.o, H = s.H;
     var px = H.px, py = H.py;
     var f = Overlay.fields(a, o, H);
+    var dit = Alpage.dit(o);
       var P = Overlay.palette(o);
 
     if (o.voile) {
@@ -31,13 +33,13 @@ Studio.template({
     var nSize = px(46), dSize = px(22);
     var top = py(1268);
 
-    H.text(f.name, cx, H.bl(top, nSize), {
+    if (dit.titre) H.text(f.name, cx, H.bl(top, nSize), {
       size: nSize, font: H.SANS, weight: 400, tracking: -nSize * 0.02,
       color: P.ink, align: 'center', maxWidth: w - px(160)
     });
 
     var dTop = top + H.lh(nSize) + px(22);
-    H.text(f.trio('   '),
+    if (dit.mesures) H.text(f.trio('   '),
       cx, H.bl(dTop, dSize), {
         size: dSize, font: H.MONO, weight: 400, tracking: dSize * 0.22,
         color: P.a(.7), align: 'center', maxWidth: w - px(160)

@@ -6,12 +6,15 @@ Studio.template({
   name: '1d · Ardoise',
   transparent: true,
 
-  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM],
+  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM]
+    .concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var a = s.a, o = s.o, H = s.H;
     var px = H.px, py = H.py;
     var f = Overlay.fields(a, o, H);
+    /* Même cas que Filet : les trois lignes sont la planche. */
+    var dit = Alpage.dit(o);
       var P = Overlay.palette(o);
 
     if (o.voile) {
@@ -25,7 +28,7 @@ Studio.template({
 
     /* nom + date */
     var nSize = px(40), dSize = px(20);
-    H.text(f.name, left, H.bl(y, nSize), {
+    if (dit.titre) H.text(f.name, left, H.bl(y, nSize), {
       size: nSize, font: H.SANS, weight: 400, tracking: -nSize * 0.01,
       color: P.ink, maxWidth: right - left
     });

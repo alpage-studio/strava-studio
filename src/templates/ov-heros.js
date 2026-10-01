@@ -12,7 +12,7 @@ Studio.template({
     Overlay.OPT_INK,
     Overlay.OPT_THIRD,
     Overlay.OPT_SCRIM
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var w = s.w, h = s.h, a = s.a, o = s.o, H = s.H;
@@ -31,6 +31,10 @@ Studio.template({
     if (o.heros === 'temps') hero = { v: H.fmt.duration(a.duration_s), u: 'de mouvement' };
 
     var left = px(84);
+    /* Le nombre et son unité ne se taisent jamais : ils SONT la surcouche.
+     * « 355 » sans « MÈTRES DE DÉNIVELÉ » n'est pas plus sobre, c'est faux.
+     * Le pied — nom à gauche, deux valeurs à droite — obéit. */
+    var dit = Alpage.dit(o);
     var containerBottom = h - py(300);
 
     /* ligne d'unité, collée au bas du bloc */
@@ -53,8 +57,9 @@ Studio.template({
     var fBase = (h - py(140)) - fSize * 0.26;
     var foot = { size: fSize, font: H.MONO, weight: 400, tracking: fSize * 0.12,
                  color: P.a(.78), upper: true };
-    H.text(f.name, left, fBase, foot);
-    H.text([f.time, f.thirdUpper].filter(function (v) { return v; }).join(' · '), w - px(84), fBase,
-      Object.assign({}, foot, { align: 'right' }));
+    if (dit.titre) H.text(f.name, left, fBase, foot);
+    if (dit.mesures)
+      H.text([f.time, f.thirdUpper].filter(function (v) { return v; }).join(' · '), w - px(84), fBase,
+        Object.assign({}, foot, { align: 'right' }));
   }
 });

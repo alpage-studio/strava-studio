@@ -6,12 +6,16 @@ Studio.template({
   name: '1a · Filet',
   transparent: true,
 
-  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM],
+  options: [Overlay.OPT_INK, Overlay.OPT_THIRD, Overlay.OPT_SCRIM]
+    .concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H;
     var px = H.px, py = H.py;
     var f = Overlay.fields(a, o, H);
+    /* Pas de héros ici : la rangée de statistiques EST la surcouche, et ses
+     * petites capitales en sont les unités. Seul le nom se tait. */
+    var dit = Alpage.dit(o);
       var P = Overlay.palette(o);
 
     if (o.voile) {
@@ -62,7 +66,7 @@ Studio.template({
     /* nom de la sortie */
     var nSize = px(52);
     var nameBottom = hairY - px(34);
-    H.text(f.name, left, H.bl(nameBottom - H.lh(nSize), nSize), {
+    if (dit.titre) H.text(f.name, left, H.bl(nameBottom - H.lh(nSize), nSize), {
       size: nSize, font: H.SANS, weight: 400, tracking: -nSize * 0.02,
       color: P.ink, maxWidth: right - left
     });
