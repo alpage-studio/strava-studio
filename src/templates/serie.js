@@ -64,11 +64,14 @@ Studio.template({
     var footY = g.bottom;
     var totKm = entrees.reduce(function (t, e) { return t + (e.activity.distance_km || 0); }, 0);
     var totT = entrees.reduce(function (t, e) { return t + (e.activity.duration_s || 0); }, 0);
-    var totD = entrees.reduce(function (t, e) { return t + (e.activity.elev_gain_m || 0); }, 0);
+    /* Le dénivelé ne s'écrit que si une sortie au moins l'a mesuré : voir
+     * `Alpage.somme`. « 0 m » affirmerait un terrain plat. */
+    var totD = Alpage.somme(entrees, function (e) { return e.activity.elev_gain_m; });
     H.rule(g.left, footY - u(9), g.right, { color: hair });
     [['total', H.fmt.km(totKm, 0) + ' km'],
      ['en mouvement', H.fmt.duration(totT)],
-     ['dénivelé', Math.round(totD) + ' m']].forEach(function (c, i) {
+     ['dénivelé', totD.mesurees ? Math.round(totD.total) + ' m' : '—']]
+      .forEach(function (c, i) {
       H.field(c[0], c[1], g.left + i * (g.width / 3), footY - u(5.4), {
         color: ink, labelColor: faint, size: 4.2, maxWidth: g.width / 3 - u(2)
       });
@@ -136,8 +139,9 @@ Studio.template({
       H.text(Library.nomCourt(e.activity, cols > 2 ? 16 : 24), tx, ly,
              H.t('label', { color: melange(ink, 0.75), maxWidth: cx + cw - u(2) - tx }));
       if (o.chiffres) {
-        H.text(H.fmt.km(e.activity.distance_km, 1) + ' km · ' +
-               H.fmt.int(e.activity.elev_gain_m) + ' m',
+        H.text(H.fmt.km(e.activity.distance_km, 1) + ' km' +
+               (e.activity.elev_gain_m != null
+                 ? ' · ' + H.fmt.int(e.activity.elev_gain_m) + ' m' : ''),
                tx, ly + u(3.4),
                H.t('label', { color: faint, maxWidth: cx + cw - u(2) - tx }));
       }

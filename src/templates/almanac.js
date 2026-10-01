@@ -511,7 +511,9 @@ Studio.template({
     function noyau(p, cx, cy, rNoyau, compact) {
       var membres = p.membres;
       var km = membres.reduce(function (t, e) { return t + (e.activity.distance_km || 0); }, 0);
-      var dp = membres.reduce(function (t, e) { return t + (e.activity.elev_gain_m || 0); }, 0);
+      /* voir `Alpage.somme` : « 0 M D+ » affirmerait un dénivelé nul là où
+       * aucune sortie n'a porté d'altitude */
+      var dp = Alpage.somme(membres, function (e) { return e.activity.elev_gain_m; });
 
       // le noyau reste dégagé : un disque de papier, pas un cartouche
       ctx.save();
@@ -528,7 +530,9 @@ Studio.template({
       if (!compact) {
         H.text(membres.length + ' sorties', cx, cy + u(3.4),
                H.t('label', { color: faint, align: 'center' }));
-        H.text(H.fmt.km(km, 0) + ' km · ' + Math.round(dp) + ' m D+', cx, cy + u(7),
+        H.text(H.fmt.km(km, 0) + ' km' +
+               (dp.mesurees ? ' · ' + Math.round(dp.total) + ' m D+' : ''),
+               cx, cy + u(7),
                H.t('label', { color: faint, align: 'center' }));
       } else {
         H.text(membres.length + ' · ' + H.fmt.km(km, 0) + ' km', cx, cy + u(3.4),

@@ -44,6 +44,24 @@
       var g = H.grid({ cols: 6, margin: u(7), gutter: u(1.6) });
       var CH = g.height;
 
+      /* PAS DE PENTE INVENTÉE.
+       *
+       * Sans altitude, `smoothSlope` rend une suite de zéros : la planche
+       * dessinait un ruban uniformément plat et annonçait « PENTE MAX 0,0 % ».
+       * Ce n'est pas une sortie plate, c'est une sortie non mesurée — et
+       * l'écrire affirme un terrain qu'on n'a pas relevé.
+       *
+       * Même test que Gravure d'altitude : c'est le profil qui manque, pas le
+       * dénivelé cumulé, qu'un fichier peut porter sans points d'altitude. */
+      if (((a && a.profile) || []).length < 4) {
+        H.text('Cette sortie n’a pas d’altitude', g.left, g.top + g.height * 0.45,
+               H.t('title', { color: ink, maxWidth: g.width }));
+        H.text('Pente lit la déclivité point par point : sans profil, elle n’a rien à montrer',
+               g.left, g.top + g.height * 0.45 + u(5),
+               H.t('label', { color: faint, maxWidth: g.width }));
+        return;
+      }
+
       /* ---------- déclivité lissée ----------
        * Brute, la pente d'un GPS saute entre ±40 % d'un point à l'autre.
        * Lissée sur une fenêtre, elle redevient ce qu'on a senti dans les

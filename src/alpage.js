@@ -684,6 +684,29 @@
     return { debut: new Date(an, 0, 1), fin: new Date(an + 1, 0, 1) };
   }
 
+  /* ---------- UNE SOMME QUI SAIT COMBIEN L'ONT NOURRIE ----------
+   *
+   * LE DÉFAUT RÉEL : `t + (e.activity.elev_gain_m || 0)` additionne sans rien
+   * dire. Sur des sorties qui ne portent PAS d'altitude, le total vaut zéro et
+   * s'écrit « 0 m » — ce qui affirme un dénivelé nul là où il n'y a eu aucune
+   * mesure. Quatre planches le faisaient : Atlas, Almanac, Série et Pente.
+   *
+   * Un zéro n'est pas une absence. Une sortie de plaine avec baromètre dit
+   * « 0 m » à juste titre ; une sortie sans capteur ne dit rien.
+   *
+   * Le total ET le nombre de contributeurs reviennent donc ensemble, et c'est
+   * l'appelant qui décide quoi écrire — mais il ne peut plus l'ignorer. */
+  function somme(entrees, lis) {
+    var total = 0, mesurees = 0;
+    (entrees || []).forEach(function (e) {
+      var v = lis(e);
+      if (v == null || !isFinite(v)) return;
+      total += v;
+      mesurees++;
+    });
+    return { total: total, mesurees: mesurees };
+  }
+
   function dansLaFenetre(date, f) {
     if (!f) return true;
     if (!date) return false;             // sans date, on ne peut pas répondre oui
@@ -842,6 +865,7 @@
     mesures: mesures, serie: serie, cadre: cadre,
     semaineISO: semaineISO,
     fenetre: fenetre, fenetreMois: fenetreMois, fenetreAnnee: fenetreAnnee,
+    somme: somme,
     dansLaFenetre: dansLaFenetre, lundiDe: lundiDe, positionDansPeriode: positionDansPeriode,
     socle: socle, optionsFond: optionsFond, optionsTexte: optionsTexte,
     dit: dit, luminance: luminance,

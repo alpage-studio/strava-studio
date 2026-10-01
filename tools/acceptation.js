@@ -248,6 +248,86 @@
   $('#support').dispatchEvent(new Event('change'));
   await attends(400);
 
+  /* ---------- AUCUNE PLANCHE N'ÉCRIT CE QU'ELLE N'A PAS MESURÉ ----------
+   *
+   * LE DÉFAUT RÉEL, RAPPORTÉ PAR DOUZE RELECTEURS : sur une sortie sans
+   * altitude, Atlas et Série écrivaient « 0 m », Almanac « 0 M D+ », et Pente
+   * dessinait un ruban uniformément plat sous « PENTE MAX 0,0 % ».
+   *
+   * UN ZÉRO N'EST PAS UNE ABSENCE. Une sortie de plaine avec baromètre dit
+   * « 0 m » à juste titre ; une sortie sans capteur ne dit rien. La cause était
+   * partout la même : `t + (e.activity.elev_gain_m || 0)` additionne sans
+   * distinguer « zéro mètre » de « pas de mesure ».
+   *
+   * ON INTERCEPTE LE TEXTE AU NIVEAU DU CANVAS, pas dans les helpers : on voit
+   * ainsi ce qui est RÉELLEMENT peint, quel que soit le chemin qui l'a produit.
+   * Relire les templates aurait manqué tout ce qui passe autrement.
+   *
+   * La sortie d'épreuve est fabriquée à partir du vrai tracé chargé, privé de
+   * son altitude : un parcours plausible, sans profil. */
+  (function () {
+    var base = App.etat.base;
+    if (!base || !base.track || base.track.length < 10 || !window.Activity.fromPoints) {
+      resultats.push({ cas: 'honnêteté · zéros fabriqués', verdict: 'sauté',
+                       detail: 'pas de tracé à dénuder' });
+      return;
+    }
+    var pts = base.track.map(function (p) { return { lat: p.lat, lon: p.lon, t: p.t }; });
+    var nue = window.Activity.fromPoints({ name: 'Sans altitude', type: 'Ride' }, pts);
+    ok('honnêteté · la sortie d’épreuve n’a effectivement pas d’altitude  (' +
+       (nue.elev_gain_m === null ? 'null' : nue.elev_gain_m) + ')',
+       nue.elev_gain_m == null && (nue.profile || []).length < 4,
+       'sans cela, ce contrôle serait vert en n’ayant rien éprouvé');
+
+    /* trois entrées, pour que les planches multi-sorties aient de quoi dessiner */
+    var biblio = [1, 2, 3].map(function (n) {
+      return { id: 'nu' + n, rang: n, couleur: Library.COULEURS[n - 1], activity: nue };
+    });
+
+    var proto = CanvasRenderingContext2D.prototype;
+    var vraiFill = proto.fillText, vraiStroke = proto.strokeText;
+    var capture = [];
+    proto.fillText = function (t) { capture.push(String(t)); return vraiFill.apply(this, arguments); };
+    proto.strokeText = function (t) { capture.push(String(t)); return vraiStroke.apply(this, arguments); };
+
+    /* Un zéro suivi d'une UNITÉ : c'est l'affirmation d'une mesure. Un « 0 »
+     * nu — un compteur, une graduation d'axe — n'affirme rien. */
+    var suspect = /(^|[^\d,.])0([,.]0+)?\s*(%|m\b|m\s*d\+|km|w\b|bpm)/i;
+    var fautives = [];
+    var rendues = 0;
+    try {
+      Studio.all().forEach(function (tpl) {
+        capture = [];
+        try {
+          Studio.setSupport(false); Studio.setVoile('aucun');
+          Studio.setAchromatique(false);
+          if (Studio.setSurface) Studio.setSurface('papier');
+          Studio.setLibrary(biblio);
+          var cv = document.createElement('canvas');
+          Studio.render(cv, tpl.id, nue, { mentions: 'donnees' }, [540, 675]);
+          rendues++;
+        } catch (e) { return; }
+        var d = capture.filter(function (t) { return suspect.test(t); });
+        if (d.length) fautives.push(tpl.id + ' : « ' + d[0] + ' »');
+      });
+    } finally {
+      proto.fillText = vraiFill;
+      proto.strokeText = vraiStroke;
+    }
+
+    /* Le compte doit être plausible : à zéro planche rendue, ce contrôle serait
+     * vert en n'ayant rien regardé. */
+    ok('honnêteté · toutes les planches ont été rendues sans altitude  (' +
+       rendues + '/' + Studio.all().length + ')',
+       rendues >= Studio.all().length - 1);
+    ok('honnêteté · aucune planche n’écrit une mesure que la sortie ne porte pas',
+       fautives.length === 0,
+       fautives.join(' | ') + ' — un zéro affirme une mesure nulle, ' +
+       'une absence ne s’écrit pas avec un chiffre');
+
+    Studio.setLibrary(App.entreesRetenues ? App.entreesRetenues() : Library.list());
+  }());
+
   /* ---------- CE QUE L'APPEL RÉEL RAMÈNE ----------
    *
    * LE DÉFAUT QUE CE CAS AURAIT ATTRAPÉ, ET QUE RIEN N'A ATTRAPÉ :

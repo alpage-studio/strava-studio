@@ -534,10 +534,12 @@ Studio.template({
       H.rule(colX, yRegle, colX + colW, { color: hair });
       var km = semaine.reduce(function (t, e) { return t + (e.activity.distance_km || 0); }, 0);
       var sec = semaine.reduce(function (t, e) { return t + (e.activity.duration_s || 0); }, 0);
-      var dp = semaine.reduce(function (t, e) { return t + (e.activity.elev_gain_m || 0); }, 0);
+      /* voir `Alpage.somme` : un total sans contributeur ne s'écrit pas */
+      var dp = Alpage.somme(semaine, function (e) { return e.activity.elev_gain_m; });
       [['distance', H.fmt.km(km, 0) + ' km'],
        ['en mouvement', H.fmt.duration(sec)],
-       ['dénivelé', Math.round(dp) + ' m']].forEach(function (c, i) {
+       ['dénivelé', dp.mesurees ? Math.round(dp.total) + ' m' : '—']]
+        .forEach(function (c, i) {
         /* Largeur de colonne ET corps s'adaptent au format : « 2 807 m » à
          * 5,4 unités dans un tiers de colonne paysage débordait sur le
          * voisin. `maxWidth` rétrécit, mais rétrécir de moitié se voit. */
