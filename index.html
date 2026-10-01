@@ -271,9 +271,23 @@
      haut, dans une fenetre qui en montre 519. Il fallait trente-trois crans
      de molette pour traverser une famille. A 128 px, la meme largeur en
      donne deux, et la carte tombe sous la moitie. */
+  /* DEUX COLONNES, TOUJOURS, ET DES CARTES QUI SUIVENT LE PANNEAU.
+   *
+   * `auto-fill` avec un minimum de 128 px donnait deux colonnes dans la
+   * colonne de gauche — et TROIS dès qu'un écran large élargissait le panneau,
+   * ce qui rapetissait les cartes au moment même où il y avait enfin de la
+   * place. Un nombre fixe fait grandir la carte avec le panneau au lieu d'en
+   * ajouter une de plus.
+   *
+   * POURQUOI PAS UNE SEULE COLONNE. Le commentaire ci-dessus dit d'où l'on
+   * vient : à 300 px de large, une carte en fait 583 de haut dans une fenêtre
+   * qui en montre 519, et traverser une famille demandait trente-trois crans
+   * de molette. Mesuré à nouveau : une colonne coûterait 6,8 écrans de
+   * défilement pour onze cartes, contre 1,9 à deux colonnes. On élargit donc
+   * le panneau plutôt que de retirer une colonne. */
   .familles, .variantes {
     display: grid; gap: 8px;
-    grid-template-columns: repeat(auto-fill, minmax(min(128px, 100%), 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .carte-style {
     display: block; width: 100%; text-align: left; padding: 0;
@@ -439,8 +453,14 @@
      sur un ecran de 1920 : le catalogue y tenait a l'etroit, les puces de
      familles sortaient du cadre et se coupaient en plein mot. On lui donne un
      socle et un plafond — au-dela, c'est la planche qui merite l'espace. */
+  /* LE PANNEAU EST LE PLAFOND DES VIGNETTES.
+   *
+   * Mesuré : à 1280 px de fenêtre il faisait 333 px, donc 300 de contenu, donc
+   * des cartes de 146 — et une légende de planche y tombait à deux pixels. On
+   * ne juge pas une composition à cette taille. Élargir le panneau fait
+   * grandir les cartes partout, sans toucher à la grille ni au défilement. */
   aside {
-    width: clamp(330px, 26vw, 460px); flex: none; background: var(--panel);
+    width: clamp(360px, 30vw, 560px); flex: none; background: var(--panel);
     border-right: 1px solid var(--line);
     display: flex; flex-direction: column; min-height: 0;
   }
