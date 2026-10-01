@@ -11,8 +11,8 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.1';
-var STUDIO_DATE = '30.09.2026';
+var STUDIO_VERSION = '3.17.2';
+var STUDIO_DATE = '01.10.2026';
 
 /* ---------- le journal ----------
  *
@@ -34,6 +34,9 @@ var STUDIO_DATE = '30.09.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.2', d: '01.10.2026', points: [
+    'Rien ne change dans le studio. Le carnet de route, la seconde application de la suite, ajoute la topo swisstopo d’un bouton — en ligne comme en local — et écrit l’altitude d’un lieu comme celle du chemin à son passage, pas celle du sommet qu’il longe.'
+  ] },
   { v: '3.17.1', d: '01.10.2026', points: [
     'Trois constats de relecteurs, restés ouverts. « Recentrer » remettait aussi l’échelle à 100 : on réglait sa taille, on recentrait, et on perdait son réglage sans l’avoir demandé. L’échelle a son propre curseur juste à côté.',
     'Dans la galerie, sept familles s’affichaient toutes sous le nom « Encre ». La page ne chargeait que six fichiers de planche pour douze référencés, et le moteur rend la PREMIÈRE planche quand on lui demande un identifiant inconnu — un repli qui ne dit pas son nom. Les relecteurs en avaient vu cinq ; il y en avait sept.',
