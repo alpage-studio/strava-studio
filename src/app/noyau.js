@@ -84,15 +84,69 @@
 
   var file = [];
 
+  /* QUEL OUTIL SERT CETTE PAGE ?
+   *
+   * Le même moteur sert deux portes : Trace (une sortie → une œuvre) et
+   * l'Atlas (une période → une lecture). Ce n'est pas une copie du studio :
+   * `atlas.html` charge exactement les mêmes fichiers et pose ce drapeau
+   * AVANT eux. Dupliquer le moteur aurait créé deux vérités à tenir à jour.
+   *
+   * Le défaut est Trace : `index.html` ne pose rien, et la racine du site
+   * reste ce qu'elle a toujours été pour qui l'a installée ou mise en favori. */
+  var outil = (function () {
+    if (global.ALPAGE_OUTIL === 'atlas') return 'atlas';
+    /* `atlas.html` ne recopie pas le studio — elle en porte l'ADRESSE et
+     * redirige ici en passant le mode dans la requête. Voir le commentaire
+     * de cette page : recopier 1384 lignes de markup aurait créé deux
+     * interfaces à tenir à jour, et rien pour dire quand elles divergent. */
+    try {
+      if (/(^|[?&])outil=atlas(&|$)/.test(global.location.search)) return 'atlas';
+    } catch (e) { /* pas de location : on reste sur le défaut */ }
+    return 'trace';
+  }());
+
   global.App = {
     $: $,
     SIZES: SIZES,
     etat: etat,
+    outil: outil,
     canvas: $('#canvas'),
 
     /* Déposer une mise en route. Elle s'exécutera quand tous les fichiers
      * seront chargés, dans l'ordre où elle a été déposée. */
     auDemarrage: function (fn) { file.push(fn); },
+
+    /* CETTE PLANCHE A-T-ELLE SA PLACE DANS CET OUTIL ?
+     *
+     * Atlas  : tout ce qui PEUT demander plusieurs sorties, même si son
+     *          réglage par défaut n'en demande qu'une.
+     * Trace  : tout ce qui se contente d'une sortie À SON DÉFAUT.
+     *
+     * Empreinte est dans les deux, et c'est voulu : Sceau pour une sortie,
+     * Collection pour plusieurs. Aucune planche n'est absente des deux —
+     * une garde du harnais le vérifie, parce qu'une planche qui disparaîtrait
+     * des deux portes ne lèverait aucune erreur. */
+    dansLOutil: function (tpl) {
+      if (typeof tpl === 'string') tpl = global.Studio.get(tpl);
+      if (!tpl) return false;
+      if (outil === 'atlas') return global.Studio.peutEtreMulti(tpl);
+      var defauts = {};
+      (tpl.options || []).forEach(function (d) { defauts[d.key] = d.default; });
+      return !global.Studio.estMulti(tpl, defauts);
+    },
+
+    /* Une VARIANTE d'une planche partagée. Empreinte montre Sceau, Soleil,
+     * Contre-empreinte et Sceau cerclé dans Trace ; Triptyque, Collection
+     * et Îlots dans l'Atlas. Montrer les sept des deux côtés rendrait la
+     * séparation décorative. */
+    varianteDansLOutil: function (tpl, o) {
+      if (typeof tpl === 'string') tpl = global.Studio.get(tpl);
+      if (!tpl) return false;
+      var vals = {};
+      (tpl.options || []).forEach(function (d) { vals[d.key] = d.default; });
+      Object.keys(o || {}).forEach(function (k) { vals[k] = o[k]; });
+      return global.Studio.estMulti(tpl, vals) === (outil === 'atlas');
+    },
 
     /* Appelé par demarrage.js, une seule fois. */
     demarre: function () {

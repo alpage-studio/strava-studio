@@ -826,38 +826,79 @@
        qu'on se pose devant un ecran qui surprend. */
     @media (max-width: 360px) { header #header-date { display: none; } }
   }
-  /* LA MARQUE MÈNE À LA SUITE, la pastille « Suite » n'en est que le rappel.
-     Sur un téléphone la rangée n'a pas la place des deux : l'entête débordait
-     de 13 px à 390 et de 21 px à 430 (acceptation). On retire le DOUBLON, pas
-     l'accès — la marque reste un lien. */
+  /* LA MARQUE MÈNE À L'ACCUEIL, et la rangée des outils dit où l'on est.
+     Sur un téléphone la place manque : l'entête débordait déjà de 13 px à
+     390 et de 21 px à 430 quand elle portait un doublon. On garde donc les
+     trois outils — ils SONT la navigation — et on retire ce qui se déduit :
+     la baseline, la galerie et la date passent sous 560 px. */
   a.marque-nom { color: inherit; text-decoration: none; }
-  @media (max-width: 500px) { header .lien-suite { display: none; } }
+  header .outils { display: flex; gap: 2px; align-items: center; }
+  header .outils a { padding: 5px 8px; }
+  /* L'outil courant ne se clique pas : un lien vers la page où l'on est
+     apprend à se méfier des liens. */
+  header .outils .ici {
+    color: var(--acc); border-color: var(--acc); cursor: default;
+  }
+  header .langue-choix {
+    font: inherit; font-size: 12px; background: none; color: inherit;
+    border: 1px solid var(--trait); border-radius: 4px; padding: 4px 6px;
+  }
+  @media (max-width: 560px) {
+    header .sub, header .lien-galerie:not(.outil) { display: none; }
+    /* La DATE part, le NUMÉRO reste. La 3.6.2 avait corrigé l'inverse : le
+       numéro caché avec la baseline, et aucun moyen de savoir quelle version
+       on regardait — précisément la question qu'on se pose quand l'écran
+       surprend. La date, elle, ne répond à rien d'urgent. */
+    header #header-date { display: none; }
+    header .outils a, header .outils span { padding: 5px 6px; }
+  }
 </style>
 </head>
 <body>
 
 <header>
-  <a class="marque-nom" href="suite.html" title="La suite alpage studio">
+  <!-- La marque mène à l'accueil, qui présente les trois outils. Elle
+       pointait sur suite.html tant que l'accueil n'existait pas : les deux
+       lots sortent dans la même publication, et suite.html redirige désormais
+       vers accueil.html pour les liens déjà partagés. -->
+  <a class="marque-nom" href="accueil.html" title="Les outils alpage">
     <svg class="mark" viewBox="0 0 24 24" aria-hidden="true">
       <path d="M5.7 20.4 C7.2 14.3 9.5 8.5 12.4 4.5 C14.5 9.3 16.4 14.7 17.9 19.8
                C16.6 19.2 13.3 17 6.7 16.5"/>
     </svg>
-    <h1>alpage <span class="second">studio</span></h1>
+    <h1>alpage <span class="second">trace</span></h1>
   </a>
-  <span class="sub">tes données, tes templates, ton code</span>
+  <span class="sub">une sortie, interprétée</span>
   <div class="spacer"></div>
   <span class="sub" id="header-note"><span id="header-date"></span></span>
+  <!-- LES TROIS OUTILS. Ce ne sont pas trois applications : Trace et Atlas
+       sont le même moteur ouvert sur une question différente — une sortie,
+       ou une période. Atlas porte son adresse et passe le mode en requête ;
+       voir le commentaire d'atlas.html. -->
+  <!-- `data-brut` : TRACE, ATLAS et CARNET SONT DES NOMS PROPRES.
+       Sans lui, le dictionnaire les traduit — mesuré : « Trace » devenait
+       « Route » (l'entrée existe pour la PLANCHE du même nom) et « Carnet »
+       devenait « Notebook ». La barre de navigation annonçait trois outils
+       qui ne portaient pas les noms du produit. -->
+  <nav class="outils" data-brut aria-label="Les outils alpage">
+    <span class="lien-galerie outil ici" aria-current="page">Trace</span>
+    <a class="lien-galerie outil" href="atlas.html">Atlas</a>
+    <a class="lien-galerie outil" href="carnet.html">Carnet</a>
+  </nav>
   <!-- La revue des compositions. Elle vit à côté du studio et non dedans :
        c'est une page de contact, pas un écran de l'outil. -->
-  <a class="lien-galerie lien-suite" href="suite.html">Suite</a>
   <a class="lien-galerie" href="apercus/">Galerie</a>
-  <!-- L'INTERFACE EST EN ANGLAIS, ET IL N'Y A PLUS DE CHOIX.
-       Le studio se partage, et « Épaisseur par » ne se devine pas. Le
-       sélecteur FR/EN proposait une alternative que personne ne prenait et
-       qu'il fallait tenir dans deux états. Le moteur de traduction reste :
-       c'est LUI qui produit l'anglais — les libellés sont écrits en français
-       dans le code et traduits à l'affichage. Le retirer voudrait dire
-       réécrire six cents libellés dans trente-deux planches. -->
+  <!-- Le socle de langue y pose son sélecteur. Vide tant que src/langue.js
+       n'est pas chargé : l'emplacement ne décide de rien. -->
+  <span data-langue="interface"></span>
+  <!-- LA LANGUE REDEVIENT UN CHOIX, ET CE COMMENTAIRE DISAIT LE CONTRAIRE.
+       Il affirmait « l'interface est en anglais » depuis la 3.5 ; la 3.12 l'a
+       repassée en français parce qu'une interface anglaise produisait des
+       affiches françaises, et douze relecteurs sur douze ont vu le mélange.
+       Le défaut était le MÉLANGE, pas l'anglais. Deux réglages séparés le
+       règlent à la racine : la langue de l'INTERFACE et celle des IMAGES.
+       L'interface ne passera en anglais que quand les planches sauront y
+       graver leur texte — sinon on refait exactement le défaut de la 3.5. -->
   <button class="theme" id="theme" type="button" aria-label="Papier ou sombre">◐</button>
 </header>
 
@@ -1309,6 +1350,10 @@
 <script src="src/version.js"></script>
 <!-- La langue AVANT tout le reste : app.js traduit les libellés qu'il
      construit, et il ne peut pas le faire si le dictionnaire arrive après. -->
+<!-- Le socle de langue vient AVANT le dictionnaire : c'est lui qui dit
+     quelle langue i18n doit servir. Dans l'autre ordre, i18n se figerait
+     sur son défaut et le réglage ne porterait rien. -->
+<script src="src/langue.js"></script>
 <script src="src/i18n.js"></script>
 <script src="src/activity.js"></script>
 <script src="src/studio.js"></script>

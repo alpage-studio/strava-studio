@@ -14,9 +14,21 @@
 
 
   /* ---------- persistance légère ---------- */
+  /* UNE MÉMOIRE PAR OUTIL.
+   *
+   * Trace et Atlas partagent le moteur, pas leurs réglages : la planche, la
+   * période, le format. Sur une seule clé, ouvrir l'un écraserait le choix
+   * fait dans l'autre, et on reviendrait à l'Atlas en le trouvant réglé sur
+   * une planche mono-sortie.
+   *
+   * Trace garde `strava-studio` : c'est la clé de tous ceux qui ont déjà
+   * utilisé le studio, et la changer leur ferait perdre leurs réglages sans
+   * rien gagner en échange. */
+  var CLE_REGLAGES = A.outil === 'atlas' ? 'alpage-atlas' : 'strava-studio';
+
   function save() {
     try {
-      localStorage.setItem('strava-studio', JSON.stringify({
+      localStorage.setItem(CLE_REGLAGES, JSON.stringify({
         tpl: $('#tpl').value, size: $('#size').value, opts: E.optionValues,
         collection: $('#collection').value, minimal: $('#minimal').checked,
         rendu: $('#rendu').value, photoNb: $('#photo-nb').checked,
@@ -31,7 +43,7 @@
     } catch (e) { /* mode privé : tant pis */ }
   }
   function load() {
-    try { return JSON.parse(localStorage.getItem('strava-studio')) || {}; }
+    try { return JSON.parse(localStorage.getItem(CLE_REGLAGES)) || {}; }
     catch (e) { return {}; }
   }
 
@@ -1016,7 +1028,9 @@
     FAMILLES.forEach(function (f) {
       var og = document.createElement('optgroup');
       og.label = T(f.label);
-      Studio.all().filter(function (t) { return t.famille === f.id; }).forEach(function (t) {
+      Studio.all().filter(function (t) {
+        return t.famille === f.id && A.dansLOutil(t);
+      }).forEach(function (t) {
         var op = document.createElement('option');
         op.value = t.id; op.textContent = T(t.name);
         og.appendChild(op);
@@ -1050,7 +1064,12 @@
     });
 
     if (saved.opts) E.optionValues = saved.opts;
-    if (saved.tpl && Studio.get(saved.tpl).id === saved.tpl) $('#tpl').value = saved.tpl;
+    /* On ne reprend une planche enregistrée que si elle a sa place ici : une
+     * mémoire d'Atlas relue dans Trace désignerait une planche absente du
+     * menu, et `#tpl.value` resterait silencieusement sur la première. */
+    if (saved.tpl && Studio.get(saved.tpl).id === saved.tpl && A.dansLOutil(saved.tpl)) {
+      $('#tpl').value = saved.tpl;
+    }
     if (saved.size && SIZES[saved.size]) $('#size').value = saved.size;
     if (saved.minimal) $('#minimal').checked = true;
     if (saved.rendu) $('#rendu').value = saved.rendu;

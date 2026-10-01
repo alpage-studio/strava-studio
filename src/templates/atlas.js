@@ -30,7 +30,12 @@
  */
 Studio.template({
   id: 'atlas',
-  name: 'Atlas hebdomadaire — sept jours, un territoire',
+  /* Le NOM AFFICHÉ change, l'identifiant non : `atlas` est écrit dans les
+   * projets enregistrés et dans les préférences de chacun, le changer
+   * casserait les fichiers existants. Il fallait néanmoins que la planche
+   * cesse de s'appeler comme l'outil qui la contient — c'est l'ambiguïté
+   * « le tout et la partie » que ce chantier corrige. */
+  name: 'Semaine — sept jours, un territoire',
   famille: 'serie',
   /* La transparence est une OPTION : la même planche s'exporte sur papier
    * ou en surcouche à poser sur une photo. */

@@ -322,5 +322,12 @@ async function passe(navigateur, base, ecran, interception) {
               (sautes ? ' · ' + sautes + ' sautés' : ''));
   console.log('NON COUVERT ICI : aperçu animé, séquence PNG. L’export vidéo, lui, ' +
               'est désormais éprouvé — il était cassé et cette ligne disait de ne pas regarder.');
+  /* ATLAS N'EST PAS PARCOURU. Ce parcours ouvre index.html, donc l'outil Trace
+   * et ses 28 planches. Les 10 planches multi-sorties ne sont atteignables que
+   * par index.html?outil=atlas, et le cas « l'export refuse le vide » s'y
+   * saute faute de planche. Tant que cette ligne est là, personne ne doit
+   * croire qu'Atlas est couvert : il ne l'est pas. */
+  console.log('NON COUVERT ICI non plus : l’outil Atlas (index.html?outil=atlas) ' +
+              'et ses dix planches multi-sorties.');
   process.exitCode = echecs ? 1 : 0;
 }());

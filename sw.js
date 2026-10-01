@@ -29,7 +29,7 @@ const VERSION = 'studio-v' + STUDIO_VERSION;
  * src/version.js, qui demeure la source unique. Un contrôle du harnais refuse
  * qu'elle diverge, exactement comme il refuse un journal dont la première
  * entrée ne porte pas le numéro servi. */
-const GENERATION = '3.17.5';
+const GENERATION = '3.17.6';
 
 /* Le strict nécessaire pour démarrer hors ligne. Les templates sont listés
  * un par un : en ajouter un demande une ligne ici, et un changement de
@@ -37,6 +37,13 @@ const GENERATION = '3.17.5';
 const SHELL = [
   './',
   './index.html',
+  /* Atlas DOIT être ici. Sans réseau, une page absente du cache retombe sur
+   * index.html (voir le repli de navigation plus bas) : Atlas s'ouvrirait en
+   * mode Trace, à l'adresse d'Atlas, sans rien dire. */
+  './atlas.html',
+  /* Le socle de langue décide de ce que l'interface affiche : hors du cache,
+   * la page s'ouvrirait hors ligne dans une autre langue que la veille. */
+  './src/langue.js',
   './manifest.webmanifest',
   './assets/archivo-latin.woff2',
   './assets/archivo-latin-ext.woff2',
@@ -127,6 +134,31 @@ const SHELL = [
   './src/templates/ov-heros.js',
   './src/templates/ov-tranche.js',
   './src/templates/ov-sommet.js'
+
+  /* LE CARNET ET L'ACCUEIL ENTRENT DANS LE CACHE.
+   *
+   * Ils n'y étaient pas, et le repli de navigation servait donc index.html
+   * à LEUR adresse : on ouvrait le Carnet hors ligne et on obtenait le
+   * studio, sans un mot. Une garde du harnais refuse désormais qu'une page
+   * du produit manque ici.
+   *
+   * L'argument qui les tenait dehors — éviter de monter la version à chaque
+   * retouche du carnet — ne tient plus : chaque commit sur main monte déjà
+   * la version. `suite.html` reste dehors : ce n'est qu'un relais. */
+  './accueil.html',
+  './src/accueil.js',
+  './carnet.html',
+  './src/carnet/exif.js',
+  './src/carnet/composer.js',
+  './src/carnet/relief.js',
+  './src/carnet/noms.js',
+  './src/carnet/lecteur.js',
+  './src/carnet/horizon.js',
+  './src/carnet/recit.js',
+  './src/carnet/promo.js',
+  './src/carnet/reel.js',
+  './src/carnet/montage.js',
+  './src/carnet/page.js',
 ];
 
 self.addEventListener('install', function (e) {

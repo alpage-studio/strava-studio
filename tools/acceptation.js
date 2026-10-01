@@ -871,13 +871,18 @@
        /3/.test(ligne) && /2/.test(ligne) && /1/.test(ligne) && /4/.test(ligne));
     /* IL DIT QUOI FAIRE. « 26 refusées » laisse devant un mur ; l'import est
      * repartable, et c'est le seul renseignement qui serve ici. */
+    /* La phrase existe dans les deux langues depuis que l'interface se
+     * choisit : chercher « reprend » seul rendait ce cas rouge en anglais,
+     * alors que le message était juste. On vérifie ce qu'il DIT, pas la
+     * langue dans laquelle il le dit. */
     ok('import · devant un refus de rythme, il dit que l’import se relance',
-       /reprend/.test(ligne), ligne);
+       /reprend|resumes/i.test(ligne), ligne);
     /* LE NOMBRE TROUVÉ EST ÉCRIT, ET EN TÊTE. Sans lui, une période qui ne rend
      * que cinq sorties oblige à additionner pour s'en apercevoir — et c'est
      * exactement le chiffre qu'on cherche quand on soupçonne un plafond. */
+    /* Ce qui compte est que le nombre soit EN TÊTE, pas le mot qui suit. */
     ok('import · il dit d’abord combien la période en contenait',
-       /^6 sorties trouvées/.test(ligne), ligne);
+       /^6 (sorties trouvées|rides found)/.test(ligne), ligne);
     $('#icu-progres').textContent = '';
 
     /* On rend la bibliothèque telle qu'on l'a trouvée. */
@@ -1465,6 +1470,22 @@
   (function () {
     if (!$('#periode') || !$('#tpl')) {
       resultats.push({ cas: 'export · refus du vide', verdict: 'sauté', detail: 'reglages absents' });
+      return;
+    }
+    /* `serie` est une planche MULTI-SORTIES : depuis que Trace et Atlas ont
+     * chacun leur liste, elle n'existe plus dans le menu de Trace. Poser
+     * `#tpl.value = 'serie'` sur un menu qui ne l'a pas ne lève rien — le
+     * select reste sur sa valeur, et ce cas mesurait l'export d'une planche
+     * MONO en croyant éprouver le refus du vide. Il a été vert ainsi.
+     *
+     * On vérifie donc d'abord que la planche est atteignable, et on le DIT
+     * quand elle ne l'est pas. Le comportement reste à éprouver côté Atlas :
+     * c'est écrit au bas du parcours, avec ce qui n'est pas couvert ici. */
+    var dispo = Array.prototype.some.call($('#tpl').options,
+      function (o) { return o.value === 'serie'; });
+    if (!dispo) {
+      resultats.push({ cas: 'export · refus du vide', verdict: 'sauté',
+        detail: 'planche multi absente de cet outil — à éprouver dans Atlas' });
       return;
     }
     var tplAvant = $('#tpl').value, perAvant = $('#periode').value;

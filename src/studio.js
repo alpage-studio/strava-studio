@@ -266,6 +266,40 @@
     return !!tpl.transparent(o);
   }
 
+  /* Une planche PEUT-ELLE être multi-sorties, pour un réglage ou un autre ?
+   *
+   * `estMulti` répond pour UN point de l'espace des options. Le catalogue, lui,
+   * n'a que les valeurs par défaut — et Empreinte y serait classée par son
+   * défaut « sceau », donc mono, et n'apparaîtrait jamais dans l'Atlas alors
+   * qu'elle y a trois compositions.
+   *
+   * Il faut donc DEUX questions, et non une :
+   *   peutEtreMulti(tpl)      « a sa place dans l'Atlas »   → le catalogue
+   *   estMulti(tpl, opts)     « l'est en ce moment »       → période et export
+   *
+   * On balaie chaque menu un à un, les autres au défaut. Pas le produit
+   * cartésien : la portée ne dépend que d'une clé, et un balayage complet
+   * coûterait des milliers d'appels pour la même réponse. Si une planche
+   * venait à croiser deux réglages, ce commentaire serait le premier à mentir
+   * — d'où la garde du harnais qui compte les planches classées. */
+  function peutEtreMulti(tpl) {
+    if (typeof tpl === 'string') tpl = get(tpl);
+    if (!tpl) return false;
+    var defauts = {};
+    (tpl.options || []).forEach(function (d) { defauts[d.key] = d.default; });
+    if (estMulti(tpl, defauts)) return true;
+    if (typeof tpl.multi !== 'function') return false;
+    return (tpl.options || []).some(function (d) {
+      if (d.type !== 'select' || !d.choices) return false;
+      return d.choices.some(function (c) {
+        var essai = {};
+        Object.keys(defauts).forEach(function (k) { essai[k] = defauts[k]; });
+        essai[d.key] = c[0];
+        return estMulti(tpl, essai);
+      });
+    });
+  }
+
   /* Un template est-il MULTI-SORTIES pour ces options ?
    *
    * Meme piege que `transparent`, et le commentaire ci-dessus dit ce qu'il
@@ -933,6 +967,7 @@
     template: template, all: all, get: get, connait: connait, chrono: chrono,
     estTransparent: estTransparent,
     estMulti: estMulti,
+    peutEtreMulti: peutEtreMulti,
     render: render, exportPNG: exportPNG, posePhys: posePhys, setPhoto: setPhoto, setMinimal: setMinimal,
     setLibrary: setLibrary, setHistorique: setHistorique,
     setAchromatique: setAchromatique,

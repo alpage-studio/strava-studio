@@ -211,6 +211,29 @@ function testsCoherence() {
   ok('sw.js · le fichier de version est mis en cache',
      shell.includes('src/version.js'));
 
+  /* TOUTE PAGE DU PRODUIT DOIT ÊTRE DANS LE CACHE, ET PAS SEULEMENT SES SCRIPTS.
+   *
+   * Hors ligne, une page absente du cache retombe sur index.html — c'est le
+   * repli de navigation de sw.js, et il est voulu. Mais atlas.html n'est pas
+   * une page comme une autre : elle porte le MODE. Hors du SHELL, elle
+   * servirait index.html en mode Trace, à l'adresse d'Atlas, avec les 27
+   * planches d'une sortie là où l'on en attend 10. Aucune erreur, aucun
+   * message : juste le mauvais outil.
+   *
+   * PORTÉE : les quatre pages du produit. Elle a commencé aux deux pages du
+   * moteur — celles dont le repli change d'OUTIL plutôt que de casser une
+   * page — puis le Carnet et l'accueil sont entrés dans le cache avec leurs
+   * scripts. `suite.html` n'y est pas : c'est un relais vers l'accueil, et
+   * le servir hors ligne n'apporterait rien. */
+  const pagesProduit = ['index.html', 'atlas.html', 'accueil.html', 'carnet.html']
+    .filter(f => fs.existsSync(path.join(ROOT, f)));
+  const pagesHorsCache = pagesProduit.filter(f => !shell.includes(f));
+  ok('sw.js · toutes les pages du produit sont dans SHELL  (' +
+     pagesProduit.length + ' pages)',
+     pagesHorsCache.length === 0 && pagesProduit.length >= 2,
+     pagesHorsCache.join(', ') + ' — hors ligne, elles serviraient index.html ' +
+     'à leur adresse, sans le dire');
+
   /* ---------- LES OCTETS DE sw.js DOIVENT CHANGER À CHAQUE VERSION ----------
    *
    * LE DÉFAUT RÉEL, MESURABLE DANS L'HISTORIQUE : `git diff v3.11 v3.12 --
@@ -752,6 +775,15 @@ function testsCoherence() {
        * PERIMETRE plutot que de regle. */
       const gal = path.join(ROOT, 'apercus', 'index.html');
       if (fs.existsSync(gal)) corpus += fs.readFileSync(gal, 'utf8');
+      /* QUATRIEME fois, et le commentaire ci-dessus l'annoncait. L'accueil est
+       * une page publique de plus, traduite par le meme dictionnaire : hors du
+       * corpus, ses libelles passent pour orphelins. Le `existsSync` n'est pas
+       * de la prudence decorative — l'accueil et le studio se publient par lots
+       * separes, et ce controle doit rester juste entre les deux. */
+      ['accueil.html', 'carnet.html'].forEach(function (f) {
+        const q = path.join(ROOT, f);
+        if (fs.existsSync(q)) corpus += fs.readFileSync(q, 'utf8');
+      });
       corpus = nettoie(corpus);
       const orphelines = Object.keys(DICO).filter(function (k) {
         return corpus.indexOf(nettoie(k)) < 0;
@@ -2036,6 +2068,64 @@ function testsPorteeDynamique() {
      'utilise Studio.estTransparent / Studio.estMulti');
 }
 
+/* ========== 2 terdecies. UN NOM D'OUTIL NE SE TRADUIT PAS ==================
+ *
+ * LE DÉFAUT, MESURÉ DANS LES DEUX FENÊTRES LE MÊME JOUR.
+ *
+ * L'entête porte « Trace · Atlas · Carnet », les trois outils d'alpage. Le
+ * dictionnaire, lui, contient `'Trace': 'Route'` — l'entrée existe pour la
+ * PLANCHE du même nom — et `'Carnet': 'Notebook'`. En anglais, la barre de
+ * navigation s'affichait donc « Route · Atlas · Notebook » : trois outils qui
+ * ne portaient plus les noms du produit, sur la page d'accueil comme dans le
+ * studio. Rien ne lève d'erreur ; il faut regarder.
+ *
+ * LA PARADE EXISTAIT DÉJÀ. `appliquer()` écarte tout conteneur portant
+ * `data-brut`, prévu pour les données de l'utilisateur. Un nom propre relève
+ * de la même catégorie : ce n'est pas du texte d'interface.
+ *
+ * CE QUE CE CONTRÔLE FAIT. Dans l'entête de chaque page, il retire les
+ * sous-arbres `data-brut`, puis cherche ce qui reste d'un nom d'outil posé
+ * comme texte d'élément. Il compte ses entêtes : à zéro inspecté, il serait
+ * vert sans avoir rien lu. */
+
+function testsNomsPropres() {
+  titre('2 terdecies. UN NOM D’OUTIL NE SE TRADUIT PAS');
+
+  const NOMS = ['Trace', 'Atlas', 'Carnet'];
+  const pages = ['index.html', 'atlas.html', 'accueil.html', 'suite.html', 'carnet.html'];
+
+  const fautifs = [];
+  let entetes = 0;
+
+  pages.forEach(function (rel) {
+    const p = path.join(ROOT, rel);
+    if (!fs.existsSync(p)) return;
+    const html = fs.readFileSync(p, 'utf8');
+    const m = /<header[^>]*>[\s\S]*?<\/header>/i.exec(html);
+    if (!m) return;
+    entetes++;
+    /* Les sous-arbres data-brut sortent d'abord. Hypothèse assumée : ils ne
+     * s'imbriquent pas dans une balise de même nom — c'est le cas, et un
+     * conteneur data-brut dans un autre n'aurait pas de sens. */
+    const reste = m[0].replace(/<(\w+)[^>]*\bdata-brut\b[^>]*>[\s\S]*?<\/\1>/gi, ' ');
+    NOMS.forEach(function (nom) {
+      if (new RegExp('>' + nom + '<').test(reste)) {
+        fautifs.push(rel + ' : ' + nom);
+      }
+    });
+  });
+
+  ok('noms propres · des entêtes ont été lues  (' + entetes + ')',
+     entetes >= 1,
+     'à zéro entête, le cas suivant serait vert sans avoir rien regardé');
+
+  ok('noms propres · aucun nom d’outil hors d’un conteneur data-brut',
+     fautifs.length === 0,
+     fautifs.join(', ') +
+     ' — le dictionnaire traduirait « Trace » en « Route » et « Carnet » en ' +
+     '« Notebook » : la barre annoncerait des outils qui n’existent pas');
+}
+
 /* ================= 2 quater. MENUS REMPLIS =================
  *
  * Le défaut réel : `<select id="collection">` était vide dans index.html et
@@ -2401,6 +2491,7 @@ async function testsServeur() {
   testsMorceaux();
   testsReglageTexte();
   testsPorteeDynamique();
+  testsNomsPropres();
   testsMenus();
   testsChaine();
   testsBibliotheque(chargeLibrary());

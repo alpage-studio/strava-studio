@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.5';
+var STUDIO_VERSION = '3.17.6';
 var STUDIO_DATE = '01.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,17 @@ var STUDIO_DATE = '01.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.6', d: '01.10.2026', points: [
+    'ALPAGE A TROIS OUTILS, ET ILS SE DISENT ENFIN. TRACE prend une sortie et en fait une œuvre. ATLAS prend une période — une semaine, une saison, une année — et en donne une lecture. CARNET raconte un voyage. Le studio présentait les trente-sept planches dans une seule liste, dont dix ne dessinent rien tant qu’on n’a chargé qu’une sortie : un quart des portes ne menaient nulle part.',
+    'Trace montre 28 planches, Atlas en montre 10, et Empreinte est dans les deux — Sceau pour une sortie, Collection pour plusieurs. Aucune planche n’est absente des deux côtés, et un contrôle le vérifie : une planche qui disparaîtrait des deux portes ne lèverait aucune erreur.',
+    'Il a fallu DEUX questions et non une. « Cette planche est-elle multi-sorties ? » ne vaut que pour un réglage donné : Empreinte ne l’est qu’en Triptyque, Collection et Îlots. Le catalogue demande donc « peut-elle l’être ? », et la période « l’est-elle en ce moment ? ». Avec une seule question, Empreinte n’aurait jamais paru dans Atlas.',
+    'Atlas et Trace ont chacun leur mémoire. Sur une seule, ouvrir l’un effaçait la planche et la période choisies dans l’autre. Trace garde la clé historique : personne ne perd ses réglages.',
+    'Atlas n’est PAS une seconde application : c’est le même moteur ouvert sur une autre question. Sa page porte son adresse et passe le mode à celle du studio. La recopier aurait fait 1384 lignes en double — 782 de mise en forme, 546 de structure — qui auraient divergé dès la première retouche.',
+    'LE CARNET MARCHE ENFIN HORS LIGNE. Il n’était pas dans la réserve hors ligne : sans réseau, on ouvrait le Carnet et on obtenait le studio, à l’adresse du Carnet, sans un mot. L’accueil non plus. Les deux y sont, avec leurs fichiers, et un contrôle refuse qu’une page du produit en sorte.',
+    'Les noms des outils étaient TRADUITS. « Trace » devenait « Route » et « Carnet » devenait « Notebook » — les deux mots existent dans le dictionnaire pour des planches qui portent ces noms. La barre annonçait trois outils qui n’existent pas. Un nom propre ne se traduit plus, et un contrôle le tient.',
+    'La planche « Atlas hebdomadaire » s’appelle désormais « Semaine ». Une planche qui porte le nom de l’outil qui la contient, c’est l’ambiguïté qu’on vient de corriger ailleurs. Son identifiant ne bouge pas : il est écrit dans les projets enregistrés.',
+    'LA LANGUE REDEVIENT UN CHOIX, et l’interface est en anglais par défaut. Les planches, elles, gravent encore leur texte en français : c’est la prochaine étape, et tant qu’elle n’est pas faite une affiche anglaise porte des mots français. Le français reste à un clic dans l’entête.'
+  ] },
   { v: '3.17.5', d: '01.10.2026', points: [
     'EMPREINTE PEUT ENFIN CHOISIR SA PÉRIODE. Ses compositions Triptyque, Collection et Îlots dessinent plusieurs sorties — mais la planche ne déclarait nulle part qu’elle était multi-sorties, et le sélecteur de période ne s’ouvrait jamais pour elle. On composait une Collection sur ce que la bibliothèque contenait, sans pouvoir le restreindre.',
     'Elle ne le déclare pas pour autant en bloc : Sceau, Soleil, Contre-empreinte et Sceau cerclé ne dessinent que la sortie chargée. Leur ouvrir le sélecteur aurait été un réglage sans effet — et pire, l’export d’un Sceau aurait été REFUSÉ quand la période ne retient rien, alors qu’il n’en dépend pas.',

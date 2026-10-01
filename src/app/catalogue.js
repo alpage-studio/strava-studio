@@ -210,14 +210,24 @@
       note.textContent = T('Exemple — charge une sortie pour voir la tienne');
       boite.appendChild(note);
     }
-    var tousIds = Studio.all().map(function (t) { return t.id; });
+    /* Le tableau GROUPES_STYLE garde sa forme — un contrôle du harnais le lit
+     * par une expression régulière. C'est À L'USAGE qu'on retire ce qui n'est
+     * pas de cet outil, et un groupe vidé disparaît : une famille « Souvenirs »
+     * sans aucune carte se lirait comme une panne. */
+    var tousIds = Studio.all().filter(A.dansLOutil).map(function (t) { return t.id; });
     var ranges = {};
     GROUPES_STYLE.forEach(function (g) {
       g.ids.forEach(function (i) { ranges[i] = 1; });
     });
     var orphelins = tousIds.filter(function (i) { return !ranges[i]; });
-    var groupes = GROUPES_STYLE.slice();
+    var groupes = GROUPES_STYLE.map(function (g) {
+      return { id: g.id, nom: g.nom,
+               ids: g.ids.filter(function (i) { return tousIds.indexOf(i) >= 0; }) };
+    }).filter(function (g) { return g.ids.length; });
     if (orphelins.length) groupes.push({ id: 'autres', nom: 'Autres', ids: orphelins });
+    if (groupes.length && !groupes.some(function (g) { return g.id === groupeCourant; })) {
+      groupeCourant = groupes[0].id;
+    }
 
     if (E.familleOuverte) return construitVariantes(boite);
 
@@ -271,6 +281,11 @@
   function construitVariantes(boite) {
     var tpl = Studio.get(E.familleOuverte);
     var liste = tpl && variantesDe(tpl);
+    /* Une planche partagée ne montre ici que les variantes de CET outil. */
+    if (liste && A.varianteDansLOutil) {
+      var gardees = liste.filter(function (v) { return A.varianteDansLOutil(tpl, v.o); });
+      if (gardees.length) liste = gardees;
+    }
     if (!tpl || !liste) { E.familleOuverte = null; return construitChoixStyle(); }
 
     var retour = document.createElement('button');

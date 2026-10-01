@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+<!-- ATLAS — LA SECONDE PORTE DU MÊME MOTEUR.
+
+     Atlas et Trace ne sont pas deux applications : c'est le même studio, ouvert
+     sur une question différente. Trace part d'UNE sortie, Atlas d'une PÉRIODE.
+
+     POURQUOI CETTE PAGE NE FAIT QUE REDIRIGER.
+
+     Le plan disait « atlas.html charge les mêmes scripts qu'index.html ». Mesuré :
+     index.html fait 1384 lignes, dont 782 de feuille de style, 546 de markup et
+     64 balises de script. Les recopier ici aurait créé 1384 lignes qui auraient
+     divergé à la première retouche — un bouton ajouté d'un côté, absent de
+     l'autre, et rien pour le dire. C'est exactement ce que le studio refuse
+     ailleurs : « Deux planches distinctes auraient doublé les réglages de
+     couleur, de texte et de fond pour lire exactement les mêmes données. »
+
+     Cette page porte donc l'ADRESSE d'Atlas, et rien d'autre. Le mode voyage
+     dans la requête, et `src/app/noyau.js` le lit.
+
+     POURQUOI UNE BALISE META ET PAS UN SCRIPT.
+
+     La politique de sécurité du studio dit `script-src 'self'` : aucun script
+     en ligne ne s'exécute. Un `<script>` ici serait silencieusement ignoré, et
+     la page resterait sur cet écran. La redirection est donc déclarative.
+
+     POURQUOI ELLE DOIT ÊTRE DANS LE CACHE HORS LIGNE.
+
+     Sans réseau, toute page absente du cache retombe sur index.html — qui
+     s'ouvrirait alors en mode Trace, à l'adresse d'Atlas, sans le dire. Elle est
+     donc listée dans le SHELL de sw.js, et un contrôle du harnais le vérifie. -->
+
+<meta http-equiv="refresh" content="0; url=index.html?outil=atlas">
+<title>alpage — Atlas</title>
+<meta name="description" content="Une période, révélée : la forme d’une semaine, d’une saison, d’une année, depuis tes propres traces.">
+<link rel="icon" href="assets/icon-192.png">
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0; min-height: 100svh;
+    display: grid; place-items: center;
+    background: #F2EFE6; color: #16161A;
+    font: 400 16px/1.5 system-ui, -apple-system, Segoe UI, sans-serif;
+    padding: 24px;
+  }
+  @media (prefers-color-scheme: dark) {
+    body { background: #121214; color: #F2F0EA; }
+    a { color: #F2F0EA; }
+  }
+  p { max-width: 32ch; text-align: center; }
+  a { color: #16161A; }
+</style>
+</head>
+<body>
+  <!-- Visible seulement si la redirection n'a pas lieu : un très vieux
+       navigateur, ou quelqu'un qui a désactivé le rafraîchissement. Une page
+       blanche ne dirait pas quoi faire. -->
+  <p>Atlas s’ouvre…<br>
+     <a href="index.html?outil=atlas">Ouvrir Atlas</a></p>
+</body>
+</html>
