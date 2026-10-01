@@ -29,16 +29,52 @@
   function R() { return global.Recit.outils; }
   var NB = ' ';   // un nombre ne se sépare jamais de son unité
 
+  /* LA LANGUE DES IMAGES (src/langue.js). Les clés sont les phrases françaises ;
+   * une phrase = un gabarit, jamais des morceaux recollés. Le titre du voyage,
+   * les étapes, les lieux, le terrain, la collection Komoot et l'accroche
+   * écrite par l'auteur sont des DONNÉES : jamais traduits. */
+  if (global.Langue) global.Langue.declarer('en', {
+    'Alt. max. {alt}': 'Max alt. {alt}',
+    '{n} jour': '{n} day',
+    '{n} jours': '{n} days',
+    'Jour {n} · {de} → {a}': 'Day {n} · {de} → {a}',
+    'Collection Komoot · {nom}': 'Komoot collection · {nom}',
+    'LE PARCOURS': 'THE ROUTE',
+    'Départ · {lieu}': 'Start · {lieu}',
+    '{lieu} · fin du jour {n}': '{lieu} · end of day {n}',
+    'JOUR {n}': 'DAY {n}',
+    'Votre prochaine sortie commence ici.': 'Your next ride starts here.',
+    '{titre} est sur Komoot.': '{titre} is on Komoot.',
+    'Il fait partie de la collection {nom}.': 'It’s part of the {nom} collection.',
+    'Et {n} parcours vous attendent dans la collection {nom}.': 'And {n} more routes are waiting in the {nom} collection.',
+    'Et {n} parcours vous attend dans la collection {nom}.': 'And {n} more route is waiting in the {nom} collection.',
+    'D’autres parcours vous attendent dans la collection {nom}.': 'More routes are waiting in the {nom} collection.',
+    'Liens en bio': 'Links in bio'
+  });
+  function remplir(k, v) {
+    return v ? k.replace(/\{(\w+)\}/g, function (t, c) { return v[c] != null ? String(v[c]) : t; }) : k;
+  }
+  function M(k, v) { return global.Langue ? global.Langue.mot(k, v) : remplir(k, v); }
+  function enFrancais() { return !global.Langue || global.Langue.images() === 'fr'; }
+
   /* ---------- les chiffres, dans une seule convention ---------- */
-  function milliers(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  /* En français, les milliers restent groupés par U+202F, à l'octet près
+   * l'affiche d'avant ; en anglais, Langue.nombre (« 5,545 »). */
+  function milliers(n) { return enFrancais() ? Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') : global.Langue.nombre(Math.round(n), 0); }
+  // un kilomètre de position, que le français n'a jamais groupé
+  function entier(n) { return enFrancais() ? String(n) : global.Langue.nombre(n, 0); }
   var F = {
     km: function (km) { return milliers(km) + NB + 'km'; },
-    dplus: function (m) { return milliers(m) + NB + 'm' + NB + 'D+'; },
-    alt: function (m) { return 'Alt.' + NB + 'max.' + NB + milliers(m) + NB + 'm'; },
-    jours: function (data, opts) { var n = (opts.jours || data.etapes.length); return n + NB + (n > 1 ? 'jours' : 'jour'); },
+    dplus: function (m) { return milliers(m) + NB + 'm' + NB + 'D+'; },   // « D+ » : la notation des deux langues
+    alt: function (m) { return M('Alt. max. {alt}', { alt: milliers(m) + NB + 'm' }); },
+    jours: function (data, opts) {
+      var n = (opts.jours || data.etapes.length);
+      if (global.Langue) return global.Langue.n(n, '{n} jour', '{n} jours');
+      return remplir(n > 1 ? '{n} jours' : '{n} jour', { n: n });
+    },
     position: function (a, b) {
       var x = Math.round(a), y = Math.round(b);
-      return 'km' + NB + x + (y > x ? '–' + y : '');
+      return 'km' + NB + entier(x) + (y > x ? '–' + entier(y) : '');   // « km » : pareil dans les deux langues
     }
   };
   function altMax(data) { return data.etapes.reduce(function (m, et) { return Math.max(m, et.altMax || 0); }, 0); }
@@ -90,7 +126,7 @@
     var et = data.etapes[s.etape] || data.etapes[0];
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = th.acc; ctx.font = '28px ' + O().MONO;
-    ctx.fillText(('Jour ' + (s.etape + 1) + ' · ' + et.de + ' → ' + et.a).toUpperCase(), 60, 96);
+    ctx.fillText(M('Jour {n} · {de} → {a}', { n: s.etape + 1, de: et.de, a: et.a }).toUpperCase(), 60, 96);
   }
 
   function titre(ctx, txt, y, th) {
@@ -120,7 +156,7 @@
     var K = opts.komoot || {};
     if (K.nom) {
       ctx.fillStyle = th.acc; ctx.font = '600 28px ' + O().SANS;
-      ctx.fillText('Collection Komoot · ' + K.nom, 60, H - 56);
+      ctx.fillText(M('Collection Komoot · {nom}', { nom: K.nom }), 60, H - 56);
     }
     if (opts.signature) O().signer(ctx, W - 56, H - 70, opts.signature, th, 0.62, opts.signatureSobre);
   }
@@ -128,7 +164,7 @@
   function parcours(ctx, data, th, opts) {
     var T = data.trace;
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = th.acc; ctx.font = '28px ' + O().MONO; ctx.fillText('LE PARCOURS', 60, 96);
+    ctx.fillStyle = th.acc; ctx.font = '28px ' + O().MONO; ctx.fillText(M('LE PARCOURS'), 60, 96);
     ctx.fillStyle = th.ink; ctx.font = '800 76px ' + O().SANS; ctx.fillText(opts.titre || data.titre, 58, 184);
     // la carte, dominante, sur le vrai relief s'il existe
     var bx = 60, by = 220, bw = W - 120, bh = 720;
@@ -149,16 +185,16 @@
     var d = P(0);
     ctx.fillStyle = th.bg; ctx.strokeStyle = th.ink; ctx.lineWidth = 5;
     ctx.beginPath(); ctx.arc(d[0], d[1], 16, 0, 7); ctx.fill(); ctx.stroke();
-    etiquette(d, 'Départ · ' + data.etapes[0].de, true);
+    etiquette(d, M('Départ · {lieu}', { lieu: data.etapes[0].de }), true);
     data.etapes.slice(1).forEach(function (et, k) {
       var q = P(et.kmDebut);
       ctx.fillStyle = th.acc; ctx.beginPath(); ctx.arc(q[0], q[1], 12, 0, 7); ctx.fill();
-      etiquette(q, et.de + ' · fin du jour ' + (k + 1), false);
+      etiquette(q, M('{lieu} · fin du jour {n}', { lieu: et.de, n: k + 1 }), false);
     });
     // les jours, en clair
     var y = 1010;
     data.etapes.forEach(function (et, j) {
-      ctx.fillStyle = th.acc; ctx.font = '28px ' + O().MONO; ctx.fillText('JOUR ' + (j + 1), 60, y);
+      ctx.fillStyle = th.acc; ctx.font = '28px ' + O().MONO; ctx.fillText(M('JOUR {n}', { n: j + 1 }), 60, y);
       ctx.fillStyle = th.ink; ctx.font = '700 36px ' + O().SANS; ctx.fillText(et.de + ' → ' + et.a, 220, y);
       ctx.fillStyle = th.ink; ctx.font = '30px ' + O().MONO;
       ctx.fillText(F.km(et.kmFin - et.kmDebut) + '  ·  ' + F.dplus(et.dplus), 222, y + 44);
@@ -207,19 +243,25 @@
     ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#FFFFFF';
     var hl = format === 'story' ? 92 : 84;
     ctx.font = '800 ' + hl + 'px ' + O().SANS;
-    var accroche = O().titreEnLignes(ctx, opts.accroche || 'Votre prochaine sortie commence ici.', w - 128).slice(0, 3);
+    // l'accroche écrite par l'auteur est une donnée ; seule celle par défaut se traduit
+    var accroche = O().titreEnLignes(ctx, opts.accroche || M('Votre prochaine sortie commence ici.'), w - 128).slice(0, 3);
     accroche.forEach(function (l, i) { ctx.fillText(l, x, y + i * hl); });
     var y2 = y + (accroche.length - 1) * hl;
     var lignes = [];
-    lignes.push((opts.titre || data.titre) + ' est sur Komoot.');
-    if (K.nom) lignes.push(K.dansCollection ? 'Il fait partie de la collection ' + K.nom + '.'
-                                            : (K.parcours ? 'Et ' + K.parcours + ' parcours' : 'D’autres parcours') + ' vous attendent dans la collection ' + K.nom + '.');
+    lignes.push(M('{titre} est sur Komoot.', { titre: opts.titre || data.titre }));
+    /* « Et N parcours vous attendent » : le français a toujours écrit le pluriel,
+     * même pour 1 ; seul l'anglais prend le singulier (« And 1 more route »). */
+    var autres = K.parcours === 1 && !enFrancais() ? 'Et {n} parcours vous attend dans la collection {nom}.'
+                                                   : 'Et {n} parcours vous attendent dans la collection {nom}.';
+    if (K.nom) lignes.push(K.dansCollection ? M('Il fait partie de la collection {nom}.', { nom: K.nom })
+                                            : K.parcours ? M(autres, { n: entier(K.parcours), nom: K.nom })
+                                                         : M('D’autres parcours vous attendent dans la collection {nom}.', { nom: K.nom }));
     ctx.font = '400 44px ' + O().SANS;
     var yl = y2 + 110;
     lignes.forEach(function (t) { O().titreEnLignes(ctx, t, w - 128).forEach(function (l) { ctx.fillText(l, x, yl); yl += 58; }); yl += 14; });
     if (opts.lienEnBio !== false) {
       ctx.font = '700 40px ' + O().SANS;
-      var t = 'Liens en bio', tw = ctx.measureText(t).width;
+      var t = M('Liens en bio'), tw = ctx.measureText(t).width;
       ctx.fillStyle = th.crete && th.crete !== th.ink ? th.crete : th.acc;
       ctx.beginPath();
       if (ctx.roundRect) ctx.roundRect(x, yl + 10, tw + 64, 76, 38); else ctx.rect(x, yl + 10, tw + 64, 76);

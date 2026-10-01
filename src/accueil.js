@@ -1,6 +1,6 @@
-/* suite.js — la page d'accueil de la suite : le choix papier / sombre.
+/* accueil.js — la page d'accueil d'alpage : le choix papier / sombre.
  *
- * Même clé que le studio et la galerie : un choix fait dans l'un se retrouve
+ * Même clé que Trace, Atlas et la galerie : un choix fait dans l'un se retrouve
  * dans les autres. Le script vit dans un fichier parce que la politique de
  * sécurité de la page refuse le JavaScript écrit dans le HTML. */
 (function () {
@@ -16,5 +16,7 @@
     try { localStorage.setItem(CLE, t); } catch (e) { /* tant pis */ }
   }
   pose(actuel);
+  // la langue choisie (src/langue.js), appliquée par le dictionnaire commun
+  if (window.I18N) I18N.appliquer();
   document.getElementById('theme').addEventListener('click', function () { pose(actuel === 'sombre' ? 'papier' : 'sombre'); });
 })();

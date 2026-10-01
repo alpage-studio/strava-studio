@@ -28,6 +28,43 @@
 
   function O() { return global.Horizon.outils; }
 
+  /* LA LANGUE DES IMAGES (src/langue.js). Les clés sont les phrases françaises ;
+   * une phrase = un gabarit, jamais des morceaux recollés. Ce que l'auteur a
+   * écrit (titre, étapes, lieux, légendes) est une DONNÉE : jamais traduit. */
+  if (global.Langue) global.Langue.declarer('en', {
+    'Étape {n} · {de} → {a}': 'Stage {n} · {de} → {a}',
+    'NUIT': 'NIGHT',
+    'Vers {lieu}': 'Towards {lieu}',
+    'Après {lieu}': 'After {lieu}',
+    'Kilomètre {n}': 'Kilometre {n}',
+    '{n} photo': '{n} photo',
+    '{n} photos': '{n} photos',
+    'PASSAGE': 'STRETCH',
+    '{km} km sans photo': '{km} km, no photos',
+    'Repères : {liste}': 'Landmarks: {liste}',
+    '↑ {mont}   ↓ {desc}   au plus haut {haut}': '↑ {mont}   ↓ {desc}   highest {haut}',
+    'ÉCHELLE PROPRE À CETTE PAGE · DE {a} À {b}': 'SCALE OF THIS PAGE ONLY · FROM {a} TO {b}',
+    'ARRIVÉE': 'FINISH',
+    'Retour à {lieu}': 'Back to {lieu}',
+    'KILOMÈTRES': 'KILOMETRES',
+    'MÈTRES DE MONTÉE': 'METRES OF CLIMBING',
+    'ÉTAPE {n}': 'STAGE {n}',
+    'alt. max.': 'max alt.'
+  });
+  function remplir(k, v) {
+    return v ? k.replace(/\{(\w+)\}/g, function (t, c) { return v[c] != null ? String(v[c]) : t; }) : k;
+  }
+  function M(k, v) { return global.Langue ? global.Langue.mot(k, v) : remplir(k, v); }
+  function enFrancais() { return !global.Langue || global.Langue.images() === 'fr'; }
+  /* un nombre sans unité. En français, à l'octet près ce qu'écrivaient fKm et
+   * fM : décimales à la virgule sans groupes, entiers groupés par U+202F. */
+  function N(x, dec) {
+    if (!enFrancais()) return global.Langue.nombre(x, dec);
+    return dec ? x.toFixed(dec).replace('.', ',') : Math.round(x).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  }
+  // un kilomètre entier, que le français n'a jamais groupé (« km 1234 »)
+  function K(x) { return enFrancais() ? String(Math.round(x)) : global.Langue.nombre(Math.round(x), 0); }
+
   function etapeDe(data, km) { for (var i = data.etapes.length - 1; i >= 0; i--) if (km >= data.etapes[i].kmDebut - 1e-9) return i; return 0; }
 
   /* les MOMENTS : des photos proches, d'une même étape, réunis tant qu'il y
@@ -147,8 +184,8 @@
     var villes = [];
     data.etapes.forEach(function (et, i) { if (i) villes.push({ nom: et.de, km: et.kmDebut }); });
     var v = villes.filter(function (x) { return Math.abs(x.km - c) < 15; }).sort(function (x, y) { return Math.abs(x.km - c) - Math.abs(y.km - c); })[0];
-    if (v) return (c < v.km ? 'Vers ' : 'Après ') + v.nom;
-    return 'Kilomètre ' + Math.round(c);
+    if (v) return M(c < v.km ? 'Vers {lieu}' : 'Après {lieu}', { lieu: v.nom });
+    return M('Kilomètre {n}', { n: K(c) });
   }
 
   /* ---------- dessiner ---------- */
@@ -162,19 +199,20 @@
   }
 
   function kmTexte(km, estime) {
-    return estime ? '≈ km ' + Math.round(km) : 'km ' + km.toFixed(1).replace('.', ',');
+    // « km » s'écrit pareil dans les deux langues : seul le nombre change
+    return estime ? M('≈ km {km}', { km: K(km) }) : M('km {km}', { km: N(km, 1) });
   }
   function plage(a, b, estime) {
     if (Math.abs(b - a) < 0.3) return kmTexte(a, estime);
-    return estime ? '≈ km ' + Math.round(a) + '–' + Math.round(b)
-                  : 'km ' + a.toFixed(1).replace('.', ',') + '–' + b.toFixed(1).replace('.', ',');
+    return estime ? M('≈ km {a}–{b}', { a: K(a), b: K(b) })
+                  : M('km {a}–{b}', { a: N(a, 1), b: N(b, 1) });
   }
 
   function entete(ctx, data, im, th) {
     ctx.textBaseline = 'alphabetic';
     var et = data.etapes[im.etape] || data.etapes[0];
     ctx.fillStyle = th.acc; ctx.font = '22px ' + O().MONO; ctx.textAlign = 'left';
-    ctx.fillText(('Étape ' + (im.etape + 1) + ' · ' + et.de + ' → ' + et.a).toUpperCase(), 60, 84);
+    ctx.fillText(M('Étape {n} · {de} → {a}', { n: im.etape + 1, de: et.de, a: et.a }).toUpperCase(), 60, 84);
     ctx.fillStyle = th.mut; ctx.textAlign = 'right';
     ctx.fillText(String(im.n).padStart(2, '0') + ' / ' + String(im.total).padStart(2, '0'), W - 60, 84);
     ctx.textAlign = 'left';
@@ -211,12 +249,12 @@
     data.etapes.slice(1).forEach(function (et) {
       ctx.setLineDash([3, 6]); ctx.strokeStyle = th.mut; ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.moveTo(X(et.kmDebut), FY0 - 26); ctx.lineTo(X(et.kmDebut), FY1); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillText('NUIT', X(et.kmDebut), FY0 - 32);
+      ctx.fillText(M('NUIT'), X(et.kmDebut), FY0 - 32);
     });
     ctx.strokeStyle = th.mut; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.moveTo(FX0, FY1 + 10); ctx.lineTo(FX1, FY1 + 10); ctx.stroke();
-    [0, 50, 100, 150, 200, 250].forEach(function (t) { if (t <= total - 15) ctx.fillText(t + ' km', X(t), FY1 + 38); });
-    ctx.textAlign = 'right'; ctx.fillText(Math.round(total) + ' km', FX1, FY1 + 38);
+    [0, 50, 100, 150, 200, 250].forEach(function (t) { if (t <= total - 15) ctx.fillText(K(t) + ' km', X(t), FY1 + 38); });
+    ctx.textAlign = 'right'; ctx.fillText(K(total) + ' km', FX1, FY1 + 38);
     ctx.textAlign = 'left';
     // les points des photos
     (points || []).forEach(function (km) {
@@ -260,7 +298,9 @@
     var E = O().eleAuKm, alts = s.choix.map(function (m) { return E(data, m.km); });
     var lo = Math.min.apply(null, alts), hi = Math.max.apply(null, alts);
     var alt = Math.abs(hi - lo) < 40 ? O().fM(hi) : O().fM(lo) + ' → ' + O().fM(hi);
-    return plage(s.a, s.b, s.estime) + '  ·  ' + alt + (s.photos.length > s.choix.length ? '  ·  ' + s.photos.length + ' photos' : '');
+    var n = s.photos.length, photos = global.Langue ? global.Langue.n(n, '{n} photo', '{n} photos')
+                                                    : remplir(n < 2 ? '{n} photo' : '{n} photos', { n: n });
+    return plage(s.a, s.b, s.estime) + '  ·  ' + alt + (n > s.choix.length ? '  ·  ' + photos : '');
   }
 
   function dessinerMoment(ctx, data, s, images, th, opts) {
@@ -336,14 +376,14 @@
       var e = E(data, k); if (e > prev) mont += e - prev; else desc += prev - e; prev = e; haut = Math.max(haut, e);
     }
     ctx.fillStyle = th.acc; ctx.font = '24px ' + O().MONO;
-    ctx.fillText('PASSAGE', 60, 170);
-    ecrire(ctx, Math.round(s.b - s.a) + ' km sans photo', 60, 250, 960, '800 76px ' + O().SANS, 76, th.ink, 1);
+    ctx.fillText(M('PASSAGE'), 60, 170);
+    ecrire(ctx, M('{km} km sans photo', { km: K(s.b - s.a) }), 60, 250, 960, '800 76px ' + O().SANS, 76, th.ink, 1);
     var reps = (data.reperes || []).filter(function (r) { return !r.fort && r.km > s.a && r.km < s.b; });
     ctx.fillStyle = th.ink; ctx.font = '400 34px ' + O().SANS;
-    var par = reps.length ? 'Repères : ' + reps.map(function (r) { return r.nom; }).join(' · ') : '';
+    var par = reps.length ? M('Repères : {liste}', { liste: reps.map(function (r) { return r.nom; }).join(' · ') }) : '';
     ecrire(ctx, par, 62, 316, 940, '400 34px ' + O().SANS, 44, th.ink, 3);
     ctx.fillStyle = th.mut; ctx.font = '26px ' + O().MONO;
-    ctx.fillText('↑ ' + O().fM(mont) + '   ↓ ' + O().fM(desc) + '   au plus haut ' + O().fM(haut), 62, 470);
+    ctx.fillText(M('↑ {mont}   ↓ {desc}   au plus haut {haut}', { mont: O().fM(mont), desc: O().fM(desc), haut: O().fM(haut) }), 62, 470);
 
     // le tronçon, agrandi
     var x0 = 60, x1 = W - 60, y0 = 560, y1 = 960;
@@ -372,9 +412,9 @@
       ctx.fillStyle = th.ink; ctx.fillText(r.nom, xl, yl);
     });
     ctx.fillStyle = th.mut; ctx.font = '20px ' + O().MONO;
-    ctx.fillText('km ' + Math.round(s.a), x0, y1 + 34);
-    ctx.textAlign = 'right'; ctx.fillText('km ' + Math.round(s.b), x1, y1 + 34);
-    ctx.fillText('ÉCHELLE PROPRE À CETTE PAGE · DE ' + O().fM(lo).toUpperCase() + ' À ' + O().fM(hi).toUpperCase(), x1, y1 + 64);
+    ctx.fillText(M('km {km}', { km: K(s.a) }), x0, y1 + 34);
+    ctx.textAlign = 'right'; ctx.fillText(M('km {km}', { km: K(s.b) }), x1, y1 + 34);
+    ctx.fillText(M('ÉCHELLE PROPRE À CETTE PAGE · DE {a} À {b}', { a: O().fM(lo).toUpperCase(), b: O().fM(hi).toUpperCase() }), x1, y1 + 64);
     ctx.textAlign = 'left';
     // le tronçon agrandi, rattaché au fil par ses deux bouts
     [s.a, s.b].forEach(function (km, i) {
@@ -387,17 +427,18 @@
     var T = data.trace, O_ = O();
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = th.acc; ctx.font = '22px ' + O_.MONO; ctx.textAlign = 'left';
-    ctx.fillText('ARRIVÉE', 60, 84);
+    ctx.fillText(M('ARRIVÉE'), 60, 84);
     ctx.fillStyle = th.mut; ctx.textAlign = 'right';
     ctx.fillText(String(im.n).padStart(2, '0') + ' / ' + String(im.total).padStart(2, '0'), W - 60, 84);
     ctx.textAlign = 'left';
     var boucle = Math.hypot(T.x[0] - T.x[T.x.length - 1], T.y[0] - T.y[T.y.length - 1]) * T.kmParUnite < 1.5;
     var fin = data.etapes[data.etapes.length - 1].a;
-    // « Le Locle » → « Retour au Locle » : la contraction ne vaut que pour un nom en « Le »
-    var titre = boucle ? (/^Le /.test(fin) ? 'Retour au ' + fin.slice(3) : 'Retour à ' + fin) : fin;
+    // « Le Locle » → « Retour au Locle » : la contraction ne vaut que pour un nom en « Le »,
+    // et qu'en français (« Back to Le Locle »)
+    var titre = !boucle ? fin : (enFrancais() && /^Le /.test(fin) ? 'Retour au ' + fin.slice(3) : M('Retour à {lieu}', { lieu: fin }));
     ecrire(ctx, titre, 60, 200, 960, '800 76px ' + O_.SANS, 76, th.ink, 2);
     // les deux chiffres
-    [[O_.fKm(data.total.km).replace(' km', ''), 'KILOMÈTRES'], ['+' + O_.fM(data.total.dplus).replace(' m', ''), 'MÈTRES DE MONTÉE']].forEach(function (c, j) {
+    [[N(data.total.km, 1), M('KILOMÈTRES')], ['+' + N(data.total.dplus, 0), M('MÈTRES DE MONTÉE')]].forEach(function (c, j) {
       ctx.fillStyle = th.ink; ctx.font = '800 84px ' + O_.SANS; ctx.fillText(c[0], 60 + j * 400, 330);
       ctx.fillStyle = th.acc; ctx.font = '22px ' + O_.MONO; ctx.fillText(c[1], 64 + j * 400, 364);
     });
@@ -406,10 +447,10 @@
     data.etapes.forEach(function (et, j) {
       ctx.strokeStyle = th.line || th.mut; ctx.globalAlpha = 0.5; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(60, y - 34); ctx.lineTo(500, y - 34); ctx.stroke(); ctx.globalAlpha = 1;
-      ctx.fillStyle = th.acc; ctx.font = '20px ' + O_.MONO; ctx.fillText('ÉTAPE ' + (j + 1), 60, y);
+      ctx.fillStyle = th.acc; ctx.font = '20px ' + O_.MONO; ctx.fillText(M('ÉTAPE {n}', { n: j + 1 }), 60, y);
       ctx.fillStyle = th.ink; ctx.font = '700 32px ' + O_.SANS; ctx.fillText(et.de + ' → ' + et.a, 60, y + 40);
       ctx.fillStyle = th.mut; ctx.font = '21px ' + O_.MONO;
-      ctx.fillText(O_.fKm(et.kmFin - et.kmDebut) + ' · ' + O_.fM(et.dplus) + ' D+ · alt. max. ' + O_.fM(et.altMax), 60, y + 74);
+      ctx.fillText(O_.fKm(et.kmFin - et.kmDebut) + ' · ' + O_.fM(et.dplus) + ' D+ · ' + M('alt. max.') + ' ' + O_.fM(et.altMax), 60, y + 74);
       y += 132;
     });
     // la boucle, sur le vrai relief

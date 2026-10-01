@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Carnet de route — alpage studio</title>
+<title>Carnet — alpage</title>
 <!-- Même politique que le studio : rien d'un tiers ne peut se charger. Les
      photos déposées arrivent en blob:, le carnet exporté en data:. -->
 <meta http-equiv="Content-Security-Policy" content="
@@ -50,6 +50,11 @@
   .bouton.clair { background: #F7F5EF; color: #252820; }
   .bouton[aria-pressed="true"] { background: #A54F37; border-color: #A54F37; color: #FBF9F4; }
   .bouton:disabled { opacity: .5; cursor: progress; }
+  /* les deux sélecteurs de langue (src/langue.js) : la forme des boutons clairs */
+  .langue-choix { font: 500 13px "Archivo", sans-serif; color: #252820; background: #F7F5EF; border: 1px solid #252820;
+    border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+  .outils .langue-choix { box-shadow: 0 2px 10px rgba(37, 40, 32, .18); }
+  .depot .langues { display: flex; gap: 8px; margin-top: 18px; }
   input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 
   /* ---------- la barre d'outils du carnet ---------- */
@@ -59,6 +64,7 @@
   @media (max-width: 700px) {
     .outils { gap: 6px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); }
     .outils .bouton { font-size: 12px; padding: 7px 11px; }
+    .outils .langue-choix { font-size: 12px; padding: 6px 9px; }
   }
   .note { position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom)); transform: translateX(-50%); z-index: 41;
     background: #252820; color: #FBF9F4; font: 13px "IBM Plex Mono", monospace; padding: 10px 14px; border-radius: 8px;
@@ -164,20 +170,23 @@
 
 <div class="accueil" id="accueil">
   <div class="depot" id="depot">
-    <div class="sur"><a href="suite.html" style="color:inherit;text-decoration:none">alpage studio</a> · carnet de route</div>
+    <div class="sur" data-brut><a href="accueil.html" style="color:inherit;text-decoration:none">alpage</a> · carnet</div>
     <h1>Un voyage, pas une sortie.</h1>
     <p>Dépose le GPX du parcours — un tour Komoot exporté fait l’affaire — et, en vrac, les photos et les vidéos du voyage.</p>
-    <p>Un carnet déjà enregistré (fichier <b>.carnet</b>) se rouvre de la même façon.</p>
+    <p id="dCarnet" data-brut>Un carnet déjà enregistré (fichier <b>.carnet</b>) se rouvre de la même façon.</p>
     <p>Chaque image se pose seule au kilomètre où elle a été prise : par sa position quand elle l’a gardée, par son heure sinon. Rien ne quitte ton ordinateur.</p>
     <label class="bouton" for="fichiers">Choisir les fichiers</label>
     <input type="file" id="fichiers" multiple accept=".gpx,.carnet,image/jpeg,video/mp4,video/quicktime,.mov">
     <div class="etat" id="etat"></div>
+    <div class="langues"><span data-langue="interface"></span><span data-langue="images"></span></div>
   </div>
 </div>
 
-<div id="carnet"></div>
+<div id="carnet" data-brut></div>
 
 <div class="outils" id="outils" hidden>
+  <span data-langue="interface"></span>
+  <span data-langue="images"></span>
   <button class="bouton clair" id="bVoyage">Le voyage</button>
   <button class="bouton clair" id="bCaler" aria-pressed="false">Caler les photos</button>
   <button class="bouton clair" id="bHorizon">Instagram · Horizon</button>
@@ -261,6 +270,8 @@
 </div>
 <div class="note" id="note"></div>
 
+<script src="src/langue.js"></script>
+<script src="src/i18n.js"></script>
 <script src="src/activity.js"></script>
 <script src="src/carnet/exif.js"></script>
 <script src="src/carnet/composer.js"></script>

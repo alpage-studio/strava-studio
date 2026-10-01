@@ -138,10 +138,19 @@ défaut les valeurs de la première liste déroulante. Quand cet axe unique ment
 combine trois clés — le template déclare `variantes`. Règle : ce que la galerie
 de revue montre doit être atteignable dans l'outil, et un contrôle le vérifie.
 
-**L'interface est en anglais, et il n'y a plus de choix.** Le sélecteur FR/EN
-a été retiré, mais le moteur i18n reste : c'est lui qui PRODUIT l'anglais, les
-libellés étant écrits en français dans le code. Le retirer voudrait dire
-réécrire six cents libellés dans trente-deux planches.
+**Deux langues, deux réglages : l'interface et les images.** `src/langue.js` (le
+socle, chargé avant `i18n.js` par toute page) tient la langue de l'INTERFACE et
+celle des IMAGES, anglais par défaut, français au choix, partagées par les trois
+outils. Le code reste écrit en français : la phrase française EST la clé. L'interface
+passe par `i18n.js` (`T()`, `I18N.appliquer()`) ; les images par `Langue.mot`,
+`Langue.n` (pluriels), `Langue.nombre/km/m` (séparateurs écrits à la main, espace
+fine U+202F en français) avec des dictionnaires DÉCLARÉS par chaque module
+(`Langue.declarer`) — une même clé traduite deux fois différemment va dans
+`Langue.conflits`, qui doit rester vide. Trois pièges : un NOM D'OUTIL (Trace,
+Atlas, Carnet) se pose dans un conteneur `data-brut` — le dictionnaire traduit les
+planches « Trace » en « Route » et « Carnet » en « Notebook » ; la règle de la tête
+(« X — … ») traduit le début d'un titre composé ; une phrase coupée par une balise
+se traduit entière, pas nœud par nœud.
 
 **Un contrôle qui lit le DOM ne voit pas une page sans apparence.** Une
 accolade jamais refermée a enfermé 146 règles dans un `@media (max-width:
@@ -265,19 +274,28 @@ harnais ET l'acceptation soient verts.
   main : charger une sortie d'abord — sans sortie chargée, le bouton Exporter
   est désactivé et un clic de test ne fait RIEN, sans message.
 
-## La suite : le studio et le carnet de route
+## alpage : Trace, Atlas, Carnet
 
-Deux applications dans un même dépôt, sur un **socle commun** : `src/activity.js` (lire un
-GPX) et `src/mp4.js` (encoder une vidéo image par image) servent les deux. Le socle ne
-connaît aucune des deux applications ; ce qui ne sert qu'à l'une reste chez elle.
+La marque est **alpage** ; l'accueil est `accueil.html` (`suite.html`, son ancien
+nom, y redirige). Trois outils : **TRACE** — une sortie, interprétée (`index.html`,
+l'ancien « studio » ; les noms internes `Studio.*`, `strava-studio` restent) ;
+**ATLAS** — une période, révélée (`atlas.html`, le même moteur filtré sur les
+planches à plusieurs sorties) ; **CARNET** — un voyage, raconté. Un **socle commun** :
+`src/activity.js` (lire un GPX), `src/mp4.js` (encoder une vidéo image par image),
+`src/langue.js` (les deux langues). Le socle ne connaît aucun outil ; ce qui ne sert
+qu'à l'un reste chez lui.
 
-### Le carnet de route (hors du SHELL)
+### Le Carnet
 
 `carnet.html` + `src/carnet/` : un voyage (GPX + photos en vrac) raconté en trois
 sorties — le récit web à faire défiler, un carrousel Instagram (récit court par
-moments, ou panorama « Horizon ») et un Reel. Il n'est ni dans `sw.js` ni lié
-depuis le studio : le changer ne demande pas de monter le numéro.
+moments, ou panorama « Horizon ») et un Reel. Il est dans le SHELL depuis la 3.17.6 :
+hors ligne, une page absente du cache retombait sur `index.html` — on ouvrait le
+Carnet et on obtenait Trace, sans message.
 
+- **Le lecteur exporté est autonome, langue comprise** : `data.langue` et
+  `data.mots` (= `CarnetLecteur.MOTS_EN` en anglais) voyagent dans le carnet. Un
+  ancien carnet, sans `data.langue`, s'affiche en français comme avant.
 - **Les frontières** : `composer.js` place les photos (GPS, sinon l'heure selon
   l'allure du tracé, entre les calages) et ne dessine rien ; `lecteur.js` est
   autonome, recopié tel quel dans le carnet exporté ; `horizon.js`, `recit.js`,

@@ -26,6 +26,16 @@
 
   var MIN = 60000;
 
+  /* Les noms d'étape PAR DÉFAUT, ceux d'un GPX que personne n'a encore
+   * réglé dans l'écran « Le voyage », s'écrivent dans la langue des images.
+   * Un nom écrit à la main est une donnée : il ne se traduit jamais. */
+  var MOTS_EN = { 'Départ': 'Start', 'Arrivée': 'Finish', 'Étape {n}': 'Stage {n}' };
+  if (global.Langue) global.Langue.declarer('en', MOTS_EN);
+  function M(k, v) {
+    var s = global.Langue ? global.Langue.mot(k, v) : k;
+    return s.replace(/\{(\w+)\}/g, function (t, x) { return v && v[x] != null ? String(v[x]) : t; });
+  }
+
   function lireReperes(texte) {
     var doc = new DOMParser().parseFromString(texte, 'application/xml');
     var w = doc.getElementsByTagName('wpt'), out = [];
@@ -133,7 +143,7 @@
         fins.push(pts[bas].d / 1000);
       }
       fins.push(total);
-      defs = fins.map(function (f, i) { return { de: i ? 'Étape ' + i : 'Départ', a: i < n - 1 ? 'Étape ' + (i + 1) : 'Arrivée', finKm: f }; });
+      defs = fins.map(function (f, i) { return { de: i ? M('Étape {n}', { n: i }) : M('Départ'), a: i < n - 1 ? M('Étape {n}', { n: i + 1 }) : M('Arrivée'), finKm: f }; });
     }
     var etapes = [], debut = 0;
     defs.forEach(function (d, i) {

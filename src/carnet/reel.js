@@ -15,6 +15,22 @@
 (function (global) {
   'use strict';
 
+  /* LES MOTS DES IMAGES : ici presque aucun — le titre, les lieux et les
+   * légendes sont des DONNÉES. Seuls les nombres changent de séparateurs. */
+  if (global.Langue) global.Langue.declarer('en', {
+    'KM': 'KM'
+  });
+  function remplir(k, v) {
+    return v ? k.replace(/\{(\w+)\}/g, function (tout, c) { return v[c] != null ? String(v[c]) : tout; }) : k;
+  }
+  function M(k, v) { return global.Langue ? global.Langue.mot(k, v) : remplir(k, v); }
+  // un nombre sans unité, aux séparateurs de la langue des images (sans Langue : le français)
+  function N(x, dec) {
+    if (global.Langue) return global.Langue.nombre(x, dec);
+    var t = Math.abs(x).toFixed(dec || 0).split('.');
+    return (x < 0 ? '−' : '') + t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + (t[1] ? ',' + t[1] : '');
+  }
+
   var W = 1080, H = 1920, BANDE = 1350, HAUT = (H - BANDE) / 2;
   var VITESSE = 1500;          // px de panorama par seconde, entre deux photos
   var HALTE = 0.75, PLONGEE = 3.0, DEBUT = 2.4, FIN = 3.0;
@@ -173,10 +189,11 @@
       ctx.fillStyle = th.acc; ctx.font = '26px ' + O.MONO;
       ctx.fillText((opts.titre || data.titre).toUpperCase(), 56, 96);
       ctx.fillStyle = th.ink; ctx.font = '800 120px ' + O.SANS;
-      ctx.fillText(km.toFixed(1).replace('.', ','), 50, 236);
-      var wkm = ctx.measureText(km.toFixed(1).replace('.', ',')).width;
+      var lu = N(km, 1);
+      ctx.fillText(lu, 50, 236);
+      var wkm = ctx.measureText(lu).width;
       ctx.font = '30px ' + O.MONO; ctx.fillStyle = th.mut;
-      ctx.fillText('KM', 66 + wkm, 236);
+      ctx.fillText(M('KM'), 66 + wkm, 236);
       ctx.textAlign = 'right'; ctx.fillStyle = th.ink; ctx.font = '800 72px ' + O.SANS;
       ctx.fillText(O.fM(alt), W - 56, 236);
       ctx.font = '26px ' + O.MONO; ctx.fillStyle = th.mut;

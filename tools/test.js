@@ -718,14 +718,11 @@ function testsCoherence() {
        'sans traduction : ' + vraiesManquantes.slice(0, 8).join(' | ') +
        (vraiesManquantes.length > 8 ? ' … et ' + (vraiesManquantes.length - 8) + ' autres' : ''));
 
-    /* LE STUDIO EST EN FRANÇAIS, et ce contrôle dit pourquoi.
-     *
-     * Il a vérifié l'anglais de la 3.5 à la 3.11. Mais les trente-six planches
-     * gravent leur texte en français — aucune n'appelle T() — et douze
-     * relecteurs sur douze ont vu le mélange, jusque dans les PNG exportés.
-     * Une interface française n'a, par construction, aucun écart à rattraper :
-     * la chaîne source EST la clé i18n. */
-    ok('langue · le studio est en français, comme ses planches',
+    /* SANS LE SOCLE, LE FRANÇAIS. La langue vient de src/langue.js (anglais
+     * par défaut, voir testsLangue) ; ce bac ne le charge pas, et i18n.js doit
+     * alors retomber sur la source — le français du code — plutôt que sur une
+     * langue inventée. */
+    ok('langue · sans le socle, i18n retombe sur le français du code',
        bac.I18N.langue() === 'fr');
     /* Le dictionnaire anglais reste COMPLET et sous la garde ci-dessus : il
      * ne sert plus à l'affichage, il garde une version anglaise possible le
@@ -2479,6 +2476,68 @@ async function testsServeur() {
   }
 }
 
+/* ================= les deux langues (src/langue.js) =================
+ *
+ * Le socle tient la langue de l'interface et celle des images. Ce qu'il doit
+ * garantir, et qui casserait en silence : l'anglais par défaut, des nombres
+ * identiques d'un navigateur à l'autre (séparateurs écrits à la main), les
+ * pluriels des deux langues, et AUCUNE clé traduite de deux façons par deux
+ * modules — la seconde changerait les images de l'autre sans que rien ne
+ * rougisse. */
+function testsLangue() {
+  console.log('\n— les deux langues —');
+  const vm = require('vm');
+  const L = require(path.join(ROOT, 'src', 'langue.js'));
+  ok('langue · l’anglais par défaut, interface et images',
+     L.DEFAUT_INTERFACE === 'en' && L.interface() === 'en' && L.images() === 'en');
+  ok('langue · des nombres écrits à la main, dans les deux langues',
+     L.km(12345.67, 1, 'fr') === '12 345,7 km' && L.km(12345.67, 1, 'en') === '12,345.7 km' &&
+     L.m(2787, 'fr') === '2 787 m' && L.m(2787, 'en') === '2,787 m' && L.nombre(null) === '—',
+     L.km(12345.67, 1, 'fr') + ' / ' + L.km(12345.67, 1, 'en'));
+  L.declarer('en', { '{n} essai': '{n} test', '{n} essais': '{n} tests' });
+  ok('langue · les pluriels : 0 est singulier en français, pluriel en anglais',
+     L.n(0, '{n} essai', '{n} essais', null, 'fr') === '0 essai' &&
+     L.n(0, '{n} essai', '{n} essais', null, 'en') === '0 tests' &&
+     L.n(1, '{n} essai', '{n} essais', null, 'en') === '1 test');
+  const avant = L.conflits.length;
+  L.declarer('en', { '{n} essai': '{n} trial' });
+  ok('langue · une seconde traduction de la même clé est refusée, et notée',
+     L.conflits.length === avant + 1 && L.mot('{n} essai', { n: 2 }, 'en') === '2 test');
+
+  /* Tous les modules du Carnet, chargés ensemble dans l'ordre de la page :
+   * c'est là que deux traductions d'une même clé se rencontrent. */
+  const page = fs.readFileSync(path.join(ROOT, 'carnet.html'), 'utf8');
+  const scripts = (page.match(/<script src="([^"]+)"/g) || []).map(function (m) { return m.slice(13, -1); });
+  const bac = { console: { log: function () {}, error: function () {} }, Math: Math, Date: Date, JSON: JSON, Intl: Intl, setTimeout: setTimeout };
+  bac.window = bac; bac.self = bac;
+  vm.createContext(bac);
+  const erreurs = [];
+  // page.js pilote le DOM et ne déclare rien aux images : il reste dehors
+  scripts.filter(function (s) { return s === 'src/langue.js' || (/^src\/carnet\//.test(s) && s !== 'src/carnet/page.js'); }).forEach(function (s) {
+    try { vm.runInContext(fs.readFileSync(path.join(ROOT, s), 'utf8'), bac, { filename: s }); }
+    catch (e) { erreurs.push(s + ' : ' + e.message); }
+  });
+  ok('langue · les modules du Carnet se chargent avec le socle', erreurs.length === 0, erreurs.join(' | '));
+  const dico = bac.Langue ? Object.keys(bac.Langue.DICOS.en).length : 0;
+  ok('langue · aucune clé des images traduite de deux façons  (' + dico + ' clés)',
+     bac.Langue && bac.Langue.conflits.length === 0 && dico >= 40,
+     bac.Langue ? bac.Langue.conflits.join(' | ') : 'socle absent');
+  ok('langue · le lecteur exporté emporte son dictionnaire',
+     !!(bac.CarnetLecteur && bac.CarnetLecteur.MOTS_EN && Object.keys(bac.CarnetLecteur.MOTS_EN).length >= 8));
+
+  /* Le socle AVANT le dictionnaire, sur toute page qui traduit : chargé
+   * après, i18n.js ne le voit pas et retombe en français sans rien dire. */
+  ['index.html', 'atlas.html', 'accueil.html', 'carnet.html', path.join('apercus', 'index.html')].forEach(function (f) {
+    const q = path.join(ROOT, f);
+    if (!fs.existsSync(q)) return;
+    const h = fs.readFileSync(q, 'utf8');
+    const i = h.search(/<script src="(\.\.\/)?src\/i18n\.js"/);
+    if (i < 0) return;
+    const j = h.search(/<script src="(\.\.\/)?src\/langue\.js"/);
+    ok('langue · ' + f + ' charge le socle avant le dictionnaire', j >= 0 && j < i);
+  });
+}
+
 /* ================= exécution ================= */
 
 (async function () {
@@ -2492,6 +2551,7 @@ async function testsServeur() {
   testsReglageTexte();
   testsPorteeDynamique();
   testsNomsPropres();
+  testsLangue();
   testsMenus();
   testsChaine();
   testsBibliotheque(chargeLibrary());

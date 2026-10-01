@@ -122,8 +122,42 @@
     }
     // un nom de lieu ne se coupe pas : « Le » seul en fin de ligne
     function insecable(s) { return esc(s).replace(/ /g, '\u00A0'); }
-    function fKm(km) { return km.toFixed(1).replace('.', ',') + ' km'; }
-    function fM(m) { return Math.round(m).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' m'; }
+
+    /* ---------- la langue de l'image ----------
+     * Le carnet parle la langue de ses images : `data.langue` ('en' | 'fr')
+     * et `data.mots`, un dictionnaire fran\çais \→ anglais fourni par
+     * l'appelant (CarnetLecteur.MOTS_EN). Le dictionnaire voyage dans les
+     * donn\ées, pas dans `fabrique` : le fichier partag\é reste autonome.
+     * Sans `data.langue` (anciens carnets export\és), tout reste en fran\çais,
+     * au caract\ère pr\ès. Ce que l'auteur a \écrit (titre, lieux, l\égendes)
+     * n'est jamais traduit. */
+    function parler(data) {
+      var en = data.langue === 'en', mots = data.mots || null;
+      function remplir(s, v) {
+        return v ? s.replace(/\{(\w+)\}/g, function (t, x) { return v[x] != null ? String(v[x]) : t; }) : s;
+      }
+      // une phrase enti\ère par cl\é : l'ordre des mots change d'une langue \à l'autre
+      function M(k, v) { return remplir((mots && mots[k]) || k, v); }
+      // le pluriel : en fran\çais 0 et 1 sont au singulier, en anglais seul 1 l'est
+      function N(n, un, plusieurs, v) {
+        var sing = en ? n === 1 : Math.abs(n) < 2;
+        v = v || {};
+        if (v.n == null) v.n = fNb(n);
+        return M(sing ? un : plusieurs, v);
+      }
+      function grouper(ent, sep) { return ent.replace(/\B(?=(\d{3})+(?!\d))/g, sep); }
+      // en fran\çais : entiers et kilom\ètres sans s\éparateur de milliers, m\ètres
+      // avec l'espace fine ins\écable \— exactement l'affichage d'avant
+      function fNb(n) { var s = Math.round(n).toString(); return en ? grouper(s, ',') : s; }
+      function fKm(km) {
+        var s = km.toFixed(1);
+        if (!en) return s.replace('.', ',') + ' km';
+        var p = s.split('.');
+        return grouper(p[0], ',') + '.' + p[1] + ' km';
+      }
+      function fM(m) { return grouper(Math.round(m).toString(), en ? ',' : '\u202F') + ' m'; }
+      return { en: en, M: M, N: N, fNb: fNb, fKm: fKm, fM: fM };
+    }
 
     /* l'indice du point de trace au kilomètre donné — recherche dichotomique */
     function indiceAuKm(T, km) {
@@ -185,7 +219,8 @@
       return best ? best.r.nom : '';
     }
 
-    function figure(data, m, cls) {
+    function figure(data, m, cls, P) {
+      var fKm = P.fKm, fM = P.fM;
       var f = el('figure', 'cr-fig ' + (cls || ''));
       f.dataset.km = m.km;
       f.dataset.id = m.id;
@@ -207,7 +242,7 @@
       var leg = m.legende || legendeAuto(data, m.km);
       var p = auKm(data.trace, m.km);
       // une position estimée ne s'affiche pas au dixième : elle ne le vaut pas
-      var kmLu = m.statut === 'estimee' ? '≈ km ' + Math.round(m.km) : fKm(m.km);
+      var kmLu = m.statut === 'estimee' ? P.M('≈ km {n}', { n: P.fNb(m.km) }) : fKm(m.km);
       f.appendChild(el('figcaption', '', '<i>' + kmLu + '</i><span>' + fM(p.ele) + '</span>' +
         (leg ? '<b>' + esc(leg) + '</b>' : '')));
       return f;
@@ -217,20 +252,21 @@
       if (!document.getElementById('cr-style')) {
         var st = el('style'); st.id = 'cr-style'; st.textContent = CSS; document.head.appendChild(st);
       }
+      var P = parler(data), M = P.M, N = P.N, fKm = P.fKm, fM = P.fM;
       root.innerHTML = '';
       var cr = el('div', 'cr');
       var aside = el('aside', 'cr-carte');
-      var lecture = el('div', 'cr-lecture', '<b>0,0 km</b><span class="cr-alt"></span><span class="cr-etq"></span>');
+      var lecture = el('div', 'cr-lecture', '<b>' + fKm(0) + '</b><span class="cr-alt"></span><span class="cr-etq"></span>');
       var plan = el('canvas', 'cr-plan');
       var profil = el('canvas', 'cr-profil');
-      var bascule = el('button', 'cr-bascule', 'Carte');
+      var bascule = el('button', 'cr-bascule', M('Carte'));
       bascule.type = 'button';
       lecture.appendChild(bascule);
       var prog = el('div', 'cr-prog', '<i></i>');
       aside.appendChild(lecture); aside.appendChild(plan); aside.appendChild(profil); aside.appendChild(prog);
       bascule.addEventListener('click', function () {
         var ouverte = aside.classList.toggle('cr-ouverte');
-        bascule.textContent = ouverte ? 'Fermer' : 'Carte';
+        bascule.textContent = ouverte ? M('Fermer') : M('Carte');
         requestAnimationFrame(function () { dessiner(); });
       });
       var recit = el('main', 'cr-recit');
@@ -243,8 +279,10 @@
       couv.innerHTML = (mc ? '<img src="' + esc(mc.src) + '" alt="">' : '') +
         '<div><h1>' + esc(data.titre) + '</h1>' +
         (data.sousTitre ? '<p class="cr-sous">' + esc(data.sousTitre) + '</p>' : '') +
-        '<p>' + fKm(data.total.km) + ' · ' + fM(data.total.dplus) + ' de dénivelé · ' +
-        data.etapes.length + (data.etapes.length > 1 ? ' étapes' : ' étape') + '</p></div>';
+        '<p>' + M('{km} · {dplus} de dénivelé · {etapes}', {
+          km: fKm(data.total.km), dplus: fM(data.total.dplus),
+          etapes: N(data.etapes.length, '{n} étape', '{n} étapes')
+        }) + '</p></div>';
       recit.appendChild(couv);
       requestAnimationFrame(function () { couv.classList.add('vu'); });
       /* les liens Komoot : ici ils se CLIQUENT, contrairement aux images
@@ -259,14 +297,14 @@
           var a = el('a', cls || '', esc(txt)); a.href = url; a.target = '_blank'; a.rel = 'noopener';
           box.appendChild(a);
         }
-        lien(K.tour, 'Voir le parcours sur Komoot', 'cr-principal');
-        lien(K.collection, K.nom ? 'La collection ' + K.nom : 'La collection sur Komoot');
+        lien(K.tour, M('Voir le parcours sur Komoot'), 'cr-principal');
+        lien(K.collection, K.nom ? M('La collection {nom}', { nom: K.nom }) : M('La collection sur Komoot'));
         return box.childNodes.length ? box : null;
       }
       var kHaut = liensKomoot();
       if (kHaut) recit.appendChild(kHaut);
       var sommaire = el('nav', 'cr-sommaire');
-      sommaire.setAttribute('aria-label', 'Aller à');
+      sommaire.setAttribute('aria-label', M('Aller à'));
       recit.appendChild(sommaire);
 
       var fil = el('div', 'cr-fil');
@@ -277,22 +315,23 @@
         if (it.type === 'chap') {
           var et = it.etape;
           n = el('section', 'cr-chap',
-            '<div class="cr-num">Étape ' + (it.n + 1) + ' / ' + data.etapes.length + '</div>' +
+            '<div class="cr-num">' + M('Étape {n} / {total}', { n: P.fNb(it.n + 1), total: P.fNb(data.etapes.length) }) + '</div>' +
             '<h2>' + insecable(et.de) + ' <span>→</span> ' + insecable(et.a) + '</h2>' +
-            '<p>' + fKm(et.kmFin - et.kmDebut) + ' · ' + fM(et.dplus) + ' de montée · ' +
-            'alt. max. ' + fM(et.altMax) + '</p>');
+            '<p>' + M('{km} · {dplus} de montée · alt. max. {alt}', {
+              km: fKm(et.kmFin - et.kmDebut), dplus: fM(et.dplus), alt: fM(et.altMax)
+            }) + '</p>');
         } else if (it.type === 'rep') {
           n = el('div', 'cr-rep', '<i>' + fKm(it.r.km) + '</i><b>' + esc(it.r.nom) + '</b><span>' +
-            (it.r.alt != null ? 'passage à ' + fM(it.r.alt) : fM(auKm(data.trace, it.r.km).ele)) + '</span>');
+            (it.r.alt != null ? M('passage à {alt}', { alt: fM(it.r.alt) }) : fM(auKm(data.trace, it.r.km).ele)) + '</span>');
         } else if (it.type === 'media') {
           var portrait = it.m.h > it.m.w;
-          n = figure(data, it.m, 'cr-seul' + (portrait ? ' cr-portrait' + (cote++ % 2 ? ' cr-droite' : '') : ''));
+          n = figure(data, it.m, 'cr-seul' + (portrait ? ' cr-portrait' + (cote++ % 2 ? ' cr-droite' : '') : ''), P);
         } else if (it.type === 'serie') {
           n = el('div', 'cr-serie' + (it.liste.length === 3 ? ' cr-trois' : ''));
-          it.liste.forEach(function (s) { n.appendChild(figure(data, s.m)); });
+          it.liste.forEach(function (s) { n.appendChild(figure(data, s.m, '', P)); });
         } else {
           n = el('section', 'cr-fin', '<h2>' + esc(data.etapes[data.etapes.length - 1].a) + '</h2>' +
-            '<p>' + fKm(data.total.km) + ' · ' + fM(data.total.dplus) + ' D+</p>');
+            '<p>' + M('{km} · {dplus} D+', { km: fKm(data.total.km), dplus: fM(data.total.dplus) }) + '</p>');
           var kBas = liensKomoot();
           if (kBas) n.appendChild(kBas);
         }
@@ -311,7 +350,7 @@
       var vus = {};
       noeuds.forEach(function (x) {
         var n = x.n, nom = null, cls = '';
-        if (n.classList.contains('cr-chap')) { nom = 'Étape ' + (n.querySelector('.cr-num').textContent.match(/\d+/) || [''])[0]; cls = 'cr-et'; }
+        if (n.classList.contains('cr-chap')) { nom = M('Étape {n}', { n: (n.querySelector('.cr-num').textContent.match(/\d+/) || [''])[0] }); cls = 'cr-et'; }
         else {
           var b = n.querySelector && n.querySelector('figcaption b');
           if (b) nom = b.textContent;
@@ -405,7 +444,7 @@
           });
           ctx.globalAlpha = 1;
           ctx.fillStyle = c('--mut'); ctx.font = (9.5 * d) + 'px ' + c('--mono'); ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-          ctx.fillText('relief © swisstopo', z.w - 4 * d, z.h - 4 * d);
+          ctx.fillText(M('relief © swisstopo'), z.w - 4 * d, z.h - 4 * d);
         }
 
         // le parcours entier, en attente — plus appuyé quand le relief est dessous, sinon il s'y perd
@@ -615,7 +654,31 @@
     return { CSS: CSS, monter: monter, auKm: auKm };
   }
 
+  /* le dictionnaire anglais du lecteur. Il vit HORS de `fabrique` : le
+   * studio le passe dans les données (`data.mots`) quand le carnet est en
+   * anglais, et l'export l'embarque avec elles. Clés = les phrases
+   * françaises exactes du lecteur ; {x} = une valeur déjà formatée. */
+  var MOTS_EN = {
+    'Carte': 'Map',
+    'Fermer': 'Close',
+    '{km} · {dplus} de dénivelé · {etapes}': '{km} · {dplus} of climbing · {etapes}',
+    '{n} étape': '{n} stage',
+    '{n} étapes': '{n} stages',
+    'Voir le parcours sur Komoot': 'View the route on Komoot',
+    'La collection {nom}': 'The {nom} collection',
+    'La collection sur Komoot': 'The collection on Komoot',
+    'Aller à': 'Jump to',
+    'Étape {n} / {total}': 'Stage {n} / {total}',
+    'Étape {n}': 'Stage {n}',
+    '{km} · {dplus} de montée · alt. max. {alt}': '{km} · {dplus} climbing · max alt. {alt}',
+    'passage à {alt}': 'through at {alt}',
+    '{km} · {dplus} D+': '{km} · {dplus} D+',
+    '≈ km {n}': '≈ km {n}',
+    'relief © swisstopo': 'relief © swisstopo'
+  };
+
   var L = fabrique();
   L.source = fabrique.toString();
+  L.MOTS_EN = MOTS_EN;
   global.CarnetLecteur = L;
 })(this);

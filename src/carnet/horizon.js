@@ -47,8 +47,73 @@
   // la crête entre au bord droit de la couverture « carte », ou ouvre la planche 2 après « coupe »
   function depart(opts) { return opts.couverture === 'carte' ? 985 : W + 70; }
 
-  function fKm(km) { return km.toFixed(1).replace('.', ',') + ' km'; }
-  function fM(m) { return Math.round(m).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' m'; }
+  /* ---------- la langue des images ----------
+   * Tout mot écrit sur une planche passe par M (ou Mn pour un pluriel), dans
+   * la langue des IMAGES choisie par Langue ; sans Langue, en français. Les
+   * noms donnés par l'utilisateur (titre, étapes, lieux, légendes) sont des
+   * données : ils ne se traduisent jamais. */
+  var EN = {
+    'CARNET DE ROUTE': 'TRAVEL JOURNAL',
+    'KILOMÈTRES': 'KILOMETRES',
+    'MÈTRES DE MONTÉE': 'METRES OF CLIMBING',
+    'ALT. MAX. (M)': 'MAX ALT. (M)',
+    'ÉTAPE': 'STAGE',
+    'ÉTAPES': 'STAGES',
+    '{n} ÉTAPE': '{n} STAGE',
+    '{n} ÉTAPES': '{n} STAGES',
+    'ÉTAPE {n}': 'STAGE {n}',
+    'COUPE · DE {a} À {b}': 'PROFILE · FROM {a} TO {b}',
+    'NUIT': 'NIGHT',
+    'PLAN': 'MAP',
+    '{km} · passage à {alt}': '{km} · at {alt}',
+    'glisse  →': 'swipe  →',
+    'RELIEF © SWISSTOPO · COURBES {e} M': 'RELIEF © SWISSTOPO · CONTOURS {e} M',
+    '1 CARREAU = 5 KM': '1 SQUARE = 5 KM',
+    '☾ NUIT · {lieu}': '☾ NIGHT · {lieu}',
+    'Nuit · {lieu}': 'Night · {lieu}',
+    'DÉPART': 'START',
+    'DÉPART · {lieu}': 'START · {lieu}',
+    'DÉPART · ÉTAPE 1': 'START · STAGE 1',
+    'FICHE D’EXPÉDITION': 'EXPEDITION SHEET',
+    'N° {n}': 'NO. {n}',
+    '{km} · {dplus} D+ · alt. max. {alt}': '{km} · {dplus} D+ · max alt. {alt}',
+    'ÉCHELLE D’ALTITUDE': 'ALTITUDE SCALE',
+    'TEMPS FORTS': 'HIGHLIGHTS',
+    'Kilomètres étirés où les photos se serrent.': 'Kilometres stretched where the photos crowd together.'
+  };
+  if (global.Langue) global.Langue.declarer('en', EN);
+  // si Langue est chargé APRÈS ce fichier, on déclare au premier mot écrit
+  function assurer() {
+    var L = global.Langue;
+    if (L && L.DICOS && L.DICOS.en && L.DICOS.en['CARNET DE ROUTE'] == null) L.declarer('en', EN);
+  }
+  function remplir(k, v) {
+    if (!v) return k;
+    return k.replace(/\{(\w+)\}/g, function (tout, c) { return v[c] != null ? String(v[c]) : tout; });
+  }
+  function M(k, v) { assurer(); return global.Langue ? global.Langue.mot(k, v) : remplir(k, v); }
+  // un pluriel : le français met 0 et 1 au singulier, l'anglais seul 1
+  function Mn(n, un, plusieurs, v) {
+    assurer();
+    if (global.Langue) return global.Langue.n(n, un, plusieurs, v);
+    var w = { n: n };
+    if (v) Object.keys(v).forEach(function (c) { w[c] = v[c]; });
+    return remplir(Math.abs(n) < 2 ? un : plusieurs, w);
+  }
+
+  /* LES NOMBRES. En français, l'écriture historique de ces planches est
+   * gardée telle quelle (milliers par une espace fine insécable, kilomètres
+   * jamais groupés) : les affiches françaises ne bougent pas d'un octet.
+   * Les autres langues écrivent par Langue. */
+  function enFrancais() { return !global.Langue || global.Langue.images() === 'fr'; }
+  function grouper(t) { return t.replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function fKm(km) { return enFrancais() ? km.toFixed(1).replace('.', ',') + ' km' : global.Langue.km(km, 1); }
+  function fM(m) { return enFrancais() ? grouper(Math.round(m).toString()) + ' m' : global.Langue.m(m); }
+  // un nombre sans unité : dec = 1 s'écrit comme fKm, dec = 0 comme fM
+  function fNb(x, dec) {
+    if (!enFrancais()) return global.Langue.nombre(dec ? x : Math.round(x), dec || 0);
+    return dec ? x.toFixed(dec).replace('.', ',') : grouper(Math.round(x).toString());
+  }
 
   // fonction de répartition de la loi normale — la réclamation, lissée
   function phi(z) {
@@ -414,7 +479,7 @@
   function mentionRelief(ctx, data, x, y, th, align) {
     if (!data.relief) return;
     ctx.fillStyle = th.mut; ctx.font = '16px ' + MONO; ctx.textAlign = align || 'left';
-    ctx.fillText('RELIEF © SWISSTOPO · COURBES ' + data.relief.equidistance + ' M', x, y);
+    ctx.fillText(M('RELIEF © SWISSTOPO · COURBES {e} M', { e: data.relief.equidistance }), x, y);
     ctx.textAlign = 'left';
   }
 
@@ -475,16 +540,17 @@
 
   function chiffresDe(data, n) {
     var hautMax = data.etapes.reduce(function (m, et) { return Math.max(m, et.altMax || 0); }, 0);
+    var ne = data.etapes.length, etapes = [String(ne), Mn(ne, 'ÉTAPE', 'ÉTAPES')];
     if (n === 3) return [
-      [fKm(data.total.km).replace(' km', ''), 'KILOMÈTRES'],
-      ['+' + fM(data.total.dplus).replace(' m', ''), 'MÈTRES DE MONTÉE'],
-      [String(data.etapes.length), data.etapes.length > 1 ? 'ÉTAPES' : 'ÉTAPE']
+      [fNb(data.total.km, 1), M('KILOMÈTRES')],
+      ['+' + fNb(data.total.dplus, 0), M('MÈTRES DE MONTÉE')],
+      etapes
     ];
     return [
-      [fKm(data.total.km).replace(' km', ''), 'KILOMÈTRES'],
-      ['+' + fM(data.total.dplus).replace(' m', ''), 'MÈTRES DE MONTÉE'],
-      [fM(hautMax).replace(' m', ''), 'ALT. MAX. (M)'],
-      [String(data.etapes.length), data.etapes.length > 1 ? 'ÉTAPES' : 'ÉTAPE']
+      [fNb(data.total.km, 1), M('KILOMÈTRES')],
+      ['+' + fNb(data.total.dplus, 0), M('MÈTRES DE MONTÉE')],
+      [fNb(hautMax, 0), M('ALT. MAX. (M)')],
+      etapes
     ];
   }
 
@@ -516,7 +582,7 @@
     var T = data.trace;
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     ctx.fillStyle = th.acc; ctx.font = '26px ' + MONO;
-    ctx.fillText('CARNET DE ROUTE', 64, 104);
+    ctx.fillText(M('CARNET DE ROUTE'), 64, 104);
     if (opts.signature) signer(ctx, W - 64, 88, opts.signature, th, 0.9, opts.signatureSobre);
 
     ctx.fillStyle = th.ink;
@@ -546,7 +612,7 @@
     function CY(ele) { return cy1 - (ele - emin) / Math.max(1, emax - emin) * (cy1 - cy0); }
     ctx.fillStyle = th.mut; ctx.font = '20px ' + MONO;
     var toit = data.etapes.reduce(function (m, et) { return Math.max(m, et.altMax || 0); }, 0);
-    ctx.fillText('COUPE · DE ' + fM(emin).toUpperCase() + ' À ' + fM(toit).toUpperCase(), 60, cy0 - 26);
+    ctx.fillText(M('COUPE · DE {a} À {b}', { a: fM(emin).toUpperCase(), b: fM(toit).toUpperCase() }), 60, cy0 - 26);
     ctx.strokeStyle = th.ink; ctx.lineWidth = 1.2; ctx.globalAlpha = 0.35;
     ctx.beginPath();
     for (var x = cx0; x <= cx1; x += 5) { var k = (x - cx0) / (cx1 - cx0) * total; ctx.moveTo(x, CY(eleAuKm(data, k)) + 4); ctx.lineTo(x, cy1); }
@@ -558,19 +624,19 @@
     ctx.strokeStyle = th.mut; ctx.lineWidth = 1.2;
     ctx.beginPath(); ctx.moveTo(cx0, cy1 + 10); ctx.lineTo(cx1, cy1 + 10); ctx.stroke();
     ctx.fillStyle = th.mut; ctx.font = '18px ' + MONO; ctx.textAlign = 'center';
-    for (var t = 0; t <= total; t += 50) { ctx.fillRect(CX(t) - 0.75, cy1 + 10, 1.5, 8); ctx.fillText(t + ' km', CX(t), cy1 + 38); }
+    for (var t = 0; t <= total; t += 50) { ctx.fillRect(CX(t) - 0.75, cy1 + 10, 1.5, 8); ctx.fillText((enFrancais() ? String(t) : fNb(t, 0)) + ' km', CX(t), cy1 + 38); }
     // la nuit
     data.etapes.slice(1).forEach(function (et) {
       ctx.setLineDash([3, 6]); ctx.strokeStyle = th.mut; ctx.lineWidth = 1.2;
       ctx.beginPath(); ctx.moveTo(CX(et.kmDebut), cy0 - 10); ctx.lineTo(CX(et.kmDebut), cy1); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillStyle = th.mut; ctx.font = '18px ' + MONO; ctx.textAlign = 'center';
-      ctx.fillText('NUIT', CX(et.kmDebut), cy0 - 18);
+      ctx.fillText(M('NUIT'), CX(et.kmDebut), cy0 - 18);
     });
 
     // le plan
     var py0 = cy1 + 110, py1 = H - 50, pxL = 520, pxR = W - 60;
     ctx.fillStyle = th.mut; ctx.font = '20px ' + MONO; ctx.textAlign = 'left';
-    ctx.fillText('PLAN', 60, py0 - 18);
+    ctx.fillText(M('PLAN'), 60, py0 - 18);
     var cadP = cadreCarte(T, pxL, py0, pxR - pxL, py1 - py0), fonduP = centreFondu(T, cadP);
     var enCadre = (opts.fondu || 'halo') === 'cadre';
     var clipP = enCadre ? [pxL - 30, py0 - 14, pxR - pxL + 60, py1 - py0 + 28] : [pxL - 170, py0 - 40, W - pxL + 170, H - py0 + 40];
@@ -609,12 +675,12 @@
       ctx.fillText(nomL === l.r.nom ? nomL : nomL.replace(/\s*$/, '') + '…', 106, yl);
       if (detail) {
         ctx.fillStyle = th.mut; ctx.font = '20px ' + MONO;
-        ctx.fillText(fKm(l.r.km) + ' · passage à ' + fM(l.r.alt != null ? l.r.alt : eleAuKm(data, l.r.km)), 106, yl + 26);
+        ctx.fillText(M('{km} · passage à {alt}', { km: fKm(l.r.km), alt: fM(l.r.alt != null ? l.r.alt : eleAuKm(data, l.r.km)) }), 106, yl + 26);
       }
       yl += pasL;
     });
     ctx.fillStyle = th.mut; ctx.font = '22px ' + MONO; ctx.textAlign = 'right';
-    ctx.fillText('glisse  →', W - 56, H - 22);
+    ctx.fillText(M('glisse  →'), W - 56, H - 22);
   }
 
   /* ---------- couverture « paysage » : la carte devient montagne ----------
@@ -628,7 +694,7 @@
     var T = data.trace, total = data.total.km;
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     ctx.fillStyle = th.acc; ctx.font = '26px ' + MONO;
-    ctx.fillText('CARNET DE ROUTE', 64, 104);
+    ctx.fillText(M('CARNET DE ROUTE'), 64, 104);
     if (opts.signature) signer(ctx, W - 64, 88, opts.signature, th, 0.9);
     ctx.fillStyle = th.ink;
     var TA = titreAjuste(ctx, opts.titre || data.titre, 820, 104, 64), lignes = TA.lignes;
@@ -636,7 +702,7 @@
     var yt = 222 + (lignes.length - 1) * TA.pas + 50;
     ctx.font = '26px ' + MONO; ctx.fillStyle = th.mut;
     var ch = chiffresDe(data);
-    ctx.fillText(ch[0][0] + ' KM  ·  ' + ch[1][0] + ' M  ·  ↑ ' + ch[2][0] + ' M  ·  ' + ch[3][0] + ' ' + ch[3][1], 62, yt);
+    ctx.fillText(ch[0][0] + ' KM  ·  ' + ch[1][0] + ' M  ·  ↑ ' + ch[2][0] + ' M  ·  ' + Mn(data.etapes.length, '{n} ÉTAPE', '{n} ÉTAPES'), 62, yt);
 
     // le plan, sur son quadrillage
     var bx = 60, by = yt + 40, bw = W - 120, bh = 430;
@@ -651,7 +717,7 @@
     for (var gy = by - 20 + ((oy - by) % pas); gy < by + bh + 260; gy += pas) { ctx.moveTo(0, gy); ctx.lineTo(W, gy); }
     ctx.stroke(); ctx.globalAlpha = 1;
     ctx.fillStyle = th.mut; ctx.font = '18px ' + MONO; ctx.textAlign = 'right';
-    ctx.fillText('1 CARREAU = 5 KM', W - 60, by - 30);
+    ctx.fillText(M('1 CARREAU = 5 KM'), W - 60, by - 30);
     ctx.textAlign = 'left';
     var P = carte(ctx, T, L, data, bx, by, bw, bh, th, 4, false);
     var d0 = P(0);
@@ -729,13 +795,14 @@
         if (et.kmDebut < t[0] || et.kmDebut >= t[1]) return;
         var xn = (et.kmDebut - t[0]) / (t[1] - t[0]) * W, yn = arete(i, xn);
         ctx.fillStyle = coul; ctx.font = '18px ' + MONO; ctx.textAlign = 'center';
-        if (visible(i, xn, yn - 30)) ctx.fillText('☾ NUIT · ' + et.de.toUpperCase(), xn, yn - 18);
-        else ctx.fillText('☾ NUIT · ' + et.de.toUpperCase(), xn, yn + 30);
+        var nuit = M('☾ NUIT · {lieu}', { lieu: et.de.toUpperCase() });
+        if (visible(i, xn, yn - 30)) ctx.fillText(nuit, xn, yn - 18);
+        else ctx.fillText(nuit, xn, yn + 30);
         ctx.textAlign = 'left';
       });
     }
     ctx.fillStyle = th.bg; ctx.font = '22px ' + MONO; ctx.textAlign = 'left';
-    ctx.fillText('glisse  →', 40, H - 22);
+    ctx.fillText(M('glisse  →'), 40, H - 22);
     ctx.textAlign = 'left';
   }
 
@@ -750,7 +817,7 @@
     var T = data.trace, e = L.echant;
     ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
     ctx.fillStyle = th.acc; ctx.font = '26px ' + MONO;
-    ctx.fillText('CARNET DE ROUTE', 64, 118);
+    ctx.fillText(M('CARNET DE ROUTE'), 64, 118);
     if (opts.signature) signer(ctx, W - 64, 96, opts.signature, th, 1);
     ctx.fillStyle = th.ink;
     var TA = titreAjuste(ctx, opts.titre || data.titre, 940, 124, 72), lignes = TA.lignes;
@@ -777,9 +844,9 @@
     var y0 = L.Y(e[0].ele);
     ctx.fillStyle = th.mut; ctx.font = '26px ' + MONO; ctx.textAlign = 'right';
     // « DÉPART · DÉPART » quand l'étape n'a pas de nom propre : on ne le répète pas
-    var nomDep = data.etapes[0].de, depart = /^d[ée]part$/i.test(nomDep) ? 'DÉPART' : 'DÉPART · ' + nomDep.toUpperCase();
+    var nomDep = data.etapes[0].de, depart = /^d[ée]part$/i.test(nomDep) ? M('DÉPART') : M('DÉPART · {lieu}', { lieu: nomDep.toUpperCase() });
     ctx.fillText(depart, e[0].x - 26, y0 + 60);
-    ctx.fillText('glisse  →', W - 56, H - 30);
+    ctx.fillText(M('glisse  →'), W - 56, H - 30);
   }
 
   /* ---------- la fiche d'expédition ----------
@@ -799,8 +866,8 @@
     ctx.fill(); ctx.stroke();
     var x = px + 34, xr = px + pw - 34, y = py + 60;
     ctx.fillStyle = th.acc; ctx.font = '22px ' + MONO; ctx.textAlign = 'left';
-    ctx.fillText('FICHE D’EXPÉDITION', x, y);
-    ctx.textAlign = 'right'; ctx.fillText('N° 01', xr, y);
+    ctx.fillText(M('FICHE D’EXPÉDITION'), x, y);
+    ctx.textAlign = 'right'; ctx.fillText(M('N° {n}', { n: '01' }), xr, y);
     y += 62;
     ctx.fillStyle = th.ink; ctx.font = '800 50px ' + SANS; ctx.textAlign = 'left';
     titreEnLignes(ctx, opts.titre || data.titre, pw - 68).forEach(function (l) { ctx.fillText(l, x - 2, y); y += 52; });
@@ -810,18 +877,18 @@
       ctx.strokeStyle = th.mut; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x, y - 30); ctx.lineTo(xr, y - 30); ctx.stroke();
       ctx.fillStyle = th.acc; ctx.font = '20px ' + MONO;
-      ctx.fillText('ÉTAPE ' + (j + 1), x, y);
+      ctx.fillText(M('ÉTAPE {n}', { n: j + 1 }), x, y);
       ctx.fillStyle = th.ink; ctx.font = '700 30px ' + SANS;
       ctx.fillText(et.de + ' → ' + et.a, x, y + 38);
       ctx.fillStyle = th.mut; ctx.font = '21px ' + MONO;
-      ctx.fillText(fKm(et.kmFin - et.kmDebut) + ' · ' + fM(et.dplus) + ' D+ · alt. max. ' + fM(et.altMax), x, y + 70);
+      ctx.fillText(M('{km} · {dplus} D+ · alt. max. {alt}', { km: fKm(et.kmFin - et.kmDebut), dplus: fM(et.dplus), alt: fM(et.altMax) }), x, y + 70);
       y += 118;
     });
 
     // l'échelle d'altitude : des segments alternés, comme l'échelle d'une carte
     y += 6;
     ctx.fillStyle = th.acc; ctx.font = '20px ' + MONO;
-    ctx.fillText('ÉCHELLE D’ALTITUDE', x, y);
+    ctx.fillText(M('ÉCHELLE D’ALTITUDE'), x, y);
     y += 22;
     var amin = Math.floor(data.trace.eleMin / 500) * 500, amax = Math.ceil(data.trace.eleMax / 500) * 500;
     function AX(a) { return x + (a - amin) / (amax - amin) * (xr - x); }
@@ -840,7 +907,7 @@
 
     // les temps forts : seulement s'il y a des photos pour les montrer
     var aDesPhotos = L.places.some(function (p) { return legendeDe(data, p.m); });
-    if (aDesPhotos) { ctx.fillStyle = th.acc; ctx.font = '20px ' + MONO; ctx.textAlign = 'left'; ctx.fillText('TEMPS FORTS', x, y); }
+    if (aDesPhotos) { ctx.fillStyle = th.acc; ctx.font = '20px ' + MONO; ctx.textAlign = 'left'; ctx.fillText(M('TEMPS FORTS'), x, y); }
     y += 20;
     var vus = {}, ech = L.places.map(function (p) { return { p: p, nom: legendeDe(data, p.m), alt: eleAuKm(data, p.m.km) }; })
       .filter(function (q) { return q.nom && !vus[q.nom] && (vus[q.nom] = true); })
@@ -880,7 +947,7 @@
       }
     }
     ctx.textAlign = 'left'; ctx.fillStyle = th.mut; ctx.font = '18px ' + MONO;
-    ctx.fillText('Kilomètres étirés où les photos se serrent.', o + 40, H - 26);
+    ctx.fillText(M('Kilomètres étirés où les photos se serrent.'), o + 40, H - 26);
   }
 
   /* ---------- le panorama ---------- */
@@ -924,7 +991,7 @@
       ctx.fillStyle = th.ink; ctx.font = '700 32px ' + SANS; ctx.textAlign = 'left';
       ctx.fillText(data.etapes[0].de, e[0].x + 24, L.Y(e[0].ele) - 36);
       ctx.fillStyle = th.acc; ctx.font = '22px ' + MONO;
-      ctx.fillText('DÉPART · ÉTAPE 1', e[0].x + 24, L.Y(e[0].ele) - 76);
+      ctx.fillText(M('DÉPART · ÉTAPE 1'), e[0].x + 24, L.Y(e[0].ele) - 76);
     }
 
     // la règle : ses graduations s'écartent là où l'échelle s'étire
@@ -952,12 +1019,12 @@
       var aDroite = xn + 18 + tw < (Math.floor(xn / W) + 1) * W - 40;
       ctx.save(); ctx.translate(aDroite ? xn - 12 : xn + 40, 118); ctx.rotate(Math.PI / 2);
       ctx.fillStyle = th.mut; ctx.font = '24px ' + MONO; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-      ctx.fillText(('Nuit · ' + et.de).toUpperCase().split('').join(' '), 0, 0);
+      ctx.fillText(M('Nuit · {lieu}', { lieu: et.de }).toUpperCase().split('').join(' '), 0, 0);
       ctx.restore();
       ctx.textAlign = aDroite ? 'left' : 'right';
       var xt0 = aDroite ? xn + 18 : xn - 18;
       ctx.fillStyle = th.acc; ctx.font = '24px ' + MONO; ctx.textBaseline = 'alphabetic';
-      ctx.fillText('ÉTAPE ' + (k + 2), xt0, 132);
+      ctx.fillText(M('ÉTAPE {n}', { n: k + 2 }), xt0, 132);
       ctx.fillStyle = th.ink; ctx.font = '700 40px ' + SANS;
       ctx.fillText(txt, xt0, 178);
       ctx.textAlign = 'left';
@@ -1078,6 +1145,6 @@
     // ce que le Reel reprend, pour dessiner avec les mêmes gestes
     outils: { couvertureCoupe: couvertureCoupe, titreEnLignes: titreEnLignes, eleAuKm: eleAuKm, hexRgb: hexRgb, MAIN: MAIN,
               xVersKm: xVersKm, carte: carte, dessinerRelief: dessinerRelief, cadreCarte: cadreCarte, centreFondu: centreFondu, signer: signer, couvrir: couvrir, peindrePhoto: peindrePhoto,
-              fKm: fKm, fM: fM, SANS: SANS, MONO: MONO, MAIN: MAIN }
+              fKm: fKm, fM: fM, fNb: fNb, M: M, Mn: Mn, SANS: SANS, MONO: MONO, MAIN: MAIN }
   };
 })(this);

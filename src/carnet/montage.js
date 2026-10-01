@@ -17,6 +17,32 @@
 (function (global) {
   'use strict';
 
+  /* LES MOTS DES IMAGES, en anglais. La clé est la phrase française ; une
+   * clé absente s'écrit en français. Les titres, les lieux et les textes du
+   * récit sont des DONNÉES : ils ne passent pas par ici. */
+  if (global.Langue) global.Langue.declarer('en', {
+    'CARNET DE ROUTE': 'TRAVEL JOURNAL',
+    'KILOMÈTRES': 'KILOMETRES',
+    'MÈTRES DE MONTÉE': 'METRES OF CLIMBING',
+    'ARRIVÉE': 'FINISH',
+    'Étape {n} · {de} → {a}': 'Stage {n} · {de} → {a}',
+    'ÉTAPE {n} · {de} → {a} · {km}': 'STAGE {n} · {de} → {a} · {km}',
+    // « Le Locle » : le français contracte (« Retour au Locle »), l'anglais garde le nom entier
+    'Retour au {lieu}': 'Back to {nom}',
+    'Retour à {lieu}': 'Back to {lieu}'
+  });
+  // un mot des images ; sans Langue, le français avec ses emplacements remplis
+  function remplir(k, v) {
+    return v ? k.replace(/\{(\w+)\}/g, function (tout, c) { return v[c] != null ? String(v[c]) : tout; }) : k;
+  }
+  function M(k, v) { return global.Langue ? global.Langue.mot(k, v) : remplir(k, v); }
+  // un nombre sans unité, aux séparateurs de la langue des images (sans Langue : le français)
+  function N(x, dec) {
+    if (global.Langue) return global.Langue.nombre(x, dec);
+    var t = Math.abs(x).toFixed(dec || 0).split('.');
+    return (x < 0 ? '−' : '') + t[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + (t[1] ? ',' + t[1] : '');
+  }
+
   var W = 1080, H = 1920;
   var T_TITRE = 3.2, T_BOUCLE = 4.0, T_MOMENT = 4.8, T_PASSE = 0.9, T_BILAN = 6.0;
 
@@ -130,8 +156,9 @@
     }
 
     function kmLu(m, a, b) {
-      if (m.estime) return Math.abs(b - a) < 0.5 ? '≈ km ' + Math.round(a) : '≈ km ' + Math.round(a) + '–' + Math.round(b);
-      return 'km ' + a.toFixed(1).replace('.', ',');
+      // « km » s'écrit pareil dans les deux langues ; seuls les séparateurs changent
+      if (m.estime) return Math.abs(b - a) < 0.5 ? '≈ km ' + N(Math.round(a), 0) : '≈ km ' + N(Math.round(a), 0) + '–' + N(Math.round(b), 0);
+      return 'km ' + N(a, 1);
     }
 
     /* ---------- les scènes ---------- */
@@ -143,7 +170,7 @@
       degrade(ctx, 0, 300, 0.45, 0);
       var a = lisse(fondu(t, s.t0 + 0.25, s.t0 + 1.0));
       ctx.globalAlpha = a; ctx.fillStyle = '#FFFFFF'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-      ctx.font = '28px ' + O().MONO; ctx.fillText('CARNET DE ROUTE', 70, 150);
+      ctx.font = '28px ' + O().MONO; ctx.fillText(M('CARNET DE ROUTE'), 70, 150);
       ctx.font = '800 136px ' + O().SANS;
       var lignes = O().titreEnLignes(ctx, opts.titre || data.titre, 940);
       var y = H - 330 - (lignes.length - 1) * 128;
@@ -176,7 +203,7 @@
       // en promotion, la convention unique : « 158 km », « 5 545 m D+ »
       var chiffres = opts.format === 'promo' && global.Promo
         ? [[global.Promo.F.km(data.total.km), '', 0.3], [global.Promo.F.dplus(data.total.dplus), '', 0.9]]
-        : [[O().fKm(data.total.km).replace(' km', ''), 'KILOMÈTRES', 0.3], ['+' + O().fM(data.total.dplus).replace(' m', ''), 'MÈTRES DE MONTÉE', 0.9]];
+        : [[N(data.total.km, 1), M('KILOMÈTRES'), 0.3], ['+' + N(Math.round(data.total.dplus), 0), M('MÈTRES DE MONTÉE'), 0.9]];
       chiffres.forEach(function (c, j) {
         var a = lisse(fondu(t, s.t0 + c[2], s.t0 + c[2] + 0.6));
         ctx.globalAlpha = a;
@@ -197,10 +224,10 @@
       var km = s.de + (s.a - s.de) * k;
       fil(ctx, 60, W - 60, 760, 1160, km, th.ink, 7, th.mut);
       ctx.fillStyle = th.ink; ctx.font = '800 140px ' + O().SANS; ctx.textAlign = 'left';
-      ctx.fillText(Math.round(km) + ' km', 60, 660);
+      ctx.fillText(N(Math.round(km), 0) + ' km', 60, 660);
       var et = data.etapes.filter(function (e) { return km >= e.kmDebut - 1e-9; }).pop() || data.etapes[0];
       ctx.fillStyle = th.acc; ctx.font = '28px ' + O().MONO;
-      ctx.fillText(('Étape ' + (data.etapes.indexOf(et) + 1) + ' · ' + et.de + ' → ' + et.a).toUpperCase(), 64, 1260);
+      ctx.fillText(M('Étape {n} · {de} → {a}', { n: data.etapes.indexOf(et) + 1, de: et.de, a: et.a }).toUpperCase(), 64, 1260);
     }
 
     function moment(ctx, s, t) {
@@ -220,7 +247,7 @@
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#FFFFFF';
       ctx.font = '26px ' + O().MONO;
       var et = data.etapes[m.etape] || data.etapes[0];
-      ctx.fillText(('Étape ' + (m.etape + 1) + ' · ' + et.de + ' → ' + et.a).toUpperCase(), 64, 130);
+      ctx.fillText(M('Étape {n} · {de} → {a}', { n: m.etape + 1, de: et.de, a: et.a }).toUpperCase(), 64, 130);
       var a = lisse(fondu(t, s.t0, s.t0 + 0.5));
       ctx.globalAlpha = a;
       ctx.font = '800 88px ' + O().SANS;
@@ -249,23 +276,23 @@
       var T = data.trace;
       var boucleF = Math.hypot(T.x[0] - T.x[T.x.length - 1], T.y[0] - T.y[T.y.length - 1]) * T.kmParUnite < 1.5;
       var fin = data.etapes[data.etapes.length - 1].a;
-      var titreF = boucleF ? (/^Le /.test(fin) ? 'Retour au ' + fin.slice(3) : 'Retour à ' + fin) : fin;
+      var titreF = boucleF ? (/^Le /.test(fin) ? M('Retour au {lieu}', { lieu: fin.slice(3), nom: fin }) : M('Retour à {lieu}', { lieu: fin, nom: fin })) : fin;
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-      ctx.fillStyle = th.acc; ctx.font = '28px ' + O().MONO; ctx.fillText('ARRIVÉE', 64, 200);
+      ctx.fillStyle = th.acc; ctx.font = '28px ' + O().MONO; ctx.fillText(M('ARRIVÉE'), 64, 200);
       ctx.fillStyle = th.ink; ctx.font = '800 110px ' + O().SANS;
       O().titreEnLignes(ctx, titreF, 950).slice(0, 2).forEach(function (l, i) { ctx.fillText(l, 60, 330 + i * 110); });
       var km = s.de + (data.total.km - s.de) * k;
       fil(ctx, 60, W - 60, 620, 980, km, th.ink, 7, th.mut);
       var a = lisse(fondu(t, s.t0 + 1.8, s.t0 + 2.6));
       ctx.globalAlpha = a;
-      [[O().fKm(data.total.km).replace(' km', ''), 'KILOMÈTRES'], ['+' + O().fM(data.total.dplus).replace(' m', ''), 'MÈTRES DE MONTÉE']].forEach(function (c, j) {
+      [[N(data.total.km, 1), M('KILOMÈTRES')], ['+' + N(Math.round(data.total.dplus), 0), M('MÈTRES DE MONTÉE')]].forEach(function (c, j) {
         ctx.fillStyle = th.ink; ctx.font = '800 104px ' + O().SANS; ctx.fillText(c[0], 64 + j * 500, 1190);
         ctx.fillStyle = th.acc; ctx.font = '26px ' + O().MONO; ctx.fillText(c[1], 70 + j * 500, 1236);
       });
       var y = 1360;
       data.etapes.forEach(function (et, j) {
         ctx.fillStyle = th.mut; ctx.font = '26px ' + O().MONO;
-        ctx.fillText('ÉTAPE ' + (j + 1) + ' · ' + et.de + ' → ' + et.a + ' · ' + O().fKm(et.kmFin - et.kmDebut), 66, y); y += 52;
+        ctx.fillText(M('ÉTAPE {n} · {de} → {a} · {km}', { n: j + 1, de: et.de, a: et.a, km: O().fKm(et.kmFin - et.kmDebut) }), 66, y); y += 52;
       });
       if (opts.signature) {
         O().signer(ctx, W - 64, 1700, opts.signature, th, 1.1, opts.signatureSobre);
