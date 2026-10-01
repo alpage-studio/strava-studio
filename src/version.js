@@ -38,7 +38,7 @@ var STUDIO_JOURNAL = [
     'LA VIDÉO S’ENCODE IMAGE PAR IMAGE. Elle était filmée pendant que la planche s’animait à l’écran : si l’onglet passait en arrière-plan ou si la machine ralentissait, l’enregistrement se figeait ou saccadait — essayé dans un onglet caché, il a livré une seule image en trois secondes. Chaque image est maintenant dessinée puis encodée à son instant exact : la vidéo est la même sur un ordinateur lent et sur un rapide, onglet visible ou non.',
     'C’est un MP4 H.264 à 30 images par seconde, rangé sans bibliothèque, l’index en tête pour qu’Instagram le lise dès le début. L’encodage va plus vite que la vidéo elle-même.',
     'Deux cas gardent l’enregistrement en direct : une vidéo de fond — sa lecture et son son ne se capturent qu’en temps réel —, et un format trop grand pour l’encodeur du navigateur, qui s’y replie de lui-même.',
-    'L’encodeur est désormais partagé avec le carnet de route, la seconde application de la suite.',
+    'L’encodeur est désormais partagé avec le carnet de route, la seconde application de la suite. Un lien « Suite » dans l’entête mène à la page qui présente les deux.',
     'Almanac gagne une variante « Cadran nu » : sans les sorties nommées à la périphérie, avec les mesures au centre. Elles nommaient trois sorties sur cent six et prenaient un quart de la feuille pour un échantillon qu’on n’avait pas choisi ; le cadran s’agrandit à leur place.'
   ] },
   { v: '3.16', d: '30.09.2026', points: [
