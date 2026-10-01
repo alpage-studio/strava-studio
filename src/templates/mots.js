@@ -142,7 +142,7 @@ Studio.template({
 
     /* Un rendu vide doit dire quoi faire, pas rester muet. */
     function videxpl() {
-      H.text('TROIS MOTS, À TOI', g.left, g.bottom,
+      H.text(H.mot('TROIS MOTS, À TOI'), g.left, g.bottom,
              H.t('label', { color: melange(encre, 0.45), maxWidth: g.width }));
     }
 

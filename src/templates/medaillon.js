@@ -105,9 +105,9 @@ Studio.template({
 
     var t = (a.track || []).filter(function (p) { return p.lat != null; });
     if (t.length < 3) {
-      H.text('Charge une sortie avec une trace', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Charge une sortie avec une trace'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('le médaillon est une fenêtre sur le lieu parcouru',
+      H.text(H.mot('le médaillon est une fenêtre sur le lieu parcouru'),
              g.left, g.top + g.height * 0.45 + u(5), H.t('label', { color: faint }));
       return;
     }
@@ -293,10 +293,10 @@ Studio.template({
       H.rule(g.left, y - u(11), g.right, { color: hair });
 
       var champs = [];
-      if (a.date) champs.push(['date', a.date.toLocaleDateString('fr-CH',
+      if (a.date) champs.push([H.mot('date'), a.date.toLocaleDateString('fr-CH',
         { day: '2-digit', month: '2-digit', year: 'numeric' })]);
-      if (a.distance_km != null) champs.push(['distance', H.fmt.km(a.distance_km, 1) + ' km']);
-      if (a.elev_gain_m != null) champs.push(['dénivelé', Math.round(a.elev_gain_m) + ' m']);
+      if (a.distance_km != null) champs.push([H.mot('distance'), H.fmt.km(a.distance_km, 1) + ' km']);
+      if (a.elev_gain_m != null) champs.push([H.mot('dénivelé'), Math.round(a.elev_gain_m) + ' m']);
       /* Pas de « 1 cm ≈ … » : la taille physique du tirage n'est pas fixée,
        * et l'affirmation serait fausse dès qu'on imprime autrement. Une
        * BARRE graphique, elle, reste juste quelle que soit la taille — c'est
@@ -313,7 +313,7 @@ Studio.template({
        * configurée » est une phrase de logiciel, et elle traversait toute
        * la largeur du tirage. */
       if (dit.fabrication) {
-        H.text('TRACÉ SEUL', g.left, y, H.t('label', { color: melange(encre, 0.4) }));
+        H.text(H.mot('TRACÉ SEUL'), g.left, y, H.t('label', { color: melange(encre, 0.4) }));
       }
 
       /* La barre d'échelle, à droite du cartouche. */

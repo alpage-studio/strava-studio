@@ -55,9 +55,9 @@
        * Même test que Gravure d'altitude : c'est le profil qui manque, pas le
        * dénivelé cumulé, qu'un fichier peut porter sans points d'altitude. */
       if (((a && a.profile) || []).length < 4) {
-        H.text('Cette sortie n’a pas d’altitude', g.left, g.top + g.height * 0.45,
+        H.text(H.mot('Cette sortie n’a pas d’altitude'), g.left, g.top + g.height * 0.45,
                H.t('title', { color: ink, maxWidth: g.width }));
-        H.text('Pente lit la déclivité point par point : sans profil, elle n’a rien à montrer',
+        H.text(H.mot('Pente lit la déclivité point par point : sans profil, elle n’a rien à montrer'),
                g.left, g.top + g.height * 0.45 + u(5),
                H.t('label', { color: faint, maxWidth: g.width }));
         return;
@@ -86,7 +86,7 @@
       legend(g.left, scaleY, scaleW, scaleH);
 
       if (dit.mesures) {
-        H.text(H.fmt.int(a.elev_gain_m) + ' m D+', g.right, capBase - u(4.6),
+        H.text(H.mot('{n} m D+', { n: H.fmt.int(a.elev_gain_m) }), g.right, capBase - u(4.6),
           H.t('label', { color: ink, align: 'right' }));
       }
 
@@ -99,9 +99,9 @@
       /* ---------- statistiques ---------- */
       var statsBase = box.y - u(6);
       var stats = [
-        ['distance', H.fmt.km(a.distance_km, 1) + ' km'],
-        ['en mouvement', H.fmt.duration(a.duration_s)],
-        ['pente max', pct(Math.max.apply(null, slope))]
+        [H.mot('distance'), H.fmt.km(a.distance_km, 1) + ' km'],
+        [H.mot('en mouvement'), H.fmt.duration(a.duration_s)],
+        [H.mot('pente max'), pct(Math.max.apply(null, slope))]
       ];
       var colW = g.width / stats.length;
       if (dit.mesures) stats.forEach(function (st, i) {
@@ -194,8 +194,15 @@
           Math.round(mid[2] + (pole[2] - mid[2]) * k) + ')';
       }
 
+      /* Le séparateur décimal suit la langue des IMAGES, comme H.fmt.km :
+       * « 5,0 % » en français, « 5.0 % » en anglais. Il était écrit en dur,
+       * et la planche gardait donc une virgule française sous un titre
+       * anglais — le mélange que tout ce chantier sert à supprimer. */
       function pct(v) {
-        return (v == null || !isFinite(v)) ? '—' : (v * 100).toFixed(1).replace('.', ',') + ' %';
+        if (v == null || !isFinite(v)) return '—';
+        var x = v * 100;
+        return (window.Langue ? window.Langue.nombre(x, 1)
+                              : x.toFixed(1).replace('.', ',')) + ' %';
       }
 
       function hex(c, i) {

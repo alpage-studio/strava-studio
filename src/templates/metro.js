@@ -65,9 +65,9 @@ Studio.template({
     var g = H.grid({ cols: 6, margin: u(7) });
 
     if (entrees.length < 2) {
-      H.text('Charge au moins deux sorties', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Charge au moins deux sorties'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: ink, maxWidth: g.width }));
-      H.text('un réseau demande plusieurs lignes', g.left, g.top + g.height * 0.45 + u(5),
+      H.text(H.mot('un réseau demande plusieurs lignes'), g.left, g.top + g.height * 0.45 + u(5),
              H.t('label', { color: faint }));
       return;
     }
@@ -92,9 +92,11 @@ Studio.template({
      * l'avertissement sur les réseaux séparés. Se taisent : les noms (des
      * titres) et les chiffres (des mesures). */
     var dit = Alpage.dit(o);
-    if (dit.titre) H.text(String(o.titre || '').trim() || 'Réseau', g.left, g.top + u(3.6),
+    if (dit.titre) H.text(String(o.titre || '').trim() || H.mot('Réseau'),
+           g.left, g.top + u(3.6),
            H.t('title', { color: ink, maxWidth: g.w(4) }));
-    if (dit.mesures) H.text(entrees.length + ' lignes', g.right, g.top + u(3.6),
+    if (dit.mesures) H.text(H.n(entrees.length, '{n} ligne', '{n} lignes'),
+           g.right, g.top + u(3.6),
            H.t('label', { color: faint, align: 'right' }));
 
     /* ---------- les lignes ---------- */
@@ -138,7 +140,7 @@ Studio.template({
                l.boite.x, l.boite.y + l.boite.h + u(4),
                H.t('label', { color: faint, maxWidth: l.boite.w }));
       });
-      H.text('RÉSEAUX SÉPARÉS — LES CORRESPONDANCES DEMANDENT UN CADRAGE COMMUN',
+      H.text(H.mot('RÉSEAUX SÉPARÉS — LES CORRESPONDANCES DEMANDENT UN CADRAGE COMMUN'),
              g.left, hautPlan - u(3.4), H.t('label', { color: melange(ink, 0.6), maxWidth: g.width }));
     }
 
@@ -154,7 +156,8 @@ Studio.template({
         if (dit.titre) H.text(Library.nomCourt(l.entree.activity, 26), g.left + u(7), y,
                H.t('label', { color: ink, maxWidth: g.w(4) }));
         if (dit.mesures)
-          H.text(H.fmt.km(l.entree.activity.distance_km, 1) + ' km · ' + st.length + ' stations',
+          H.text(H.fmt.km(l.entree.activity.distance_km, 1) + ' km · ' +
+                 H.n(st.length, '{n} station', '{n} stations'),
                  g.right, y, H.t('label', { color: faint, align: 'right' }));
         y += u(4.5);
       });
@@ -164,9 +167,9 @@ Studio.template({
       var totKm = entrees.reduce(function (t, e) { return t + (e.activity.distance_km || 0); }, 0);
       var corr = stations.filter(function (x) { return x.lignes.length > 1; }).length;
       H.rule(g.left, g.bottom - u(7.5), g.right, { color: hair });
-      [['réseau', H.fmt.km(totKm, 0) + ' km'],
-       ['lignes', String(entrees.length)],
-       ['correspondances', String(corr)]].forEach(function (c, i) {
+      [[H.mot('réseau'), H.fmt.km(totKm, 0) + ' km'],
+       [H.mot('lignes'), String(entrees.length)],
+       [H.mot('correspondances'), String(corr)]].forEach(function (c, i) {
         if (!dit.mesures) return;
         H.field(c[0], c[1], g.left + i * (g.width / 3), g.bottom - u(4),
                 { color: ink, labelColor: faint, size: 4.2, maxWidth: g.width / 3 - u(2) });
@@ -383,12 +386,12 @@ Studio.template({
         fusionne(candidats, {
           x: a.x, y: a.y, lat: a.lat, lon: a.lon, lignes: [l],
           role: boucle ? 'boucle' : 'depart',
-          nom: boucle ? 'Départ / Arrivée' : 'Départ', poids: 1
+          nom: H.mot(boucle ? 'Départ / Arrivée' : 'Départ'), poids: 1
         }, seuil);
         if (!boucle) {
           fusionne(candidats, {
             x: b.x, y: b.y, lat: b.lat, lon: b.lon, lignes: [l],
-            role: 'arrivee', nom: 'Arrivée', poids: 1
+            role: 'arrivee', nom: H.mot('Arrivée'), poids: 1
           }, seuil);
         }
       });

@@ -87,7 +87,8 @@ Studio.template({
      * « hauteur expressive — ce n'est pas une altitude » d'abord, qui est
      * tout ce qui empêche de lire la planche comme un profil réel. */
     var dit = Alpage.dit(o);
-    var titre = String(o.titre || '').trim() || (mode === 'reel' ? 'Le relief' : 'Ce que ça a coûté');
+    var titre = String(o.titre || '').trim() ||
+      H.mot(mode === 'reel' ? 'Le relief' : 'Ce que ça a coûté');
     if (dit.titre) {
       H.text(titre, g.left, g.top + u(4), H.t('title', { color: ink, maxWidth: g.w(5) }));
     }
@@ -114,16 +115,17 @@ Studio.template({
 
     if (zoneR) {
       silhouetteReelle(zoneR);
-      legende(zoneR, 'RELIEF RÉEL', 'altitude mesurée', faint);
+      legende(zoneR, H.mot('RELIEF RÉEL'), H.mot('altitude mesurée'), faint);
     }
     if (zoneH) {
       silhouetteRessentie(zoneH);
-      legende(zoneH, 'RELIEF RESSENTI',
-              'hauteur expressive — ce n’est pas une altitude', melange(o.accent, 0.85));
+      legende(zoneH, H.mot('RELIEF RESSENTI'),
+              H.mot('hauteur expressive — ce n’est pas une altitude'),
+              melange(o.accent, 0.85));
     }
 
     if (!aRelief) {
-      H.text('sans altitude exploitable : seul le paysage ressenti est dessiné',
+      H.text(H.mot('sans altitude exploitable : seul le paysage ressenti est dessiné'),
              g.left, g.top + u(8.4), H.t('meta', { color: faint, maxWidth: g.width }));
     }
 
@@ -142,7 +144,7 @@ Studio.template({
                H.t('label', { color: faint, align: i === 0 ? 'left' : i === n ? 'right' : 'center' }));
       }
     }
-    H.text('DISTANCE RÉELLE, EN KM · ' + source.toUpperCase(),
+    H.text(H.mot('DISTANCE RÉELLE, EN KM · ') + source.toUpperCase(),
            g.left, g.bottom, H.t('label', { color: faint, maxWidth: g.width }));
 
     /* ================= dessin ================= */

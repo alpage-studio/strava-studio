@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.6';
+var STUDIO_VERSION = '3.17.7';
 var STUDIO_DATE = '01.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,14 @@ var STUDIO_DATE = '01.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.7', d: '02.10.2026', points: [
+    'LES AFFICHES PARLENT ANGLAIS. L’interface était passée à l’anglais, mais les trente-sept planches gravaient encore leur texte en français : on obtenait une affiche anglaise portant « EN MOUVEMENT » et « DÉNIVELÉ ». C’est exactement le défaut des versions 3.5 à 3.11, que douze relecteurs sur douze avaient vu.',
+    'La langue des IMAGES se règle à part, près du format. On peut vouloir le studio en anglais et des affiches en français — c’est même le cas courant pour qui roule ici et partage ailleurs. Changer de langue redessine la planche et les vignettes immédiatement.',
+    'Les CHIFFRES suivent aussi, pas seulement les mots : « 25,7 km » devient « 25.7 km », les dates et les mois changent de langue, et le cadran d’Almanac ne dit plus JAN FÉV MAR sous un titre anglais.',
+    'Les phrases qui portent un nombre sont des GABARITS, pas des morceaux recollés. « FENÊTRE DE » + 1800 + « M DE CÔTÉ » donnait, une fois traduit, « WINDOW OF 1800 M DE CÔTÉ » : une moitié de phrase. Et zéro est singulier en français, pluriel en anglais — c’est la règle de la langue qui tranche, plus un « plus grand que un ».',
+    'ATLAS EST ENFIN PARCOURU PAR LES CONTRÔLES. Le parcours n’ouvrait que Trace : les dix planches multi-sorties, la mémoire séparée et la redirection n’étaient éprouvées par rien, et la sortie l’imprimait faute de mieux. Un passage ciblé s’en charge — un moteur, une largeur : ce qu’Atlas ajoute est le mode, pas le rendu.',
+    'Trois contrôles nouveaux, et chacun a été vu échouer avant d’être gardé. Celui qui refuse une chaîne gravée en dur a d’abord été vert sur le défaut qu’il prétendait attraper : il ne voyait qu’une des deux façons d’écrire une étiquette. Un contrôle qu’on n’a pas vu refuser ne prouve rien.'
+  ] },
   { v: '3.17.6', d: '01.10.2026', points: [
     'ALPAGE A TROIS OUTILS, ET ILS SE DISENT ENFIN. TRACE prend une sortie et en fait une œuvre. ATLAS prend une période — une semaine, une saison, une année — et en donne une lecture. CARNET raconte un voyage. Le studio présentait les trente-sept planches dans une seule liste, dont dix ne dessinent rien tant qu’on n’a chargé qu’une sortie : un quart des portes ne menaient nulle part.',
     'Trace montre 28 planches, Atlas en montre 10, et Empreinte est dans les deux — Sceau pour une sortie, Collection pour plusieurs. Aucune planche n’est absente des deux côtés, et un contrôle le vérifie : une planche qui disparaîtrait des deux portes ne lèverait aucune erreur.',

@@ -49,9 +49,9 @@ Studio.template({
 
     /* ---------- état vide : dire quoi faire, pas rester blanc ---------- */
     if (!entrees.length) {
-      H.text('Charge plusieurs sorties', g.left, g.top + CH * 0.46,
+      H.text(H.mot('Charge plusieurs sorties'), g.left, g.top + CH * 0.46,
              H.t('title', { color: ink, maxWidth: g.width }));
-      H.text('cette planche en assemble deux ou plus', g.left, g.top + CH * 0.46 + u(5),
+      H.text(H.mot('cette planche en assemble deux ou plus'), g.left, g.top + CH * 0.46 + u(5),
              H.t('label', { color: faint }));
       return;
     }
@@ -64,7 +64,7 @@ Studio.template({
       H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
     }
     if (dit.mesures)
-    H.text(entrees.length + (entrees.length > 1 ? ' sorties' : ' sortie'),
+    H.text(H.n(entrees.length, '{n} sortie', '{n} sorties'),
            g.right, g.top + u(3.6), H.t('label', { color: faint, align: 'right' }));
 
     /* ---------- pied : les totaux de la série ---------- */
@@ -77,9 +77,9 @@ Studio.template({
     /* La rangee de totaux est une MESURE : elle obeit au reglage « Texte ». */
     if (dit.mesures) {
       H.rule(g.left, footY - u(9), g.right, { color: hair });
-      [['total', H.fmt.km(totKm, 0) + ' km'],
-       ['en mouvement', H.fmt.duration(totT)],
-       ['dénivelé', totD.mesurees ? Math.round(totD.total) + ' m' : '—']]
+      [[H.mot('total'), H.fmt.km(totKm, 0) + ' km'],
+       [H.mot('en mouvement'), H.fmt.duration(totT)],
+       [H.mot('dénivelé'), totD.mesurees ? Math.round(totD.total) + ' m' : '—']]
         .forEach(function (c, i) {
         H.field(c[0], c[1], g.left + i * (g.width / 3), footY - u(5.4), {
           color: ink, labelColor: faint, size: 4.2, maxWidth: g.width / 3 - u(2)

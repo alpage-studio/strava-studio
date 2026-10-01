@@ -123,9 +123,9 @@ Studio.template({
     sujets = sujets.filter(function (e) { return e.activity && (e.activity.track || []).length > 8; });
 
     if (!sujets.length) {
-      H.text('Charge une sortie', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Charge une sortie'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('Empreinte fabrique son sceau à partir du parcours',
+      H.text(H.mot('Empreinte fabrique son sceau à partir du parcours'),
              g.left, g.top + g.height * 0.45 + u(5), H.t('label', { color: faint }));
       return;
     }
@@ -417,7 +417,7 @@ Studio.template({
        * eviter l'erreur, et la phrase entiere reste en « Données ». */
       if (o.mention && !dit.rien) {
         H.text(dit.fabrication
-                 ? 'LIGNES DÉCALÉES DU PARCOURS — CE NE SONT PAS DES COURBES D’ALTITUDE'
+                 ? H.mot('LIGNES DÉCALÉES DU PARCOURS — CE NE SONT PAS DES COURBES D’ALTITUDE')
                  : 'LIGNES DE DISTANCE, NON D’ALTITUDE',
                g.left, yMention, H.t('label', { color: melange(encre, 0.3), maxWidth: g.width }));
       }

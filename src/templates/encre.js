@@ -89,9 +89,9 @@ Studio.template({
     var g = H.grid({ cols: 6, margin: u(9) });
 
     if (vue.pts.length < 4) {
-      H.text('Charge une sortie avec une trace', g.left, g.top + g.height * 0.46,
+      H.text(H.mot('Charge une sortie avec une trace'), g.left, g.top + g.height * 0.46,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('Encre dessine le parcours, pas ses chiffres',
+      H.text(H.mot('Encre dessine le parcours, pas ses chiffres'),
              g.left, g.top + g.height * 0.46 + u(5),
              H.t('label', { color: melange(encre, 0.5) }));
       return;
@@ -445,9 +445,12 @@ Studio.template({
 
       var note = honnetete;
       if (dit.fabrication) {
-        if (estFin) note = 'TRAIT NET — ÉPAISSEUR CONSTANTE';
-        else if (o.source === 'courbure') note = 'ÉPAISSEUR : COURBURE DU PARCOURS — EFFET DE STYLE';
-        else if (o.source === 'egale') note = 'ÉPAISSEUR CONSTANTE';
+        /* Ces phrases sont posées dans une variable puis dessinées plus bas :
+         * le littéral n'est pas sur le site d'appel, donc rien ne les aurait
+         * traduites sans ce passage explicite par H.mot. */
+        if (estFin) note = H.mot('TRAIT NET — ÉPAISSEUR CONSTANTE');
+        else if (o.source === 'courbure') note = H.mot('ÉPAISSEUR : COURBURE DU PARCOURS — EFFET DE STYLE');
+        else if (o.source === 'egale') note = H.mot('ÉPAISSEUR CONSTANTE');
         else if (mesureUtilisee) {
           var lib = { ele: 'ALTITUDE', w: 'PUISSANCE', hr: 'FRÉQUENCE CARDIAQUE', cad: 'CADENCE' }[o.source];
           var unite = { ele: ' M', w: ' W', hr: ' BPM', cad: ' TR/MIN' }[o.source];
@@ -467,7 +470,7 @@ Studio.template({
         H.text(note, g.left, y + u(4.4), H.t('label', { color: melange(encre, 0.5), maxWidth: g.width }));
       }
       if (angle && dit.fabrication) {
-        H.text('PARCOURS TOURNÉ, NON DÉFORMÉ', g.right, y + u(4.4),
+        H.text(H.mot('PARCOURS TOURNÉ, NON DÉFORMÉ'), g.right, y + u(4.4),
                H.t('label', { color: melange(encre, 0.32), align: 'right' }));
       }
     }

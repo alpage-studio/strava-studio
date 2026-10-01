@@ -2123,6 +2123,105 @@ function testsNomsPropres() {
      '« Notebook » : la barre annoncerait des outils qui n’existent pas');
 }
 
+/* ====== 2 quaterdecies. RIEN NE SE GRAVE SANS PASSER PAR H.mot ============
+ *
+ * Les planches écrivent dans l'IMAGE, et l'image a sa propre langue — on peut
+ * vouloir le studio en anglais et des affiches en français. Une chaîne écrite
+ * en dur dans un appel de dessin sort donc toujours en français, quoi qu'on
+ * choisisse, et rien ne le signale : l'affiche est jolie et elle ment sur la
+ * langue qu'on lui a demandée.
+ *
+ * CE QUE ÇA A COÛTÉ. Au premier passage, 96 chaînes sont passées par H.mot et
+ * tout semblait fait. La mesure disait « les 37 planches traduisent quelque
+ * chose » — un critère trop faible : il restait QUARANTE-CINQ textes français,
+ * et c'est un contrôle à l'œil sur six planches qui l'a montré. Un seul
+ * chiffre honnête aurait suffi : combien de textes restent français.
+ *
+ * CE QUE CE CONTRÔLE FAIT. Il relit le corps de `draw()` de chaque planche et
+ * refuse tout littéral passé directement à H.text, H.field ou H.stat. Les
+ * clés d'option, les couleurs et les modes n'y passent pas : on ne regarde que
+ * le PREMIER argument des trois fonctions qui dessinent du texte.
+ *
+ * Il compte ses planches : à zéro inspectée, il serait vert sans rien lire. */
+
+function testsMotGrave() {
+  titre('2 quaterdecies. RIEN NE SE GRAVE SANS PASSER PAR H.mot');
+
+  const dossier = path.join(ROOT, 'src', 'templates');
+  const fichiers = fs.readdirSync(dossier).filter(function (f) { return /[.]js$/.test(f); });
+
+  /* DEUX FORMES, ET LA SECONDE EST LA PLUS COURANTE.
+   *   H.field('distance', valeur)     l'appel direct
+   *   ['distance', valeur]            la paire, passée à H.field plus bas
+   *
+   * La première version ne voyait que l'appel direct. Éprouvée en
+   * remplaçant `[H.mot('distance'), …]` par `['distance', …]` dans
+   * Radiale, elle est restée VERTE : elle laissait passer la façon dont la
+   * plupart des étiquettes sont écrites ici. Un contrôle qu'on n'a pas vu
+   * refuser ne prouve rien.
+   *
+   * Élargie, elle a d'abord dénoncé trois tableaux de VALEURS — les douze
+   * mois de repli d'Almanac, les compositions d'Empreinte, les scènes du
+   * film — qui ne sont pas des étiquettes. Ce qui les distingue : une
+   * étiquette est suivie d'une VALEUR calculée, un tableau de modes d'un
+   * autre littéral.
+   *
+   * La négation doit englober l'espace : écrite `,\s*(?!')`, le quantificateur
+   * revient en arrière jusqu'à zéro caractère et la négation examine alors une
+   * ESPACE au lieu de l'apostrophe — elle réussit toujours, et les trois
+   * tableaux de valeurs étaient dénoncés quand même. */
+  const ECRIT = /(?:H\.(?:text|field|stat)\s*\(\s*|\[\s*)'((?:[^'\\]|\\.)*)'\s*,(?!\s*')/g;
+  const fautifs = [];
+  let inspectees = 0, zones = 0;
+
+  fichiers.forEach(function (f) {
+    const brut = fs.readFileSync(path.join(dossier, f), 'utf8');
+    /* Commentaires blanchis en gardant les positions : écrasés, les numéros
+     * de ligne désigneraient autre chose que la faute. */
+    const vue = brut
+      .replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' '))
+      .replace(/\/\/[^\n]*/g, c => c.replace(/[^\n]/g, ' '));
+    inspectees++;
+
+    /* Le corps de draw(), et lui seul : les OPTIONS sont de l'interface, et
+     * c'est le dictionnaire de l'interface qui les traduit. */
+    let m;
+    const dessine = /draw\s*:\s*function[^{]*{/g;
+    dessine.lastIndex = 0;
+    while ((m = dessine.exec(vue)) !== null) {
+      let k = vue.indexOf('{', m.index + m[0].length - 1);
+      if (k < 0) break;
+      let prof = 0, i = k;
+      for (; i < vue.length; i++) {
+        if (vue[i] === '{') prof++;
+        else if (vue[i] === '}' && --prof === 0) break;
+      }
+      zones++;
+      const corps = vue.slice(k, i);
+      let e;
+      ECRIT.lastIndex = 0;
+      while ((e = ECRIT.exec(corps)) !== null) {
+        const texte = e[1];
+        if (texte.length < 2) continue;
+        if (!/[A-Za-zÀ-ÿ]/.test(texte)) continue;
+        const ligne = vue.slice(0, k + e.index).split('\n').length;
+        fautifs.push(f + ':' + ligne + ' « ' + texte.slice(0, 28) + ' »');
+      }
+    }
+  });
+
+  ok('images · des planches ont été relues  (' + inspectees + ' fichiers, ' +
+     zones + ' fonctions de dessin)',
+     inspectees >= 30 && zones >= 30,
+     'à zéro planche, le cas suivant serait vert sans rien avoir lu');
+
+  ok('images · aucune chaîne gravée sans passer par H.mot',
+     fautifs.length === 0,
+     fautifs.slice(0, 5).join(' | ') +
+     ' — écrite en dur, elle sort en français quelle que soit la langue ' +
+     'choisie pour les images');
+}
+
 /* ================= 2 quater. MENUS REMPLIS =================
  *
  * Le défaut réel : `<select id="collection">` était vide dans index.html et
@@ -2551,6 +2650,7 @@ function testsLangue() {
   testsReglageTexte();
   testsPorteeDynamique();
   testsNomsPropres();
+  testsMotGrave();
   testsLangue();
   testsMenus();
   testsChaine();

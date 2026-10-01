@@ -76,9 +76,9 @@ Studio.template({
       /* AUCUN RELIEF DE REMPLACEMENT. Sans altitude il n'y a pas de versant :
        * la planche le dit et s'arrête. Fabriquer des phases depuis la vitesse
        * serait un modèle déguisé en mesure. */
-      H.text('Cette sortie n’a pas d’altitude', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Cette sortie n’a pas d’altitude'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('Versants découpe les montées et les descentes : il lui faut un profil',
+      H.text(H.mot('Versants découpe les montées et les descentes : il lui faut un profil'),
              g.left, g.top + g.height * 0.45 + u(5),
              H.t('label', { color: faint, maxWidth: g.width }));
       return;
@@ -94,10 +94,10 @@ Studio.template({
     var phases = decoupe(doux, Math.max(5, o.seuil == null ? 25 : o.seuil));
 
     if (!phases.length) {
-      H.text('Cette sortie est trop régulière pour être découpée',
+      H.text(H.mot('Cette sortie est trop régulière pour être découpée'),
              g.left, g.top + g.height * 0.45,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('Baisse le dénivelé minimal d’une phase, ou choisis une autre planche',
+      H.text(H.mot('Baisse le dénivelé minimal d’une phase, ou choisis une autre planche'),
              g.left, g.top + g.height * 0.45 + u(5),
              H.t('label', { color: faint, maxWidth: g.width }));
       return;
@@ -207,9 +207,12 @@ Studio.template({
 
     if (dit.fabrication) {
       var m = phases.filter(function (p) { return p.montee; }).length;
-      H.text(m + ' MONTÉES · ' + (phases.length - m) + ' DESCENTES — PHASES D’AU MOINS ' +
-             Math.round(o.seuil == null ? 25 : o.seuil) + ' M · LA PENTE SERRE LES HACHURES, ' +
-             'ELLE NE DIT AUCUNE DIFFICULTÉ',
+      /* Trois nombres au milieu d'une phrase : recollés, rien ne se traduit.
+       * Un gabarit les garde à leur place et laisse l'anglais ordonner les
+       * mots autrement. */
+      H.text(H.mot('{m} MONTÉES · {d} DESCENTES — PHASES D’AU MOINS {s} M · LA PENTE SERRE LES HACHURES, ELLE NE DIT AUCUNE DIFFICULTÉ',
+                   { m: m, d: phases.length - m,
+                     s: Math.round(o.seuil == null ? 25 : o.seuil) }),
              g.left, yTitre + u(8.2),
              H.t('label', { color: melange(encre, 0.3), maxWidth: g.width }));
     }

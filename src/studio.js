@@ -424,22 +424,39 @@
       if (x === 60) { m++; x = 0; }
       return m + ':' + pad(x);
     },
+    /* LES CHIFFRES GRAVÉS SUIVENT LA LANGUE DES IMAGES.
+     *
+     * « 25,7 km » en français, « 25.7 km » en anglais : la virgule décimale
+     * était écrite en dur ici, donc une affiche anglaise portait des nombres
+     * français. On interroge le socle À CHAQUE APPEL, et non une fois au
+     * chargement : la langue se change sans recharger la page.
+     *
+     * Sans `src/langue.js` — le harnais, un vieux cache — rien ne change. */
     km: function (n, dec) {
       if (n == null) return '—';
-      return n.toFixed(dec == null ? 2 : dec).replace('.', ',');
+      var d = dec == null ? 2 : dec;
+      if (global.Langue) return global.Langue.nombre(n, d);
+      return n.toFixed(d).replace('.', ',');
     },
     int: function (n) { return n == null ? '—' : String(Math.round(n)); },
-    speed: function (n) { return n == null ? '—' : n.toFixed(1).replace('.', ','); },
+    speed: function (n) {
+      if (n == null) return '—';
+      if (global.Langue) return global.Langue.nombre(n, 1);
+      return n.toFixed(1).replace('.', ',');
+    },
     date: function (d, locale) {
       if (!d) return '';
+      var l = locale || (global.Langue ? global.Langue.locale() : 'fr-CH');
       // le français ne met pas de virgule après le jour de la semaine
-      return d.toLocaleDateString(locale || 'fr-CH', {
+      var s = d.toLocaleDateString(l, {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
-      }).replace(',', '');
+      });
+      return /^fr/.test(l) ? s.replace(',', '') : s;
     },
     time: function (d) {
       if (!d) return '';
-      return d.toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' });
+      var l = global.Langue ? global.Langue.locale() : 'fr-CH';
+      return d.toLocaleTimeString(l, { hour: '2-digit', minute: '2-digit' });
     }
   };
 
@@ -450,6 +467,31 @@
   function helpers(ctx, w, h, state) {
     var H = {
       w: w, h: h, ctx: ctx, fmt: fmt,
+
+      /* LE MOT GRAVÉ DANS L'IMAGE.
+       *
+       * `H.t` était déjà pris — ce sont les rôles typographiques — et `H.dit`
+       * l'aurait été aussi : `Alpage.dit(o)` résout le réglage « Texte » dans
+       * trente-trois planches, et les deux se seraient appelés dans le même
+       * draw(), à trois lignes d'écart.
+       *
+       * LA CLÉ EST LE FRANÇAIS. `Langue.mot` retombe sur la clé quand elle n'a
+       * pas de traduction : une planche non encore convertie continue donc
+       * d'écrire son français, et seul l'anglais se déclare. On traduit par
+       * groupes sans jamais casser les autres.
+       *
+       * `{valeurs}` plutôt que des morceaux recollés : « au-dessus de {seuil} W »
+       * se traduit, « au-dessus de » + seuil + « W » ne se traduit pas. */
+      mot: function (cle, valeurs) {
+        if (!global.Langue) return cle;
+        return global.Langue.mot(cle, valeurs);
+      },
+
+      /* Le pluriel : zéro est singulier en français, pluriel en anglais. */
+      n: function (nb, un, plusieurs, valeurs) {
+        if (!global.Langue) return (nb > 1 ? plusieurs : un).replace('{n}', nb);
+        return global.Langue.n(nb, un, plusieurs, valeurs);
+      },
 
       /* Unité relative : 1 vu = 1% de la plus petite dimension.
        * Écris tes tailles avec, et ton template survit au changement

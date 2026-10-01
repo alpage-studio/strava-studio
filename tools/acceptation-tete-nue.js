@@ -205,6 +205,105 @@ async function passe(navigateur, base, ecran, interception) {
   return { resultats: resultats, arrive: arrive, erreurs: erreurs, pourquoi: pourquoi };
 }
 
+
+/* ---------- LE PASSAGE ATLAS ----------
+ *
+ * Le parcours ci-dessus ouvre index.html, donc l'outil Trace et ses 28
+ * planches. Atlas, et les 10 planches multi-sorties, n'étaient parcourus par
+ * rien — la sortie du lanceur l'imprimait, faute de mieux.
+ *
+ * POURQUOI UN SEUL MOTEUR ET UNE SEULE LARGEUR. Ce qu'Atlas ajoute est le
+ * MODE : quelles planches la liste porte, quelle mémoire est écrite, où mène
+ * la redirection. Rien de tout cela ne dépend du moteur ni de la largeur — le
+ * rendu, lui, est déjà parcouru trois fois dans deux moteurs côté Trace.
+ * Mesuré : le parcours complet fait 11 min 40 ; le doubler ferait sortir la
+ * chaîne de sa limite pour éprouver deux fois la même chose.
+ */
+async function passeAtlas(navigateur, base) {
+  const page = await navigateur.newPage({ viewport: { width: 1280, height: 900 } });
+  const resultats = [];
+  function ok(nom, condition, detail) {
+    resultats.push({ cas: nom, verdict: condition ? 'ok' : 'ÉCHEC', detail: detail });
+  }
+  try {
+    await page.addInitScript(function () {
+      try { localStorage.setItem('strava-studio-vu', '1.4'); } catch (e) { /* mode privé */ }
+    });
+    const sep = base.indexOf('?') >= 0 ? '&' : '?';
+    await page.goto(base + sep + 'outil=atlas', { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForFunction(function () { return window.App && window.App.outil; },
+                               null, { timeout: 20000, polling: 200 });
+
+    const r = await page.evaluate(function () {
+      const tous = window.Studio.all();
+      const menu = Array.prototype.map.call(document.querySelectorAll('#tpl option'),
+                                            function (o) { return o.value; });
+      const peut = tous.filter(function (t) { return window.Studio.peutEtreMulti(t); });
+      const mono = tous.filter(function (t) {
+        const d = {};
+        (t.options || []).forEach(function (o) { d[o.key] = o.default; });
+        return !window.Studio.estMulti(t, d);
+      });
+      const deux = peut.filter(function (t) { return mono.indexOf(t) >= 0; });
+      return {
+        outil: window.App.outil,
+        menu: menu,
+        nTotal: tous.length,
+        nPeut: peut.length,
+        nMono: mono.length,
+        nDeux: deux.length,
+        periodeVisible: !!(document.querySelector('#opt-periode') &&
+                           !document.querySelector('#opt-periode').hidden)
+      };
+    });
+
+    ok('atlas · la page s’ouvre dans l’outil Atlas  (' + r.outil + ')', r.outil === 'atlas');
+
+    ok('atlas · le menu ne porte que les planches d’Atlas  (' + r.menu.length +
+       ' / ' + r.nTotal + ')',
+       r.menu.length === r.nPeut && r.menu.length > 0 && r.menu.length < r.nTotal,
+       'menu ' + r.menu.length + ', attendu ' + r.nPeut);
+
+    /* AUCUNE PLANCHE NE DOIT DISPARAÎTRE DES DEUX OUTILS. Une planche absente
+     * des deux ne lève aucune erreur : elle cesse simplement d'exister. */
+    ok('atlas · les deux outils couvrent les ' + r.nTotal + ' planches  (' +
+       r.nPeut + ' + ' + r.nMono + ' − ' + r.nDeux + ')',
+       r.nPeut + r.nMono - r.nDeux === r.nTotal,
+       'il en manque ' + (r.nTotal - (r.nPeut + r.nMono - r.nDeux)));
+
+    ok('atlas · la période est offerte d’emblée', r.periodeVisible,
+       'la planche par défaut d’Atlas est multi-sorties : son sélecteur doit être ouvert');
+
+    /* La mémoire : Atlas écrit sous sa propre clé, sinon il écrase le choix
+     * fait dans Trace — et on revient à l'un en le trouvant réglé pour l'autre. */
+    const cles = await page.evaluate(function () {
+      try {
+        /* `draw()` ne SAUVEGARDE pas — première version de ce cas, et il
+         * échouait en annonçant une mémoire absente alors qu'elle n'avait
+         * simplement jamais été écrite. `changement()` dessine ET enregistre. */
+        window.App.changement();
+        return Object.keys(localStorage);
+      } catch (e) { return ['ERREUR ' + e.message]; }
+    });
+    ok('atlas · il écrit sous sa propre clé, pas celle de Trace',
+       cles.indexOf('alpage-atlas') >= 0 && cles.indexOf('strava-studio') < 0,
+       'clés vues : ' + cles.join(', '));
+
+    /* La redirection : atlas.html porte l'adresse, le mode voyage en requête. */
+    await page.goto(base.replace(/index[.]html$/, '') + 'atlas.html',
+                    { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForFunction(function () { return window.App && window.App.outil; },
+                               null, { timeout: 20000, polling: 200 });
+    const apres = await page.evaluate(function () { return window.App.outil; });
+    ok('atlas · atlas.html mène bien à l’outil Atlas  (' + apres + ')', apres === 'atlas');
+  } catch (e) {
+    resultats.push({ cas: 'atlas · le passage a levé', verdict: 'ÉCHEC', detail: String(e.message) });
+  } finally {
+    await page.close();
+  }
+  return resultats;
+}
+
 (async function () {
   const pw = playwright();
   const moteurs = MOTEUR === 'tous' ? ['chromium', 'webkit']
@@ -313,6 +412,22 @@ async function passe(navigateur, base, ecran, interception) {
                   ' cas passés\n');
     }
     }
+
+    /* Atlas : une fois, sur le premier moteur. Voir passeAtlas. */
+    if (navigateur) {
+      console.log('atlas  (un moteur, une largeur — le MODE, pas le rendu)');
+      const ra = await passeAtlas(navigateur, base);
+      ra.forEach(function (x) {
+        if (x.verdict === 'sauté') { sautes++; return; }
+        cas++;
+        if (x.verdict === 'ÉCHEC') {
+          echecs++;
+          console.log('  ÉCHEC  ' + x.cas + (x.detail ? '\n         ' + x.detail : ''));
+        }
+      });
+      console.log('  ' + ra.filter(function (x) { return x.verdict === 'ok'; }).length +
+                  ' cas passés\n');
+    }
   } finally {
     if (navigateur) await navigateur.close();
     if (serveur) serveur.kill();
@@ -327,7 +442,7 @@ async function passe(navigateur, base, ecran, interception) {
    * par index.html?outil=atlas, et le cas « l'export refuse le vide » s'y
    * saute faute de planche. Tant que cette ligne est là, personne ne doit
    * croire qu'Atlas est couvert : il ne l'est pas. */
-  console.log('NON COUVERT ICI non plus : l’outil Atlas (index.html?outil=atlas) ' +
-              'et ses dix planches multi-sorties.');
+  /* La ligne qui disait « Atlas n'est pas couvert » a disparu avec la
+   * lacune : le passage ci-dessus l'éprouve désormais. */
   process.exitCode = echecs ? 1 : 0;
 }());

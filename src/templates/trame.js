@@ -85,9 +85,9 @@ Studio.template({
 
     var vue = Alpage.projette(a && a.track);
     if (vue.pts.length < 8) {
-      H.text('Cette sortie n’a pas de trace', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Cette sortie n’a pas de trace'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('Trame tisse le parcours : il lui faut des coordonnées',
+      H.text(H.mot('Trame tisse le parcours : il lui faut des coordonnées'),
              g.left, g.top + g.height * 0.45 + u(5),
              H.t('label', { color: faint, maxWidth: g.width }));
       return;

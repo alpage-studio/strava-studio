@@ -84,7 +84,13 @@ jobs:
   acceptation:
     name: Acceptation (Chromium et WebKit, sans fenêtre)
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45 ET NON 30. Mesuré sur la chaîne de la 3.17.6 : 27 min 47 au total,
+    # dont 15 min 58 à INSTALLER les navigateurs (cache froid) et 11 min 40 de
+    # parcours. Cache chaud, la même étape tombe à 3 min 14. La variable n'est
+    # donc pas le nombre de cas mais l'état du cache, et il restait deux
+    # minutes de marge. Une limite plus haute ne coûte rien quand tout va
+    # bien, et évite qu'un cache froid passe pour un parcours cassé.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -165,7 +171,12 @@ jobs:
     name: Vérifier ce qui est réellement servi
     needs: publication
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 45 comme l'acceptation, et pour la même raison : ce job installe les
+    # MÊMES navigateurs et relance le MÊME parcours, contre le site publié. Avec
+    # un cache froid il tomberait exactement au même endroit — en production,
+    # cette fois. Deux limites qui protègent la même chose doivent dire la
+    # même chose.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 

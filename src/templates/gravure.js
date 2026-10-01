@@ -73,9 +73,9 @@ Studio.template({
     if (profil.length < 4) {
       /* PAS DE RELIEF INVENTÉ. Sans altitude, la planche le dit et s'arrête —
        * une gravure fabriquée à partir de rien serait un dessin qui ment. */
-      H.text('Cette sortie n’a pas d’altitude', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Cette sortie n’a pas d’altitude'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('Gravure d’altitude a besoin d’un profil : capteur barométrique ou GPS',
+      H.text(H.mot('Gravure d’altitude a besoin d’un profil : capteur barométrique ou GPS'),
              g.left, g.top + g.height * 0.45 + u(5),
              H.t('label', { color: faint, maxWidth: g.width }));
       return;
@@ -166,7 +166,8 @@ Studio.template({
     if (a.distance_km != null) bouts.push(H.fmt.km(a.distance_km, 1) + ' KM');
     if (a.elev_gain_m != null) bouts.push(Math.round(a.elev_gain_m) + ' M D+');
     if (dit.fabrication && denivele != null) {
-      bouts.push(Math.round(a.elev_min_m) + ' À ' + Math.round(a.elev_max_m) + ' M');
+      bouts.push(H.mot('{bas} À {haut} M',
+        { bas: Math.round(a.elev_min_m), haut: Math.round(a.elev_max_m) }));
     }
     if (bouts.length) {
       H.text(bouts.join('  ·  '), g.left, yTitre + u(4.4),
@@ -178,7 +179,7 @@ Studio.template({
      * ces lignes ne sont pas un terrain — y est dit aussi, et le catalogue le
      * répète dans la description du template. */
     if (dit.fabrication) {
-      H.text('COPIES DU MÊME PROFIL — PAS DES COURBES DE NIVEAU · VERTICALE EXAGÉRÉE',
+      H.text(H.mot('COPIES DU MÊME PROFIL — PAS DES COURBES DE NIVEAU · VERTICALE EXAGÉRÉE'),
              g.left, yTitre + u(8.2),
              H.t('label', { color: melange(encre, 0.3), maxWidth: g.width }));
     }

@@ -57,9 +57,9 @@ Studio.template({
     var g = H.grid({ cols: 6, margin: u(7) });
 
     if (!entrees.length) {
-      H.text('Charge la période à analyser', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Charge la période à analyser'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: ink, maxWidth: g.width }));
-      H.text('elle sera comparée à l’historique de ce navigateur',
+      H.text(H.mot('elle sera comparée à l’historique de ce navigateur'),
              g.left, g.top + g.height * 0.45 + u(5), H.t('label', { color: faint, maxWidth: g.width }));
       return;
     }
@@ -76,11 +76,12 @@ Studio.template({
      * affirmerait une découverte que le studio ne peut pas établir. */
     var dit = Alpage.dit(o);
     if (dit.titre) {
-      H.text(String(o.titre || '').trim() || (reference ? 'Territoires blancs' : 'La référence'),
+      H.text(String(o.titre || '').trim() ||
+               H.mot(reference ? 'Territoires blancs' : 'La référence'),
              g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
     }
     if (dit.mesures) {
-      H.text(entrees.length + (entrees.length > 1 ? ' sorties' : ' sortie'),
+      H.text(H.n(entrees.length, '{n} sortie', '{n} sorties'),
              g.right, g.top + u(3.6), H.t('label', { color: faint, align: 'right' }));
     }
 
@@ -95,21 +96,21 @@ Studio.template({
       H.rule(g.left, y - u(3), g.right, { color: hair });
       if (reference) {
         if (dit.mesures)
-        [['nouveaux', H.fmt.km(analyse.kmNeufs, 1) + ' km'],
-         ['sur', H.fmt.km(analyse.kmTotal, 0) + ' km'],
-         ['référence', reference.sorties + (reference.sorties > 1 ? ' sorties' : ' sortie')]]
+        [[H.mot('nouveaux'), H.fmt.km(analyse.kmNeufs, 1) + ' km'],
+         [H.mot('sur'), H.fmt.km(analyse.kmTotal, 0) + ' km'],
+         [H.mot('référence'), H.n(reference.sorties, '{n} sortie', '{n} sorties')]]
          .forEach(function (c, i) {
           H.field(c[0], c[1], g.left + i * (g.width / 3), y + u(1.5), {
             color: i === 0 ? o.accent : ink, labelColor: faint,
             size: 5.4, maxWidth: g.width / 3 - u(2)
           });
         });
-        H.text('NOUVEAU DANS TON HISTORIQUE CHARGÉ — LE STUDIO NE CONNAÎT QUE CE QUE TU LUI AS DONNÉ',
+        H.text(H.mot('NOUVEAU DANS TON HISTORIQUE CHARGÉ — LE STUDIO NE CONNAÎT QUE CE QUE TU LUI AS DONNÉ'),
                g.left, g.bottom, H.t('label', { color: faint, maxWidth: g.width }));
       } else {
-        H.text('aucun historique : cette importation devient la référence',
+        H.text(H.mot('aucun historique : cette importation devient la référence'),
                g.left, y + u(4), H.t('title', { size: 4.2, color: ink, maxWidth: g.width }));
-        H.text('AJOUTE CES SORTIES À L’HISTORIQUE, PUIS REVIENS AVEC LA SEMAINE SUIVANTE',
+        H.text(H.mot('AJOUTE CES SORTIES À L’HISTORIQUE, PUIS REVIENS AVEC LA SEMAINE SUIVANTE'),
                g.left, g.bottom, H.t('label', { color: faint, maxWidth: g.width }));
       }
     }

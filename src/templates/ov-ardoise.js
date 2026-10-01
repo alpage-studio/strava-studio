@@ -40,8 +40,8 @@ Studio.template({
 
     var lSize = px(20), vSize = px(34);
     var rows = [
-      ['en mouvement', f.time],
-      ['d+', f.ascent],
+      [H.mot('en mouvement'), f.time],
+      [H.mot('d+'), f.ascent],
       [f.third && f.third.label, f.third && f.third.value]
     ].filter(function (c) { return c[1] != null; });
 

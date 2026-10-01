@@ -131,12 +131,14 @@ Studio.template({
      * redoubler : la planche se lit entièrement en noir et blanc, ce qui la
      * rend imprimable et lisible sans distinguer les teintes. */
     var FAMILLES = {
-      route:  { forme: 'plein',   nom: 'vélo de route', teinte: Alpage.PALETTE.rouille },
-      vtt:    { forme: 'anneau',  nom: 'vtt',           teinte: '#355E70' },
-      course: { forme: 'point',   nom: 'course à pied', teinte: '#C99A32' },
-      marche: { forme: 'ouvert',  nom: 'randonnée',     teinte: '#6B7A5A' },
-      ski:    { forme: 'radial',  nom: 'ski',           teinte: '#7A6E9B' },
-      autre:  { forme: 'croix',   nom: 'autre',         teinte: '#8A8478' }
+      /* Les noms de sport passent par H.mot : la légende disait
+       * « VÉLO DE ROUTE » sous un cadran anglais. */
+      route:  { forme: 'plein',   nom: H.mot('vélo de route'), teinte: Alpage.PALETTE.rouille },
+      vtt:    { forme: 'anneau',  nom: H.mot('vtt'),            teinte: '#355E70' },
+      course: { forme: 'point',   nom: H.mot('course à pied'), teinte: '#C99A32' },
+      marche: { forme: 'ouvert',  nom: H.mot('randonnée'),     teinte: '#6B7A5A' },
+      ski:    { forme: 'radial',  nom: H.mot('ski'),            teinte: '#7A6E9B' },
+      autre:  { forme: 'croix',   nom: H.mot('autre'),          teinte: '#8A8478' }
     };
 
     function familleDe(a) {
@@ -159,9 +161,9 @@ Studio.template({
     });
 
     if (!toutes.length) {
-      H.text('Charge des sorties datées', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Charge des sorties datées'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('Almanac dessine la structure d’une période, pas une sortie',
+      H.text(H.mot('Almanac dessine la structure d’une période, pas une sortie'),
              g.left, g.top + g.height * 0.45 + u(5), H.t('label', { color: faint, maxWidth: g.width }));
       return;
     }
@@ -278,7 +280,9 @@ Studio.template({
         if (mode === 'mois') {
           debut = new Date(d0.getFullYear(), d0.getMonth(), 1);
           fin = new Date(d0.getFullYear(), d0.getMonth() + 1, 1);
-          nom = debut.toLocaleDateString('fr-CH', { month: 'long', year: 'numeric' });
+          nom = window.Langue
+            ? window.Langue.date(debut, { month: 'long', year: 'numeric' })
+            : debut.toLocaleDateString('fr-CH', { month: 'long', year: 'numeric' });
         } else {
           debut = new Date(d0.getFullYear(), 0, 1);
           fin = new Date(d0.getFullYear() + 1, 0, 1);
@@ -483,7 +487,15 @@ Studio.template({
           d = new Date(d.getTime() + 86400000);
         }
       } else {
-        var MOIS = ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUN', 'JUL', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'];
+        /* Les mois viennent du socle, pas d'une liste écrite à la main : en
+         * anglais le cadran disait JAN FÉV MAR AVR… — un almanach anglais aux
+         * mois français. `Langue.mois` les rend dans la langue des IMAGES. */
+        var MOIS = [];
+        for (var iM = 0; iM < 12; iM++) {
+          MOIS.push(window.Langue ? window.Langue.mois(iM, true).toUpperCase()
+                                  : ['JAN', 'FÉV', 'MAR', 'AVR', 'MAI', 'JUN',
+                                     'JUL', 'AOÛ', 'SEP', 'OCT', 'NOV', 'DÉC'][iM]);
+        }
         for (var m = 0; m < 12; m++) {
           var dm = new Date(p.debut.getFullYear(), m, 1);
           var tm = (dm - p.debut) / duree;
@@ -538,7 +550,7 @@ Studio.template({
              }));
       if (!dit.mesures) { /* rien */ }
       else if (!compact) {
-        H.text(membres.length + ' sorties', cx, cy + u(3.4),
+        H.text(H.n(membres.length, '{n} sortie', '{n} sorties'), cx, cy + u(3.4),
                H.t('label', { color: faint, align: 'center' }));
         H.text(H.fmt.km(km, 0) + ' km' +
                (dp.mesurees ? ' · ' + Math.round(dp.total) + ' m D+' : ''),
@@ -599,7 +611,10 @@ Studio.template({
 
         var largeur = marge.enColonne ? marge.largeur : u(38);
         if (!dit.mesures) return;
-        H.text(as.activity.date.toLocaleDateString('fr-CH', { day: '2-digit', month: 'short' }).toUpperCase(),
+        H.text((window.Langue
+          ? window.Langue.date(as.activity.date, { day: '2-digit', month: 'short' })
+          : as.activity.date.toLocaleDateString('fr-CH', { day: '2-digit', month: 'short' })
+        ).toUpperCase(),
                xTexte, yMarge - u(3.4), H.t('label', { color: accent, align: al }));
         H.text(Library.nomCourt(as.activity, 22), xTexte, yMarge + u(1),
                H.t('title', { size: 2.9, color: encre, align: al, maxWidth: largeur }));
@@ -648,16 +663,19 @@ Studio.template({
 
       H.rule(g.left, y - u(11.5) - hSupp, g.right, { color: hair });
 
-      var regle = 'ANGLE : POSITION DANS LA PÉRIODE · RAYON : ' + nomMesure(o.orbite).toUpperCase() +
-                  ' (ÉCHELLE LINÉAIRE) · SURFACE : ' + nomMesure(o.taille).toUpperCase();
+      /* Deux mesures AU MILIEU d'une phrase : recollée, elle restait
+       * française sous un cadran anglais. */
+      var regle = H.mot('ANGLE : POSITION DANS LA PÉRIODE · RAYON : {r} (ÉCHELLE LINÉAIRE) · SURFACE : {s}',
+        { r: nomMesure(o.orbite).toUpperCase(), s: nomMesure(o.taille).toUpperCase() });
       H.text(regle, g.left, y - u(3), H.t('label', { color: melange(encre, 0.42), maxWidth: g.width }));
-      H.text('CERCLE POINTILLÉ = MESURE NON RENSEIGNÉE · LES VIDES SONT DES VIDES RÉELS' +
-             (encombrement ? ' · ' + encombrement + ' MARQUES SE CHEVAUCHENT — RÉDUIS LA PÉRIODE OU FILTRE PAR SPORT' : ''),
+      H.text(H.mot('CERCLE POINTILLÉ = MESURE NON RENSEIGNÉE · LES VIDES SONT DES VIDES RÉELS') +
+             (encombrement ? ' · ' + H.mot('{n} MARQUES SE CHEVAUCHENT — RÉDUIS LA PÉRIODE OU FILTRE PAR SPORT', { n: encombrement }) : ''),
              g.left, y + u(0.6), H.t('label', { color: melange(encre, 0.3), maxWidth: g.width }));
     }
 
     function nomMesure(q) {
-      return q === 'distance' ? 'distance (km)' : q === 'deniv' ? 'dénivelé (m)' : 'durée (h)';
+      return H.mot(q === 'distance' ? 'distance (km)'
+                 : q === 'deniv' ? 'dénivelé (m)' : 'durée (h)');
     }
 
     function choisitPas(max) {

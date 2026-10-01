@@ -49,9 +49,9 @@ Studio.template({
     var capBase = g.bottom;
     H.rule(g.left, capBase - u(9), g.right, { color: alpha(ink, 0.2) });
     var stats = [
-      ['distance', H.fmt.km(a.distance_km, 1) + ' km'],
-      ['en mouvement', H.fmt.duration(a.duration_s)],
-      ['dénivelé', H.fmt.int(a.elev_gain_m) + ' m']
+      [H.mot('distance'), H.fmt.km(a.distance_km, 1) + ' km'],
+      [H.mot('en mouvement'), H.fmt.duration(a.duration_s)],
+      [H.mot('dénivelé'), H.fmt.int(a.elev_gain_m) + ' m']
     ];
     var colW = g.width / stats.length;
     if (dit.mesures) stats.forEach(function (st, i) {

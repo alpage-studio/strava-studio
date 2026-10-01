@@ -29,7 +29,7 @@ const VERSION = 'studio-v' + STUDIO_VERSION;
  * src/version.js, qui demeure la source unique. Un contrôle du harnais refuse
  * qu'elle diverge, exactement comme il refuse un journal dont la première
  * entrée ne porte pas le numéro servi. */
-const GENERATION = '3.17.6';
+const GENERATION = '3.17.7';
 
 /* Le strict nécessaire pour démarrer hors ligne. Les templates sont listés
  * un par un : en ajouter un demande une ligne ici, et un changement de
@@ -44,6 +44,7 @@ const SHELL = [
   /* Le socle de langue décide de ce que l'interface affiche : hors du cache,
    * la page s'ouvrirait hors ligne dans une autre langue que la veille. */
   './src/langue.js',
+  './src/images-en.js',
   './manifest.webmanifest',
   './assets/archivo-latin.woff2',
   './assets/archivo-latin-ext.woff2',

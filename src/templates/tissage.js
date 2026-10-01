@@ -56,9 +56,9 @@ Studio.template({
     var g = H.grid({ cols: 6, margin: u(7) });
 
     if (!avecDate.length) {
-      H.text('Charge des sorties datées', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Charge des sorties datées'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: ink, maxWidth: g.width }));
-      H.text('le tissage range les jours en semaines — il lui faut des dates',
+      H.text(H.mot('le tissage range les jours en semaines — il lui faut des dates'),
              g.left, g.top + g.height * 0.45 + u(5),
              H.t('label', { color: faint, maxWidth: g.width }));
       return;
@@ -107,7 +107,7 @@ Studio.template({
      * dates de bande sont des GRADUATIONS — sans elles la grille ne se lit
      * plus ; la legende porte un avertissement de lecture. Les trois restent. */
     if (dit.mesures) {
-      H.text(nbSemaines + ' semaines', g.right, g.top + u(3.6),
+      H.text(H.n(nbSemaines, '{n} semaine', '{n} semaines'), g.right, g.top + u(3.6),
              H.t('label', { color: faint, align: 'right' }));
     }
 
@@ -155,10 +155,10 @@ Studio.template({
       var y = g.bottom - u(7.5);
       H.rule(g.left, y - u(3), g.right, { color: hair });
       var items = [
-        ['chaîne nue', 'aucune activité enregistrée ce jour-là'],
-        ['trame hachurée', 'activité sans altitude'],
-        ['amplitude', o.normalise ? 'NORMALISÉE — RELIEFS NON COMPARABLES'
-                                  : 'dénivelé réel, échelle commune']
+        [H.mot('chaîne nue'), H.mot('aucune activité enregistrée ce jour-là')],
+        [H.mot('trame hachurée'), H.mot('activité sans altitude')],
+        [H.mot('amplitude'), o.normalise ? 'NORMALISÉE — RELIEFS NON COMPARABLES'
+                                  : H.mot('dénivelé réel, échelle commune')]
       ];
       items.forEach(function (it, i) {
         H.field(it[0], it[1], g.left + i * (g.width / 3), y + u(1.5), {

@@ -61,18 +61,18 @@ Studio.template({
       ? 'au-dessus de ' + feu.seuil + ' W' + (feu.estime ? ' — seuil estimé' : ' · ' + o.seuil + ' % FTP')
       : feu.source === 'cardiaque'
         ? 'au-dessus de ' + feu.seuil + ' bpm — sans capteur de puissance'
-        : 'aucune donnée d’effort sur cette sortie';
+        : H.mot('aucune donnée d’effort sur cette sortie');
 
     /* ================= le pied, posé en premier ================= */
     var footY = g.bottom;
     var pieds = [
-      ['distance', H.fmt.km(a.distance_km, 1) + ' km'],
-      ['en mouvement', H.fmt.duration(a.duration_s)],
+      [H.mot('distance'), H.fmt.km(a.distance_km, 1) + ' km'],
+      [H.mot('en mouvement'), H.fmt.duration(a.duration_s)],
       [parPuissance ? 'coût total' : 'd+',
         parPuissance ? Math.round(feu.total || 0) + ' kJ' : H.fmt.int(a.elev_gain_m) + ' m']
     ];
     // en bandeau, le compte descend dans le pied : le graphique prend tout
-    if (variante === 'bandeau') pieds.unshift(['allumettes', String(n)]);
+    if (variante === 'bandeau') pieds.unshift([H.mot('allumettes'), String(n)]);
 
     /* En bandeau le compte est DANS le pied : on retire les mesures, pas
      * la ligne. Supprimer la rangée entière effacerait le héros. */
@@ -174,7 +174,7 @@ Studio.template({
       H.text(legende, g.left, baseNombre + u(4.4), H.t('label', { color: faint }));
       H.text(String(n), g.left, baseNombre, st);
       var hautCompte = baseNombre - st.size * 0.92 - u(1.6);
-      H.text('allumettes brûlées', g.left, hautCompte, H.t('label', { color: faint }));
+      H.text(H.mot('allumettes brûlées'), g.left, hautCompte, H.t('label', { color: faint }));
       titreY = hautCompte - u(5.5);
 
     } else if (variante === 'angle') {
@@ -182,7 +182,7 @@ Studio.template({
        * diagonale au lieu de descendre le long d'un seul bord. */
       var stA = H.t('hero', { size: 15, color: ink, align: 'right' });
       var baseA = g.top + u(5) + stA.size * 0.92;
-      H.text('allumettes brûlées', g.right, g.top + u(1.6), H.t('label', { color: faint, align: 'right' }));
+      H.text(H.mot('allumettes brûlées'), g.right, g.top + u(1.6), H.t('label', { color: faint, align: 'right' }));
       H.text(String(n), g.right, baseA, stA);
       H.text(legende, g.right, baseA + u(4.4), H.t('label', { color: faint, align: 'right' }));
 

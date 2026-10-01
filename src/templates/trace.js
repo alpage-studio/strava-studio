@@ -78,9 +78,9 @@ Studio.template({
     // L'unité descend dans la légende : les valeurs restent courtes et
     // les trois colonnes ne se marchent jamais dessus.
     var cols = [
-      [H.fmt.km(a.distance_km), 'kilomètres'],
+      [H.fmt.km(a.distance_km), H.mot('kilomètres')],
       [H.fmt.duration(a.duration_s), 'en mouvement'],
-      [H.fmt.int(a.elev_gain_m), 'mètres D+']
+      [H.fmt.int(a.elev_gain_m), H.mot('mètres D+')]
     ];
     var colW = (w - 2 * m) / cols.length;
     if (dit.mesures) cols.forEach(function (c, i) {

@@ -111,7 +111,7 @@ Studio.template({
     if (dit.titre)
     H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: encre, maxWidth: g.w(4) }));
     if (dit.mesures)
-    H.text(avecRelief.length + (avecRelief.length > 1 ? ' couches' : ' couche'),
+    H.text(H.n(avecRelief.length, '{n} couche', '{n} couches'),
            g.right, g.top + u(3.6), H.t('label', { color: faint, align: 'right' }));
 
     /* ---------- les données de chaque couche ---------- */
@@ -401,11 +401,12 @@ Studio.template({
       H.rule(g.left, y - u(4), g.right, { color: hair });
 
       var lecture = comparer
-        ? 'ÉCHELLES COMMUNES — LES LARGEURS ET LES HAUTEURS SE COMPARENT'
-        : 'LARGEURS NORMALISÉES — LES DISTANCES NE SE COMPARENT PAS';
+        ? H.mot('ÉCHELLES COMMUNES — LES LARGEURS ET LES HAUTEURS SE COMPARENT')
+        : H.mot('LARGEURS NORMALISÉES — LES DISTANCES NE SE COMPARENT PAS');
       var axe = o.altitude === 'absolue'
-        ? 'ALTITUDE ABSOLUE · ' + Math.round(vBas) + ' À ' + Math.round(vHaut) + ' M'
-        : 'VARIATION DEPUIS LE DÉPART · ±' + Math.round(vHaut) + ' M';
+        ? H.mot('ALTITUDE ABSOLUE · {bas} À {haut} M',
+                { bas: Math.round(vBas), haut: Math.round(vHaut) })
+        : H.mot('VARIATION DEPUIS LE DÉPART · ±{n} M', { n: Math.round(vHaut) });
       /* TROIS PHRASES, TROIS STATUTS.
        *   `lecture` et `axe` disent COMMENT LIRE le dessin : sans eux, des
        *   largeurs normalisees se comparent a tort. Ils restent en signature.
@@ -414,8 +415,8 @@ Studio.template({
        *   « Données », ou elle repond a qui veut savoir ce qu'il a regle. */
       var nature = !dit.fabrication ? ''
         : compo === 'continue'
-          ? ' · TRAITEMENT GRAPHIQUE DES PROFILS, PAS UN RELIEF EN TROIS DIMENSIONS'
-          : compo === 'massif' ? ' · COMPOSITION DE PROFILS SUPERPOSÉS' : '';
+          ? ' · ' + H.mot('TRAITEMENT GRAPHIQUE DES PROFILS, PAS UN RELIEF EN TROIS DIMENSIONS')
+          : compo === 'massif' ? ' · ' + H.mot('COMPOSITION DE PROFILS SUPERPOSÉS') : '';
       if (!dit.rien) {
         H.text(lecture + ' · ' + axe + nature, g.left, y,
                H.t('label', { color: faint, maxWidth: g.width }));
@@ -458,7 +459,7 @@ Studio.template({
                  H.t('label', { color: faint, maxWidth: u(22) }));
           x += u(30);
         });
-        H.text('SANS ALTITUDE — EXCLUES DES PROFILS', g.right, yv,
+        H.text(H.mot('SANS ALTITUDE — EXCLUES DES PROFILS'), g.right, yv,
                H.t('label', { color: faint, align: 'right' }));
       }
     }

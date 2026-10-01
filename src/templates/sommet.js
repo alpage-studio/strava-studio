@@ -77,9 +77,9 @@
       /* ---------- statistiques ---------- */
       var statsBase = profTop - u(10);
       var stats = [
-        ['distance', H.fmt.km(a.distance_km, 1) + ' km'],
-        ['en mouvement', H.fmt.duration(a.duration_s)],
-        ['vitesse', H.fmt.speed(a.speed_kmh) + ' km/h']
+        [H.mot('distance'), H.fmt.km(a.distance_km, 1) + ' km'],
+        [H.mot('en mouvement'), H.fmt.duration(a.duration_s)],
+        [H.mot('vitesse'), H.fmt.speed(a.speed_kmh) + ' km/h']
       ];
       var colW = g.width / stats.length;
       if (dit.mesures) stats.forEach(function (st, i) {
@@ -174,7 +174,7 @@
        * sont de la notice, pas de l'image. */
       H.rule(g.left, profBottom + u(1), g.right, { color: hair });
       if (dit.mesures) {
-        H.text(H.fmt.int(a.elev_gain_m) + ' m D+', g.left, capBase,
+        H.text(H.mot('{n} m D+', { n: H.fmt.int(a.elev_gain_m) }), g.left, capBase,
           H.t('label', { color: ink }));
       }
 

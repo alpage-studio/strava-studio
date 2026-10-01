@@ -26,9 +26,9 @@ Studio.template({
       ]));
     }
 
-    var hero = { v: H.fmt.int(a.elev_gain_m), u: 'mètres de dénivelé' };
-    if (o.heros === 'distance') hero = { v: H.fmt.km(a.distance_km, 1), u: 'kilomètres parcourus' };
-    if (o.heros === 'temps') hero = { v: H.fmt.duration(a.duration_s), u: 'de mouvement' };
+    var hero = { v: H.fmt.int(a.elev_gain_m), u: H.mot('mètres de dénivelé') };
+    if (o.heros === 'distance') hero = { v: H.fmt.km(a.distance_km, 1), u: H.mot('kilomètres parcourus') };
+    if (o.heros === 'temps') hero = { v: H.fmt.duration(a.duration_s), u: H.mot('de mouvement') };
 
     var left = px(84);
     /* Le nombre et son unité ne se taisent jamais : ils SONT la surcouche.

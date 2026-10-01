@@ -59,7 +59,7 @@ Studio.template({
 
     /* ---------- chiffre héros ---------- */
     var y = g.top + CH * 0.24;
-    H.text('distance totale', g.left, y, H.t('label', { color: gris }));
+    H.text(H.mot('distance totale'), g.left, y, H.t('label', { color: gris }));
 
     var num = H.fmt.km(a.distance_km);
     // le corps du chiffre se règle sur la place réelle, unité comprise
@@ -74,7 +74,7 @@ Studio.template({
     H.text(num, g.left, heroBase, heroStyle);
     // l'unité collée au chiffre, à un tiers du corps : le geste éditorial
     numW = H.measure(num, heroStyle);
-    H.text('KM', g.left + numW + u(0.8), heroBase, H.t('hero', {
+    H.text(H.mot('KM'), g.left + numW + u(0.8), heroBase, H.t('hero', {
       size: heroU * 0.32, color: alpha(o.encre, 0.75)
     }));
 
@@ -82,9 +82,9 @@ Studio.template({
     var rowY = heroBase + CH * 0.055;
     var fieldU = 5;
     if (dit.mesures) {
-      H.field('en mouvement', H.fmt.duration(a.duration_s), g.x(0), rowY,
+      H.field(H.mot('en mouvement'), H.fmt.duration(a.duration_s), g.x(0), rowY,
         { color: o.encre, labelColor: gris, size: fieldU, maxWidth: g.w(2) });
-      H.field('vitesse moyenne', H.fmt.speed(a.speed_kmh) + ' km/h',
+      H.field(H.mot('vitesse moyenne'), H.fmt.speed(a.speed_kmh) + ' km/h',
         g.x(3), rowY, { color: o.encre, labelColor: gris, size: fieldU, maxWidth: g.w(2) });
     }
     var rowBottom = rowY + u(fieldU) * 0.98;
@@ -123,7 +123,7 @@ Studio.template({
     /* ---------- pied : dénivelé ---------- */
     H.rule(g.left, footTop, g.right, { color: alpha(o.encre, 0.16) });
     if (dit.mesures) {
-      H.text('dénivelé positif', g.left, footY - u(7.4), H.t('label', { color: gris }));
+      H.text(H.mot('dénivelé positif'), g.left, footY - u(7.4), H.t('label', { color: gris }));
       H.text(H.fmt.int(a.elev_gain_m) + ' M', g.left, footY, H.t('value', {
         size: 8, color: o.encre
       }));

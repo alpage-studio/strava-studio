@@ -30,9 +30,9 @@ Studio.template({
     });
 
     /* --- le héros --- */
-    var hero = { v: H.fmt.km(a.distance_km, 1), l: 'kilomètres' };
-    if (o.heros === 'duree') hero = { v: H.fmt.duration(a.duration_s), l: 'de mouvement' };
-    if (o.heros === 'deniv') hero = { v: H.fmt.int(a.elev_gain_m), l: 'mètres de dénivelé' };
+    var hero = { v: H.fmt.km(a.distance_km, 1), l: H.mot('kilomètres') };
+    if (o.heros === 'duree') hero = { v: H.fmt.duration(a.duration_s), l: H.mot('de mouvement') };
+    if (o.heros === 'deniv') hero = { v: H.fmt.int(a.elev_gain_m), l: H.mot('mètres de dénivelé') };
 
     var heroY = h * 0.42;
     H.text(hero.v, m, heroY, { size: u(22), weight: 800, color: o.encre });
@@ -42,11 +42,11 @@ Studio.template({
 
     /* --- colonne de stats secondaires --- */
     var rows = [
-      ['Temps', H.fmt.duration(a.duration_s)],
-      ['Vitesse', H.fmt.speed(a.speed_kmh) + ' km/h'],
-      ['D+', a.elev_gain_m != null ? a.elev_gain_m + ' m' : '—']
+      [H.mot('Temps'), H.fmt.duration(a.duration_s)],
+      [H.mot('Vitesse'), H.fmt.speed(a.speed_kmh) + ' km/h'],
+      [H.mot('D+'), a.elev_gain_m != null ? a.elev_gain_m + ' m' : '—']
     ];
-    if (a.hr_avg) rows.push(['FC moy.', a.hr_avg + ' bpm']);
+    if (a.hr_avg) rows.push([H.mot('FC moy.'), a.hr_avg + ' bpm']);
     if (o.heros === 'distance') rows.shift(); // pas deux fois la même valeur
 
     var y = heroY + u(14);

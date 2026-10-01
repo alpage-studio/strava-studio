@@ -58,9 +58,9 @@ Studio.template({
     var g = H.grid({ cols: 6, margin: u(7) });
 
     if (!contribs.length) {
-      H.text('Charge des traces', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Charge des traces'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: ink, maxWidth: g.width }));
-      H.text('chacune prolongera la précédente', g.left, g.top + g.height * 0.45 + u(5),
+      H.text(H.mot('chacune prolongera la précédente'), g.left, g.top + g.height * 0.45 + u(5),
              H.t('label', { color: faint }));
       return;
     }
@@ -80,7 +80,7 @@ Studio.template({
     /* Le compte des contributions est une MESURE. Les prenoms de l'option
      * « noms », eux, sont tapes par l'auteur : ils restent. */
     if (dit.mesures) {
-      H.text(contribs.length + (contribs.length > 1 ? ' contributions' : ' contribution'),
+      H.text(H.n(contribs.length, '{n} contribution', '{n} contributions'),
              g.right, g.top + u(3.6), H.t('label', { color: faint, align: 'right' }));
     }
 
@@ -172,8 +172,10 @@ Studio.template({
     });
 
     /* ---------- la mention, non négociable ---------- */
-    H.text('COMPOSITION GRAPHIQUE — LES TRACES SONT DÉPLACÉES, TOURNÉES ET MISES À L’ÉCHELLE. ' +
-           'CE N’EST PAS UN ITINÉRAIRE.',
+    /* Une seule chaîne, pas deux recollées : une phrase coupée en deux
+     * littéraux n'est la clé de rien, et aucune des deux moitiés ne se
+     * traduisait. */
+    H.text(H.mot('COMPOSITION GRAPHIQUE — LES TRACES SONT DÉPLACÉES, TOURNÉES ET MISES À L’ÉCHELLE. CE N’EST PAS UN ITINÉRAIRE.'),
            g.left, basNote, H.t('label', { color: faint, maxWidth: g.width }));
     H.text(echelleCommune
              ? 'longueurs comparables entre contributions'

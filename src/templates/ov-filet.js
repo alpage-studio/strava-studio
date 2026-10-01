@@ -37,8 +37,8 @@ Studio.template({
     var value = { size: vSize, font: H.SANS, weight: 400, tracking: -vSize * 0.01, color: P.ink };
 
     var cols = [
-      ['temps', f.time],
-      ['d+', f.ascent],
+      [H.mot('temps'), f.time],
+      [H.mot('d+'), f.ascent],
       [f.third && f.third.label, f.third && f.third.value]
     ].filter(function (c) { return c[1] != null; });
 

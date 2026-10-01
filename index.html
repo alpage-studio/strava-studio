@@ -1233,6 +1233,15 @@
     </div>
 
     <div class="dock">
+      <!-- LA LANGUE DES IMAGES VIT ICI, PAS DANS L'ENTÊTE.
+           C'est un réglage de ce qu'on PRODUIT, au même titre que le format :
+           on peut vouloir le studio en anglais et des affiches en français, ou
+           l'inverse selon à qui on l'envoie. Et l'entête est pleine à 390 px —
+           mesuré : zéro pixel de marge avec les trois outils. -->
+      <label class="opt" id="opt-langue-images">
+        <span>Langue des images</span>
+        <span data-langue="images"></span>
+      </label>
       <div class="row" id="rangee-format">
         <select id="size">
           <option value="story">Story — 1080 × 1920</option>
@@ -1354,6 +1363,9 @@
      quelle langue i18n doit servir. Dans l'autre ordre, i18n se figerait
      sur son défaut et le réglage ne porterait rien. -->
 <script src="src/langue.js"></script>
+<!-- Ce que les PLANCHES gravent, en anglais. Après le socle, qui porte
+     `Langue.declarer`, et avant les planches qui s'en servent. -->
+<script src="src/images-en.js"></script>
 <script src="src/i18n.js"></script>
 <script src="src/activity.js"></script>
 <script src="src/studio.js"></script>

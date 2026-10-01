@@ -91,9 +91,9 @@ Studio.template({
     var part = Partition.construire(a, { duree: Number(o.tempo) || 14, ambiance: o.ambiance });
 
     if (part.vide) {
-      H.text('Charge une sortie', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Charge une sortie'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: ink, maxWidth: g.width }));
-      H.text('la partition se lit dans le relief et la cadence',
+      H.text(H.mot('la partition se lit dans le relief et la cadence'),
              g.left, g.top + g.height * 0.45 + u(5), H.t('label', { color: faint }));
       return;
     }
@@ -199,12 +199,13 @@ Studio.template({
     H.rule(g.left, basSource - u(3), g.right, { color: hair });
     var pulsation = part.source.pulsation === 'cadence'
       ? 'cadence mesurée'
-      : 'pulsation conventionnelle — un choix, pas une mesure';
+      : H.mot('pulsation conventionnelle — un choix, pas une mesure');
     var hauteur = part.source.hauteur === 'altitude'
-      ? 'altitude de la trace'
+      ? H.mot('altitude de la trace')
       : 'aucun relief : hauteur fixe';
-    [['pulsation', pulsation], ['mélodie', hauteur],
-     ['pauses', part.source.pauses ? 'identifiées par l’horodatage' : 'non identifiables']]
+    [[H.mot('pulsation'), pulsation], [H.mot('mélodie'), hauteur],
+     [H.mot('pauses'), part.source.pauses ? H.mot('identifiées par l’horodatage')
+                                          : H.mot('non identifiables')]]
       .forEach(function (c, i) {
         if (!dit.fabrication) return;
         H.field(c[0], c[1], g.left + i * (g.width / 3), basSource + u(1.5), {
@@ -213,7 +214,7 @@ Studio.template({
         });
       });
     if (dit.fabrication) {
-      H.text('GAMME PENTATONIQUE · LE SON NE DÉMARRE QUE SI TU LE DEMANDES',
+      H.text(H.mot('GAMME PENTATONIQUE · LE SON NE DÉMARRE QUE SI TU LE DEMANDES'),
              g.left, g.bottom, H.t('label', { color: faint, maxWidth: g.width }));
     }
 
@@ -246,9 +247,9 @@ Studio.template({
       var pts = (a && a.track) || [];
       var avecTemps = pts.filter(function (p) { return p.t; });
       if (avecTemps.length < 8) {
-        H.text('Cette sortie n’a pas d’horodatage', g2.left, g2.top + g2.height * 0.45,
+        H.text(H.mot('Cette sortie n’a pas d’horodatage'), g2.left, g2.top + g2.height * 0.45,
                H.t('title', { color: ink, maxWidth: g2.width }));
-        H.text('La partition graphique écrit le TEMPS : sans horloge, elle n’a pas d’axe',
+        H.text(H.mot('La partition graphique écrit le TEMPS : sans horloge, elle n’a pas d’axe'),
                g2.left, g2.top + g2.height * 0.45 + u(5),
                H.t('label', { color: faint, maxWidth: g2.width }));
         return;

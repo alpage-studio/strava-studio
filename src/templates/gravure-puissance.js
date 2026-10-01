@@ -80,9 +80,9 @@ Studio.template({
        *
        * Elle dit aussi D'OÙ vient la puissance, parce que la question suivante
        * est toujours « pourquoi je ne l'ai pas ». */
-      H.text('Cette sortie n’a pas de puissance', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Cette sortie n’a pas de puissance'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('Il faut un capteur de puissance — depuis un GPX, Strava ou intervals.icu',
+      H.text(H.mot('Il faut un capteur de puissance — depuis un GPX, Strava ou intervals.icu'),
              g.left, g.top + g.height * 0.45 + u(5),
              H.t('label', { color: faint, maxWidth: g.width }));
       return;

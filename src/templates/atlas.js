@@ -85,9 +85,9 @@ Studio.template({
 
     var toutes = (s.library || []).filter(function (e) { return e.activity; });
     if (!toutes.length) {
-      H.text('Charge une semaine de sorties', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Charge une semaine de sorties'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('l’Atlas range les sorties du lundi au dimanche',
+      H.text(H.mot('l’Atlas range les sorties du lundi au dimanche'),
              g.left, g.top + g.height * 0.45 + u(5), H.t('label', { color: faint }));
       return;
     }
@@ -117,7 +117,8 @@ Studio.template({
     var dit = Alpage.dit(o);
     var noSem = Alpage.semaineISO(lundi);
     if (!dit.rien) {
-      H.text(String(o.titre || '').trim() || ('Semaine ' + noSem), g.left, g.top + u(4.4),
+      H.text(String(o.titre || '').trim() || H.mot('Semaine {n}', { n: noSem }),
+             g.left, g.top + u(4.4),
              H.t('title', { size: 5.2, color: encre, maxWidth: g.w(4) }));
       H.text(jourMois(lundi) + ' — ' + jourMois(dimanche) + ' ' + dimanche.getFullYear(),
              g.left, g.top + u(9.4), H.t('label', { color: faint, maxWidth: g.width }));
@@ -133,9 +134,9 @@ Studio.template({
     }
 
     if (!semaine.length) {
-      H.text('aucune sortie enregistrée cette semaine-là',
+      H.text(H.mot('aucune sortie enregistrée cette semaine-là'),
              g.left, g.top + g.height * 0.45, H.t('title', { color: faint, maxWidth: g.width }));
-      H.text('le vide est une donnée : rien n’est fabriqué pour remplir la page',
+      H.text(H.mot('le vide est une donnée : rien n’est fabriqué pour remplir la page'),
              g.left, g.top + g.height * 0.45 + u(5), H.t('label', { color: faint, maxWidth: g.width }));
       ligneDesJours(g.bottom - u(22), []);
       return;
@@ -277,7 +278,7 @@ Studio.template({
 
     function dessineCarte(boite, groupes) {
       if (!groupes.length) {
-        H.text('aucune trace GPS cette semaine', boite.x, boite.y + boite.h / 2,
+        H.text(H.mot('aucune trace GPS cette semaine'), boite.x, boite.y + boite.h / 2,
                H.t('title', { color: faint, maxWidth: boite.w }));
         return;
       }
@@ -414,7 +415,7 @@ Studio.template({
         ctx.stroke();
         ctx.restore();
       });
-      H.text('PROFILS — ÉCHELLE VERTICALE COMMUNE', colX, y1 + u(3.4),
+      H.text(H.mot('PROFILS — ÉCHELLE VERTICALE COMMUNE'), colX, y1 + u(3.4),
              H.t('label', { color: faint, maxWidth: colW }));
     }
 
@@ -508,7 +509,7 @@ Studio.template({
        * la raccourcit pour la signature, on la garde entiere en « Données ». */
       if (!Alpage.dit(o).rien) {
         H.text(Alpage.dit(o).fabrication
-                 ? 'SURFACE DES DISQUES ∝ TEMPS EN MOUVEMENT · CERCLE VIDE = AUCUNE ACTIVITÉ ENREGISTRÉE'
+                 ? H.mot('SURFACE DES DISQUES ∝ TEMPS EN MOUVEMENT · CERCLE VIDE = AUCUNE ACTIVITÉ ENREGISTRÉE')
                  : 'SURFACE ∝ TEMPS EN MOUVEMENT',
                colX, y + rMax + u(7.4), H.t('label', { color: melange(encre, 0.34), maxWidth: colW }));
       }
@@ -534,7 +535,7 @@ Studio.template({
        * comptées mais absentes de la carte. On retire la première, pas la
        * ligne : sans elles, la planche affirmerait une semaine complète. */
       var mentions = dit.mesures
-        ? [semaine.length + (semaine.length > 1 ? ' sorties' : ' sortie')] : [];
+        ? [H.n(semaine.length, '{n} sortie', '{n} sorties')] : [];
       if (estArchipel) mentions.push('chaque médaillon a son échelle — ils ne se comparent pas');
       if (sansGPS.length) mentions.push(sansGPS.length + ' sans GPS — comptées, hors carte');
       if (sansDate) mentions.push(sansDate + ' sans date — hors semaine');
@@ -548,9 +549,9 @@ Studio.template({
       var sec = semaine.reduce(function (t, e) { return t + (e.activity.duration_s || 0); }, 0);
       /* voir `Alpage.somme` : un total sans contributeur ne s'écrit pas */
       var dp = Alpage.somme(semaine, function (e) { return e.activity.elev_gain_m; });
-      [['distance', H.fmt.km(km, 0) + ' km'],
-       ['en mouvement', H.fmt.duration(sec)],
-       ['dénivelé', dp.mesurees ? Math.round(dp.total) + ' m' : '—']]
+      [[H.mot('distance'), H.fmt.km(km, 0) + ' km'],
+       [H.mot('en mouvement'), H.fmt.duration(sec)],
+       [H.mot('dénivelé'), dp.mesurees ? Math.round(dp.total) + ' m' : '—']]
         .forEach(function (c, i) {
         /* Largeur de colonne ET corps s'adaptent au format : « 2 807 m » à
          * 5,4 unités dans un tiers de colonne paysage débordait sur le

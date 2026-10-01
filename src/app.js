@@ -562,8 +562,37 @@
      * une surcouche : son menu dirait le contraire de ce qui se passe. */
     var supportImpose = $('#support').value === 'surcouche';
 
+    /* DANS ATLAS, UNE PLANCHE PARTAGÉE S'OUVRE SUR SA COMPOSITION MULTI.
+     *
+     * Empreinte est dans les deux outils : Sceau pour une sortie, Collection
+     * pour plusieurs. Sans cette bascule, Atlas s'ouvrait sur Sceau — une
+     * planche mono-sortie dans l'outil dont tout le propos est la période,
+     * période dont le sélecteur restait d'ailleurs fermé. C'est le passage
+     * Atlas de l'acceptation qui l'a trouvé, dès sa première exécution. */
+    var versMulti = null;
+    if (A.outil === 'atlas' && tpl.multiDynamique) {
+      var base = {};
+      tpl.options.forEach(function (d) { base[d.key] = d.default; });
+      if (!Studio.estMulti(tpl, base)) {
+        tpl.options.some(function (d) {
+          if (d.type !== 'select' || !d.choices) return false;
+          return d.choices.some(function (c) {
+            var essai = {};
+            Object.keys(base).forEach(function (k) { essai[k] = base[k]; });
+            essai[d.key] = c[0];
+            if (!Studio.estMulti(tpl, essai)) return false;
+            versMulti = { cle: d.key, valeur: c[0] };
+            return true;
+          });
+        });
+      }
+    }
+
     tpl.options.forEach(function (def, rang) {
-      if (vals[def.key] === undefined) vals[def.key] = def.default;
+      if (vals[def.key] === undefined) {
+        vals[def.key] = (versMulti && versMulti.cle === def.key)
+          ? versMulti.valeur : def.default;
+      }
       if (supportImpose && def.key === 'fond' && def.choices) return;
 
       var row = document.createElement('label');
@@ -993,6 +1022,22 @@
    * balises <script> deviendrait une dépendance invisible que rien ne
    * rattraperait. On le dépose donc dans la file du noyau ; src/app/demarrage.js,
    * chargé en dernier, la vide. */
+  /* CHANGER LA LANGUE DES IMAGES REDESSINE CE QU'ON VOIT.
+   *
+   * Les vignettes du catalogue sont de VRAIS rendus, pas des images gardées :
+   * il n'y a donc pas de cache dont la langue devrait faire partie de la
+   * clé. Mais personne ne les refaisait — on changeait la langue et la planche
+   * restait dans l'ancienne jusqu'au prochain réglage touché. Un réglage sans
+   * effet visible apprend à ne plus lire les réglages.
+   *
+   * La langue de l'INTERFACE, elle, recharge la page : rien à prévoir. */
+  if (window.Langue && window.Langue.surChangement) {
+    window.Langue.surChangement(function () {
+      draw();
+      if (A.construitChoixStyle && $('#choix-style')) A.construitChoixStyle();
+    });
+  }
+
   A.auDemarrage(function () {
     /* La version s'affiche dans l'en-tête : c'est ce qui permet de savoir,
      * d'un coup d'œil, si la page ouverte est bien la dernière déployée. */

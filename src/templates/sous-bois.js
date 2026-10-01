@@ -84,9 +84,9 @@ Studio.template({
       /* AUCUN PARCOURS INVENTÉ. Sans trace, il n'y a pas de carte — et une
        * carte fabriquée serait le seul mensonge que cette planche puisse
        * commettre. */
-      H.text('Cette sortie n’a pas de trace', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Cette sortie n’a pas de trace'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: encre, maxWidth: g.width }));
-      H.text('Sous-bois dessine le chemin parcouru : il lui faut des coordonnées',
+      H.text(H.mot('Sous-bois dessine le chemin parcouru : il lui faut des coordonnées'),
              g.left, g.top + g.height * 0.45 + u(5),
              H.t('label', { color: faint, maxWidth: g.width }));
       return;
@@ -175,7 +175,7 @@ Studio.template({
     }
 
     if (dit.fabrication) {
-      H.text('SAPINS DÉCORATIFS — AUCUNE POSITION RÉELLE · TRAIT LÉGÈREMENT TREMBLÉ',
+      H.text(H.mot('SAPINS DÉCORATIFS — AUCUNE POSITION RÉELLE · TRAIT LÉGÈREMENT TREMBLÉ'),
              g.left, yTitre + u(8),
              H.t('label', { color: melange(encre, 0.3), maxWidth: g.width }));
     }

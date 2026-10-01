@@ -72,9 +72,9 @@ Studio.template({
     var g = H.grid({ cols: 6, margin: u(7) });
 
     if (passages.length < 2) {
-      H.text('Charge deux à quatre sorties', g.left, g.top + g.height * 0.45,
+      H.text(H.mot('Charge deux à quatre sorties'), g.left, g.top + g.height * 0.45,
              H.t('title', { color: ink, maxWidth: g.width }));
-      H.text('cette planche compare des passages au même endroit',
+      H.text(H.mot('cette planche compare des passages au même endroit'),
              g.left, g.top + g.height * 0.45 + u(5), H.t('label', { color: faint, maxWidth: g.width }));
       return;
     }
@@ -95,10 +95,11 @@ Studio.template({
      * Restent aussi « ne passe pas ici » et la taille de la fenêtre — sans
      * elle on ne sait pas à quoi on compare, le fichier le dit déjà. */
     var dit = Alpage.dit(o);
-    var titre = String(o.titre || '').trim() || 'Le même endroit';
+    var titre = String(o.titre || '').trim() || H.mot('Le même endroit');
     if (dit.titre)
       H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
-    if (dit.mesures) H.text(passages.length + ' passages', g.right, g.top + u(3.6),
+    if (dit.mesures) H.text(H.n(passages.length, '{n} passage', '{n} passages'),
+           g.right, g.top + u(3.6),
            H.t('label', { color: faint, align: 'right' }));
 
     var haut = g.top + u(9);
@@ -109,7 +110,8 @@ Studio.template({
     else grille(compo === 'diptyque' ? 1 : 2);
 
     /* la fenêtre est écrite : sans elle, on ne sait pas à quoi on compare */
-    H.text('FENÊTRE DE ' + Math.round(rayon * 2) + ' M DE CÔTÉ · MÊME CADRAGE SUR TOUS LES PANNEAUX',
+    H.text(H.mot('FENÊTRE DE {m} M DE CÔTÉ · MÊME CADRAGE SUR TOUS LES PANNEAUX',
+                 { m: Math.round(rayon * 2) }),
            g.left, g.bottom, H.t('label', { color: faint, maxWidth: g.width }));
 
     /* ================= compositions ================= */
@@ -185,7 +187,7 @@ Studio.template({
 
       var segments = portionDansFenetre(e.activity, centre, rayon);
       if (!segments.length) {
-        H.text('ne passe pas ici', ox + cote / 2, oy + cote / 2,
+        H.text(H.mot('ne passe pas ici'), ox + cote / 2, oy + cote / 2,
                H.t('label', { color: faint, align: 'center' }));
         return;
       }

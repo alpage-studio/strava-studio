@@ -190,9 +190,9 @@ Studio.template({
     /* La fin : trois chiffres, jamais quatre. */
     function sceneBilan(t) {
       var chiffres = [];
-      if (a.distance_km != null) chiffres.push(['distance', H.fmt.km(a.distance_km, 1) + ' km']);
-      if (a.duration_s) chiffres.push(['en mouvement', H.fmt.duration(a.duration_s)]);
-      if (a.elev_gain_m != null) chiffres.push(['dénivelé', Math.round(a.elev_gain_m) + ' m']);
+      if (a.distance_km != null) chiffres.push([H.mot('distance'), H.fmt.km(a.distance_km, 1) + ' km']);
+      if (a.duration_s) chiffres.push([H.mot('en mouvement'), H.fmt.duration(a.duration_s)]);
+      if (a.elev_gain_m != null) chiffres.push([H.mot('dénivelé'), Math.round(a.elev_gain_m) + ' m']);
       chiffres = chiffres.slice(0, 3);
 
       // la trace reste, très en retrait : le film se referme sur son sujet
@@ -213,9 +213,9 @@ Studio.template({
     }
 
     function sansTrace() {
-      H.text('Charge une sortie avec une trace', g.left, g.top + g.height * 0.48,
+      H.text(H.mot('Charge une sortie avec une trace'), g.left, g.top + g.height * 0.48,
              H.t('title', { color: ink, maxWidth: g.width }));
-      H.text('le film se construit à partir du parcours', g.left, g.top + g.height * 0.48 + u(5),
+      H.text(H.mot('le film se construit à partir du parcours'), g.left, g.top + g.height * 0.48 + u(5),
              H.t('label', { color: faint }));
     }
 
