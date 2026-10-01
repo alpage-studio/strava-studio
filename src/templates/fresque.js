@@ -43,11 +43,12 @@ Studio.template({
     { key: 'epaisseur', type: 'range', label: 'Épaisseur', default: 10, min: 3, max: 26, step: 1 },
     { key: 'raccords', type: 'toggle', label: 'Marquer les raccords', default: true },
     { key: 'titre', type: 'text', label: 'Titre', default: '' }
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, o = s.o, H = s.H, u = H.u;
     var ink = o.encre, faint = melange(ink, 0.5);
+    var dit = Alpage.dit(o);
 
     var contribs = (s.library || []).filter(function (e) {
       return e.activity && e.activity.route && e.activity.route.pts.length > 1;
@@ -71,9 +72,17 @@ Studio.template({
     if (sens === 'auto') sens = w > h ? 'bande' : 'serpentin';
 
     var titre = String(o.titre || '').trim() || 'Fresque';
-    H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
-    H.text(contribs.length + (contribs.length > 1 ? ' contributions' : ' contribution'),
-           g.right, g.top + u(3.6), H.t('label', { color: faint, align: 'right' }));
+    /* Le réglage « Texte » vaut pour cette planche aussi : le titre et la
+     * rangée de mesures sont des MENTIONS, pas la composition. */
+    if (dit.titre) {
+      H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
+    }
+    /* Le compte des contributions est une MESURE. Les prenoms de l'option
+     * « noms », eux, sont tapes par l'auteur : ils restent. */
+    if (dit.mesures) {
+      H.text(contribs.length + (contribs.length > 1 ? ' contributions' : ' contribution'),
+             g.right, g.top + u(3.6), H.t('label', { color: faint, align: 'right' }));
+    }
 
     var basNote = g.bottom - u(4);
     var zone = { x: g.left, y: g.top + u(10), w: g.width, h: basNote - u(8) - (g.top + u(10)) };

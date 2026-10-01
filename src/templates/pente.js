@@ -27,11 +27,12 @@
       { key: 'encre', type: 'color', label: 'Encre', default: '#FFFFFF' },
       { key: 'seuil', type: 'range', label: 'Seuil de saturation (%)', default: 8, min: 3, max: 20 },
       { key: 'grain', type: 'toggle', label: 'Grain', default: true }
-    ],
+    ].concat(Alpage.optionsTexte()),
 
     draw: function (s) {
       var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
       var ink = o.encre;
+      var dit = Alpage.dit(o);
       var faint = alpha(ink, 0.55);
       var seuil = o.seuil / 100;
 
@@ -70,7 +71,12 @@
       var slope = smoothSlope(track, 12);
 
       /* ---------- en-tête ---------- */
-      H.text(a.name, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
+      /* Le réglage « Texte » vaut pour cette planche aussi. Le titre et la
+       * rangée de mesures sont des MENTIONS — ce que la planche dit d'elle
+       * — et non sa composition : les taire ne retire rien au dessin. */
+      if (dit.titre) {
+        H.text(a.name, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
+      }
 
       /* ---------- bas : légende de l'échelle ---------- */
       var capBase = g.bottom;
@@ -79,8 +85,10 @@
       var scaleY = capBase - u(4.6) - scaleH;
       legend(g.left, scaleY, scaleW, scaleH);
 
-      H.text(H.fmt.int(a.elev_gain_m) + ' m D+', g.right, capBase - u(4.6),
-        H.t('label', { color: ink, align: 'right' }));
+      if (dit.mesures) {
+        H.text(H.fmt.int(a.elev_gain_m) + ' m D+', g.right, capBase - u(4.6),
+          H.t('label', { color: ink, align: 'right' }));
+      }
 
       /* ---------- profil coloré ---------- */
       var profH = CH * 0.16;
@@ -96,7 +104,7 @@
         ['pente max', pct(Math.max.apply(null, slope))]
       ];
       var colW = g.width / stats.length;
-      stats.forEach(function (st, i) {
+      if (dit.mesures) stats.forEach(function (st, i) {
         H.field(st[0], st[1], g.left + i * colW, statsBase - u(4), {
           color: ink, labelColor: faint, size: 4.4, maxWidth: colW - u(2)
         });

@@ -1906,6 +1906,58 @@ function testsMorceaux() {
      manquants.slice(0, 6).join(' | '));
 }
 
+/* ================= 2 undecies. LE RÉGLAGE « TEXTE » EST ATTEIGNABLE =========
+ *
+ * LE DÉFAUT RÉEL. `src/templates/partition.js` appelait `Alpage.dit(o)` dans
+ * sa composition graphique et obéissait scrupuleusement au résultat — mais la
+ * planche ne concaténait jamais `Alpage.optionsTexte()`. Le contrôle n'existait
+ * donc dans aucun panneau : `dit(o)` retombait sur son défaut `'signature'` et
+ * y restait. Un réglage LU sans contrôle pour l'atteindre ne lève rien, ne
+ * dessine rien de faux, et ne se voit que si on pense à le chercher.
+ *
+ * C'est le symétrique du menu vide de « 2 quater » : là une commande sans
+ * effet, ici un effet sans commande. Les deux se taisent.
+ *
+ * LE CONTRÔLE VA DANS LES DEUX SENS
+ *   lire `Alpage.dit(`     ⇒ déclarer `Alpage.optionsTexte()`
+ *   déclarer optionsTexte  ⇒ lire `Alpage.dit(`
+ *
+ * Il compte aussi ses fichiers : une garde qui n'inspecterait plus rien
+ * resterait verte, et c'est précisément ce qu'on ne veut pas. */
+
+function testsReglageTexte() {
+  titre('2 undecies. LE RÉGLAGE « TEXTE » EST ATTEIGNABLE');
+
+  const dossier = path.join(ROOT, 'src', 'templates');
+  const fichiers = fs.readdirSync(dossier).filter(function (f) { return /[.]js$/.test(f); });
+
+  const litSansOffrir = [];
+  const offreSansLire = [];
+  let avecReglage = 0;
+
+  fichiers.forEach(function (f) {
+    const code = fs.readFileSync(path.join(dossier, f), 'utf8');
+    const lit = /Alpage\.dit\s*\(/.test(code);
+    const offre = /Alpage\.optionsTexte\s*\(/.test(code);
+    if (lit || offre) avecReglage++;
+    if (lit && !offre) litSansOffrir.push(f);
+    if (offre && !lit) offreSansLire.push(f);
+  });
+
+  ok('planches · le fichier existe et il y en a assez pour que ce contrôle pèse  ('
+     + fichiers.length + ' fichiers, ' + avecReglage + ' touchent au réglage)',
+     fichiers.length >= 30 && avecReglage >= 15,
+     fichiers.length + ' fichiers / ' + avecReglage + ' concernés');
+
+  ok('planches · aucune n’obéit à un réglage qu’elle n’offre pas',
+     litSansOffrir.length === 0,
+     litSansOffrir.join(', '));
+
+  ok('planches · aucune n’offre un réglage que personne ne lit',
+     offreSansLire.length === 0,
+     offreSansLire.join(', '));
+}
+
 /* ================= 2 quater. MENUS REMPLIS =================
  *
  * Le défaut réel : `<select id="collection">` était vide dans index.html et
@@ -2269,6 +2321,7 @@ async function testsServeur() {
   testsStyle();
   testsThemes();
   testsMorceaux();
+  testsReglageTexte();
   testsMenus();
   testsChaine();
   testsBibliotheque(chargeLibrary());

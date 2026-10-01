@@ -30,12 +30,14 @@ Studio.template({
                 ['case', 'Par case — chaque trace remplit']] },
     { key: 'couleurs', type: 'toggle', label: 'Couleur par sortie', default: true },
     { key: 'chiffres', type: 'toggle', label: 'Distance et D+', default: true }
-  ],
+  
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, o = s.o, H = s.H, u = H.u;
     var ink = o.encre;
     var faint = melange(ink, 0.45);
+    var dit = Alpage.dit(o);
     var hair = melange(ink, 0.16);
     var entrees = (s.library || []).filter(function (e) {
       return e.activity && e.activity.route && e.activity.route.pts.length > 1;
@@ -56,7 +58,12 @@ Studio.template({
 
     /* ---------- en-tête ---------- */
     var titre = (o.titre || '').trim() || periode(entrees);
-    H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
+    /* Le réglage « Texte » vaut pour cette planche aussi : le titre et la
+     * rangée de mesures sont des MENTIONS, pas la composition. */
+    if (dit.titre) {
+      H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
+    }
+    if (dit.mesures)
     H.text(entrees.length + (entrees.length > 1 ? ' sorties' : ' sortie'),
            g.right, g.top + u(3.6), H.t('label', { color: faint, align: 'right' }));
 
@@ -67,15 +74,18 @@ Studio.template({
     /* Le dénivelé ne s'écrit que si une sortie au moins l'a mesuré : voir
      * `Alpage.somme`. « 0 m » affirmerait un terrain plat. */
     var totD = Alpage.somme(entrees, function (e) { return e.activity.elev_gain_m; });
-    H.rule(g.left, footY - u(9), g.right, { color: hair });
-    [['total', H.fmt.km(totKm, 0) + ' km'],
-     ['en mouvement', H.fmt.duration(totT)],
-     ['dénivelé', totD.mesurees ? Math.round(totD.total) + ' m' : '—']]
-      .forEach(function (c, i) {
-      H.field(c[0], c[1], g.left + i * (g.width / 3), footY - u(5.4), {
-        color: ink, labelColor: faint, size: 4.2, maxWidth: g.width / 3 - u(2)
+    /* La rangee de totaux est une MESURE : elle obeit au reglage « Texte ». */
+    if (dit.mesures) {
+      H.rule(g.left, footY - u(9), g.right, { color: hair });
+      [['total', H.fmt.km(totKm, 0) + ' km'],
+       ['en mouvement', H.fmt.duration(totT)],
+       ['dénivelé', totD.mesurees ? Math.round(totD.total) + ' m' : '—']]
+        .forEach(function (c, i) {
+        H.field(c[0], c[1], g.left + i * (g.width / 3), footY - u(5.4), {
+          color: ink, labelColor: faint, size: 4.2, maxWidth: g.width / 3 - u(2)
+        });
       });
-    });
+    }
 
     /* ---------- la grille ---------- */
     var zone = { x: g.left, y: g.top + u(9), w: g.width, h: (footY - u(13)) - (g.top + u(9)) };
@@ -136,9 +146,12 @@ Studio.template({
         ctx.restore();
         tx += u(3.2);
       }
+      /* Chaque case porte une VRAIE trace (H.route) : le nom et les chiffres
+       * se posent dessus, ils ne sont pas la case. Ils se taisent donc. */
+      if (dit.titre)
       H.text(Library.nomCourt(e.activity, cols > 2 ? 16 : 24), tx, ly,
              H.t('label', { color: melange(ink, 0.75), maxWidth: cx + cw - u(2) - tx }));
-      if (o.chiffres) {
+      if (o.chiffres && dit.mesures) {
         H.text(H.fmt.km(e.activity.distance_km, 1) + ' km' +
                (e.activity.elev_gain_m != null
                  ? ' · ' + H.fmt.int(e.activity.elev_gain_m) + ' m' : ''),

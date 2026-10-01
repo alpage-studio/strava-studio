@@ -78,7 +78,8 @@ Studio.template({
                 ['bas', 'Depuis le bas'],
                 ['haut', 'Depuis le haut'],
                 ['centre', 'Autour du centre']] }
-  ],
+  
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
@@ -200,9 +201,15 @@ Studio.template({
     ctx.restore();
 
     /* ---------- le titre sur l'arc ---------- */
+    /* Le reglage « Texte » : le titre et le cartouche sont des MENTIONS,
+     * « TRACÉ SEUL » une note de FABRICATION. La barre d'échelle et le
+     * graticule, eux, restent : sans eux le médaillon ne se lit plus. */
+    var dit = Alpage.dit(o);
     var titre = String(o.titre || '').trim() || a.name || 'Sortie';
-    if (o.arc) titreArc(titre);
-    else H.text(titre, g.left, cy + rayon + u(9), H.t('title', { size: 5, color: encre, maxWidth: g.width }));
+    if (dit.titre) {
+      if (o.arc) titreArc(titre);
+      else H.text(titre, g.left, cy + rayon + u(9), H.t('title', { size: 5, color: encre, maxWidth: g.width }));
+    }
 
     /* ---------- le cartouche ---------- */
     if (o.cartouche) cartouche();
@@ -294,7 +301,7 @@ Studio.template({
        * et l'affirmation serait fausse dès qu'on imprime autrement. Une
        * BARRE graphique, elle, reste juste quelle que soit la taille — c'est
        * la raison pour laquelle les cartes en portent une. */
-      champs.slice(0, 4).forEach(function (c, i) {
+      if (dit.mesures) champs.slice(0, 4).forEach(function (c, i) {
         H.field(c[0], c[1], g.left + i * (g.width / Math.min(4, champs.length)), y - u(6.6), {
           color: encre, labelColor: faint, size: 3.6,
           maxWidth: g.width / Math.min(4, champs.length) - u(2)
@@ -305,7 +312,9 @@ Studio.template({
        * l'interface, pas à l'affiche — « aucune source de terrain n'est
        * configurée » est une phrase de logiciel, et elle traversait toute
        * la largeur du tirage. */
-      H.text('TRACÉ SEUL', g.left, y, H.t('label', { color: melange(encre, 0.4) }));
+      if (dit.fabrication) {
+        H.text('TRACÉ SEUL', g.left, y, H.t('label', { color: melange(encre, 0.4) }));
+      }
 
       /* La barre d'échelle, à droite du cartouche. */
       var metresParPixel = 1 / k;

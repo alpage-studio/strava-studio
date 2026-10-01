@@ -13,10 +13,13 @@ Studio.template({
     { key: 'voile', type: 'range', label: 'Voile', default: 55, min: 0, max: 95 },
     { key: 'titre', type: 'toggle', label: 'Titre de la sortie', default: true },
     { key: 'profil', type: 'toggle', label: 'Profil d’altitude', default: true }
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
+    /* Tout le texte de Trace est une MENTION : le titre, les trois colonnes
+     * de stats, l'allure. Le dessin, c'est le trace et le profil. */
+    var dit = Alpage.dit(o);
 
     /* --- fond --- */
     if (H.surcouche()) {
@@ -46,7 +49,7 @@ Studio.template({
 
     /* --- en-tête --- */
     var m = u(8); // marge
-    if (o.titre) {
+    if (o.titre && dit.titre) {
       H.text(a.name, m, m + u(4), { size: u(4.4), weight: 700 });
     }
 
@@ -80,7 +83,7 @@ Studio.template({
       [H.fmt.int(a.elev_gain_m), 'mètres D+']
     ];
     var colW = (w - 2 * m) / cols.length;
-    cols.forEach(function (c, i) {
+    if (dit.mesures) cols.forEach(function (c, i) {
       H.stat(c[0], c[1], m + i * colW, base - u(4), {
         valueSize: u(5.8),
         gap: u(3.2),
@@ -92,7 +95,7 @@ Studio.template({
 
     /* --- allure, collée en haut du bloc stats --- */
     var allure = a.speed_kmh ? H.fmt.speed(a.speed_kmh) + ' km/h' : '';
-    if (allure) {
+    if (allure && dit.mesures) {
       H.text(allure, w - m, base - u(14), {
         size: u(3.2), weight: 700, color: o.accent, align: 'right', tracking: u(0.2)
       });

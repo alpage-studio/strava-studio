@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.2';
+var STUDIO_VERSION = '3.17.3';
 var STUDIO_DATE = '01.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,16 @@ var STUDIO_DATE = '01.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.3', d: '01.10.2026', points: [
+    'LE RÉGLAGE « TEXTE » ATTEINT TREIZE PLANCHES DE PLUS — vingt-trois sur trente-sept au lieu de dix. Les autres gravaient leur titre et leur rangée de mesures quel que soit ton choix : le réglage existait, il ne portait simplement pas jusqu’à elles.',
+    'Ce qui se tait est ce que la planche dit D’ELLE : son titre, ses mesures, et — en « Signature » — ses notes de fabrication. Trace, Médaillon et la partition musicale deviennent entièrement muettes ; il ne reste que le dessin.',
+    'Ce qui RESTE, et ce n’est pas un oubli : les graduations et les avertissements. L’axe des kilomètres de Ressenti, les jours de la semaine de Tissage, le seuil d’Allumettes — « au-dessus de 280 W » — sans lequel le grand nombre affirmerait une mesure universelle. Et les phrases qui empêchent de mal lire : « hauteur expressive — ce n’est pas une altitude », « ce n’est pas un itinéraire ».',
+    'Le grand nombre d’Allumettes ne se tait pas non plus : il EST la planche. En composition « Bandeau » il descend dans le pied avec les mesures — c’est la rangée qui est filtrée, pas supprimée, sinon la planche se vidait d’elle-même.',
+    'Partition obéissait à un réglage qu’aucun panneau n’offrait. Sa composition graphique lisait le choix et s’y pliait, mais la planche ne déclarait pas le contrôle : il retombait sur « Signature » et y restait. Un contrôle refuse désormais les deux sens — un réglage lu sans commande, une commande que personne ne lit.',
+    'Quatre planches qui honoraient DÉJÀ le réglage le faisaient par endroits seulement. Atlas gravait ses trois totaux, Almanac son titre, ses sorties remarquables et son compte — « 1 SORTIES », au pluriel —, Strates ses dates de couche, Sommet l’altitude du sommet et le dénivelé. C’est un balayage des vingt-trois planches, et non un sondage, qui les a trouvées.',
+    'Almanac et Strates déclarent désormais UN SEUL état de réglage. Il était déclaré au fond d’une sous-fonction : partout ailleurs il n’existait pas, et le premier endroit qui s’en servait affichait un message d’erreur À LA PLACE de la planche.',
+    'Le film et les surcouches restent dehors, exprès : la dernière scène du film n’est QUE trois chiffres, et une surcouche n’est que le nom et sa ligne. Les taire ne les allègerait pas, cela les effacerait.'
+  ] },
   { v: '3.17.2', d: '01.10.2026', points: [
     'Rien ne change dans le studio. Le carnet de route, la seconde application de la suite, ajoute la topo swisstopo d’un bouton — en ligne comme en local — et écrit l’altitude d’un lieu comme celle du chemin à son passage, pas celle du sommet qu’il longe.'
   ] },

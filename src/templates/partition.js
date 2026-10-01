@@ -63,7 +63,7 @@ Studio.template({
     { key: 'accent', type: 'color', label: 'Accent', default: '#C8F04E' },
     { key: 'trace', type: 'toggle', label: 'Tracé en regard', default: true },
     { key: 'titre', type: 'text', label: 'Titre', default: '' }
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
@@ -99,10 +99,20 @@ Studio.template({
     }
 
     /* ---------- en-tête ---------- */
-    H.text(String(o.titre || '').trim() || (a.name || 'Partition'), g.left, g.top + u(3.6),
-           H.t('title', { color: ink, maxWidth: g.w(4) }));
-    H.text(part.duree + ' s', g.right, g.top + u(3.6),
-           H.t('label', { color: faint, align: 'right' }));
+    /* La planche GRAPHIQUE honorait déjà le réglage ; la MUSICALE non, et
+     * l'option n'était déclarée nulle part — un réglage lu sans contrôle
+     * pour l'atteindre. Les trois champs de source (pulsation, mélodie,
+     * pauses) disent comment la pièce est FABRIQUÉE, pas ce qu'a fait le
+     * cycliste : ils suivent dit.fabrication. */
+    var dit = Alpage.dit(o);
+    if (dit.titre) {
+      H.text(String(o.titre || '').trim() || (a.name || 'Partition'), g.left, g.top + u(3.6),
+             H.t('title', { color: ink, maxWidth: g.w(4) }));
+    }
+    if (dit.mesures) {
+      H.text(part.duree + ' s', g.right, g.top + u(3.6),
+             H.t('label', { color: faint, align: 'right' }));
+    }
 
     /* ---------- disposition ---------- */
     var basSource = g.bottom - u(9);
@@ -196,13 +206,16 @@ Studio.template({
     [['pulsation', pulsation], ['mélodie', hauteur],
      ['pauses', part.source.pauses ? 'identifiées par l’horodatage' : 'non identifiables']]
       .forEach(function (c, i) {
+        if (!dit.fabrication) return;
         H.field(c[0], c[1], g.left + i * (g.width / 3), basSource + u(1.5), {
           color: ink, labelColor: faint, role: 'meta', size: 2.2, gap: u(3.2),
           maxWidth: g.width / 3 - u(2)
         });
       });
-    H.text('GAMME PENTATONIQUE · LE SON NE DÉMARRE QUE SI TU LE DEMANDES',
-           g.left, g.bottom, H.t('label', { color: faint, maxWidth: g.width }));
+    if (dit.fabrication) {
+      H.text('GAMME PENTATONIQUE · LE SON NE DÉMARRE QUE SI TU LE DEMANDES',
+             g.left, g.bottom, H.t('label', { color: faint, maxWidth: g.width }));
+    }
 
     /* ================= LA PARTITION GRAPHIQUE =================
      *

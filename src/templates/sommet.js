@@ -18,7 +18,7 @@
     { key: 'encre', type: 'color', label: 'Encre', default: '#FFFFFF' },
     { key: 'reperes', type: 'toggle', label: 'Repères de distance', default: true },
     { key: 'grain', type: 'toggle', label: 'Grain', default: true }
-  ];
+  ].concat(Alpage.optionsTexte());
 
   /* Intervalle « rond » donnant 6 à 9 repères sur la distance totale. */
   function niceStep(km) {
@@ -57,9 +57,15 @@
       var CH = g.height;
 
       /* ---------- en-tête ---------- */
-      H.text(a.name, g.left, g.top + u(3.6), H.t('title', {
-        color: ink, maxWidth: g.w(4)
-      }));
+      /* Le réglage « Texte » vaut pour cette planche aussi. Le titre et la
+       * rangée de mesures sont des MENTIONS — ce que la planche dit d'elle
+       * — et non sa composition : les taire ne retire rien au dessin. */
+      var dit = Alpage.dit(o);
+      if (dit.titre) {
+        H.text(a.name, g.left, g.top + u(3.6), H.t('title', {
+          color: ink, maxWidth: g.w(4)
+        }));
+      }
 
       /* ---------- ancrage du bas ---------- */
       var capBase = g.bottom;
@@ -76,7 +82,7 @@
         ['vitesse', H.fmt.speed(a.speed_kmh) + ' km/h']
       ];
       var colW = g.width / stats.length;
-      stats.forEach(function (st, i) {
+      if (dit.mesures) stats.forEach(function (st, i) {
         H.field(st[0], st[1], g.left + i * colW, statsBase - u(4), {
           color: ink, labelColor: faint, size: 4.4, maxWidth: colW - u(2)
         });
@@ -155,7 +161,9 @@
           }
         }
 
-        if (a.elev_max_m != null) {
+        /* L'altitude du sommet et le D+ du pied sont des MESURES posées sur
+         * le dessin, pas le dessin. Ils avaient échappé au premier passage. */
+        if (a.elev_max_m != null && dit.mesures) {
           H.text(a.elev_max_m + ' m', clamp(peakX, box.x + u(4), box.x + box.w - u(4)),
             box.y - u(2.4), H.t('label', { color: ink, align: 'center' }));
         }
@@ -165,8 +173,10 @@
        * Une valeur, rien d'autre : les légendes qui expliquent le graphique
        * sont de la notice, pas de l'image. */
       H.rule(g.left, profBottom + u(1), g.right, { color: hair });
-      H.text(H.fmt.int(a.elev_gain_m) + ' m D+', g.left, capBase,
-        H.t('label', { color: ink }));
+      if (dit.mesures) {
+        H.text(H.fmt.int(a.elev_gain_m) + ' m D+', g.left, capBase,
+          H.t('label', { color: ink }));
+      }
 
       /* ---------- utilitaires ---------- */
       function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }

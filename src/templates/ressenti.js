@@ -40,7 +40,7 @@ Studio.template({
     { key: 'encre', type: 'color', label: 'Encre', default: '#F2F0EA' },
     { key: 'accent', type: 'color', label: 'Accent', default: '#E5502D' },
     { key: 'titre', type: 'text', label: 'Titre', default: '' }
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   /* Les curseurs au-delà du nombre de portions ne pilotent rien, et le
    * bouton de suggestion ne peut rien suggérer sans capteur. */
@@ -82,8 +82,15 @@ Studio.template({
     if (!aRelief && mode !== 'ressenti') mode = 'ressenti';
 
     /* --------- en-tête --------- */
+    /* Se taisent : le titre et les valeurs posées sur les sommets. Restent
+     * l'axe des kilomètres (une GRADUATION) et les deux avertissements —
+     * « hauteur expressive — ce n'est pas une altitude » d'abord, qui est
+     * tout ce qui empêche de lire la planche comme un profil réel. */
+    var dit = Alpage.dit(o);
     var titre = String(o.titre || '').trim() || (mode === 'reel' ? 'Le relief' : 'Ce que ça a coûté');
-    H.text(titre, g.left, g.top + u(4), H.t('title', { color: ink, maxWidth: g.w(5) }));
+    if (dit.titre) {
+      H.text(titre, g.left, g.top + u(4), H.t('title', { color: ink, maxWidth: g.w(5) }));
+    }
 
     /* --------- disposition --------- */
     /* Les silhouettes occupent toute la bande disponible plutôt qu'une
@@ -188,7 +195,7 @@ Studio.template({
        * L'étiquette se pose sur le POINT LE PLUS HAUT de la portion, pas au
        * milieu de la portion : la rugosité déplace le sommet, et l'étiquette
        * posée au milieu tombait dans la pente, parfois barrée par la crête. */
-      hauteurs.forEach(function (v, i) {
+      if (dit.mesures) hauteurs.forEach(function (v, i) {
         var a0 = i / n, a1 = (i + 1) / n;
         var best = null;
         pts.forEach(function (p) {

@@ -42,7 +42,8 @@ Studio.template({
     { key: 'titre', type: 'text', label: 'Titre', default: '' },
     { key: 'connu', type: 'range', label: 'Discrétion du connu', default: 22, min: 5, max: 60, step: 1 },
     { key: 'chiffres', type: 'toggle', label: 'Kilomètres nouveaux', default: true }
-  ],
+  
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, o = s.o, H = s.H, u = H.u;
@@ -70,10 +71,18 @@ Studio.template({
     var analyse = analyseSegments(entrees, reference);
 
     /* ---------- en-tête ---------- */
-    H.text(String(o.titre || '').trim() || (reference ? 'Territoires blancs' : 'La référence'),
-           g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
-    H.text(entrees.length + (entrees.length > 1 ? ' sorties' : ' sortie'),
-           g.right, g.top + u(3.6), H.t('label', { color: faint, align: 'right' }));
+    /* Titre et compte se taisent. Les phrases en capitales, non : elles
+     * disent ce que « nouveau » veut dire ici — sans elles la planche
+     * affirmerait une découverte que le studio ne peut pas établir. */
+    var dit = Alpage.dit(o);
+    if (dit.titre) {
+      H.text(String(o.titre || '').trim() || (reference ? 'Territoires blancs' : 'La référence'),
+             g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
+    }
+    if (dit.mesures) {
+      H.text(entrees.length + (entrees.length > 1 ? ' sorties' : ' sortie'),
+             g.right, g.top + u(3.6), H.t('label', { color: faint, align: 'right' }));
+    }
 
     /* ---------- la carte ---------- */
     var basChiffres = o.chiffres ? u(20) : u(9);
@@ -85,6 +94,7 @@ Studio.template({
       var y = g.bottom - u(11);
       H.rule(g.left, y - u(3), g.right, { color: hair });
       if (reference) {
+        if (dit.mesures)
         [['nouveaux', H.fmt.km(analyse.kmNeufs, 1) + ' km'],
          ['sur', H.fmt.km(analyse.kmTotal, 0) + ' km'],
          ['référence', reference.sorties + (reference.sorties > 1 ? ' sorties' : ' sortie')]]

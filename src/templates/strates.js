@@ -82,6 +82,11 @@ Studio.template({
     var socle = Alpage.socle(H, o);
     var encre = socle.encre;
     var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || Alpage.PALETTE.papier);
+    /* UN SEUL `dit` pour toute la planche. Il était déclaré au fond d'une
+     * sous-fonction : les autres ne le voyaient pas, et y toucher levait
+     * `dit is not defined` — le moteur affichait alors son message d'erreur
+     * À LA PLACE de la planche. */
+    var dit = Alpage.dit(o);
     var faint = melange(encre, 0.45), hair = melange(encre, 0.16);
 
 
@@ -103,7 +108,9 @@ Studio.template({
     }
 
     var titre = String(o.titre || '').trim() || periode(avecRelief);
+    if (dit.titre)
     H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: encre, maxWidth: g.w(4) }));
+    if (dit.mesures)
     H.text(avecRelief.length + (avecRelief.length > 1 ? ' couches' : ' couche'),
            g.right, g.top + u(3.6), H.t('label', { color: faint, align: 'right' }));
 
@@ -378,6 +385,7 @@ Studio.template({
       ctx.lineTo(base.x - u(0.6), base.y - u(0.8));
       ctx.stroke();
       ctx.restore();
+      if (dit.mesures)
       H.text(courte(c.activity.date), g.left, base.y,
              H.t('label', { color: estAccent ? o.accentC : faint, maxWidth: u(9) }));
     }
@@ -385,7 +393,6 @@ Studio.template({
     /* ================= pied ================= */
 
     function piedDePlanche() {
-      var dit = Alpage.dit(o);
       /* « Sans texte » tait le pied — SAUF l'avertissement des sorties sans
        * altitude : une planche qui en exclut silencieusement ferait croire
        * qu'elles n'existent pas. Une donnee absente se dit toujours. */
@@ -446,6 +453,7 @@ Studio.template({
           }
           ctx.strokeRect(x - u(0.4), yv - u(3.4), u(5.6), u(3.6));
           ctx.restore();
+          if (dit.titre)
           H.text(Library.nomCourt(e.activity, 16), x + u(6.6), yv,
                  H.t('label', { color: faint, maxWidth: u(22) }));
           x += u(30);

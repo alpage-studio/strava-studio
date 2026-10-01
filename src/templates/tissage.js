@@ -40,11 +40,13 @@ Studio.template({
     { key: 'densite', type: 'range', label: 'Densité de la chaîne', default: 22, min: 8, max: 44, step: 2 },
     { key: 'dates', type: 'toggle', label: 'Dates des semaines', default: true },
     { key: 'legende', type: 'toggle', label: 'Légende des absences', default: true }
-  ],
+  
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, o = s.o, H = s.H, u = H.u;
     var ink = o.encre, faint = melange(ink, 0.5), hair = melange(ink, 0.18);
+    var dit = Alpage.dit(o);
 
     var avecDate = (s.library || []).filter(function (e) {
       return e.activity && e.activity.date instanceof Date && !isNaN(e.activity.date);
@@ -96,9 +98,18 @@ Studio.template({
 
     /* ---------- disposition ---------- */
     var titre = String(o.titre || '').trim() || 'Tissage';
-    H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
-    H.text(nbSemaines + ' semaines', g.right, g.top + u(3.6),
-           H.t('label', { color: faint, align: 'right' }));
+    /* Le réglage « Texte » vaut pour cette planche aussi : le titre et la
+     * rangée de mesures sont des MENTIONS, pas la composition. */
+    if (dit.titre) {
+      H.text(titre, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
+    }
+    /* Le compte des semaines est une MESURE. Les jours de la semaine et les
+     * dates de bande sont des GRADUATIONS — sans elles la grille ne se lit
+     * plus ; la legende porte un avertissement de lecture. Les trois restent. */
+    if (dit.mesures) {
+      H.text(nbSemaines + ' semaines', g.right, g.top + u(3.6),
+             H.t('label', { color: faint, align: 'right' }));
+    }
 
     var basLeg = o.legende ? u(12) : u(3);
     var zone = { x: g.left + (o.dates ? u(13) : 0), y: g.top + u(9),

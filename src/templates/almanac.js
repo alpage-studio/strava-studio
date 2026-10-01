@@ -117,6 +117,11 @@ Studio.template({
     var encre = socle.encre;
     var papier = socle.transparent ? 'rgba(0,0,0,0)' : (o.papier || Alpage.PALETTE.papier);
     var accent = o.accentC;
+    /* UN SEUL `dit` pour toute la planche. Il était déclaré au fond d'une
+     * sous-fonction : les autres ne le voyaient pas, et y toucher levait
+     * `dit is not defined` — le moteur affichait alors son message d'erreur
+     * À LA PLACE de la planche. */
+    var dit = Alpage.dit(o);
     var faint = melange(encre, 0.42), hair = melange(encre, 0.13);
     var ampleurSymboles = Math.max(0.5, (Number(o.symboles) || 100) / 100);
 
@@ -521,13 +526,18 @@ Studio.template({
       ctx.fillStyle = papier; ctx.fill();
       ctx.restore();
 
+      /* Le noyau : son titre et ses deux lignes de total sont des MENTIONS.
+       * Les anneaux gradués et les douze mois, eux, restent — ce sont les
+       * graduations du cadran. */
       var titre = compact ? p.nom : (String(o.titre || '').trim() || p.nom);
+      if (dit.titre)
       H.text(titre.toUpperCase(), cx, cy - (compact ? u(0.4) : u(2.4)),
              H.t(compact ? 'title' : 'value', {
                size: compact ? 3 : 7.4, color: encre, align: 'center',
                maxWidth: rNoyau * 1.5
              }));
-      if (!compact) {
+      if (!dit.mesures) { /* rien */ }
+      else if (!compact) {
         H.text(membres.length + ' sorties', cx, cy + u(3.4),
                H.t('label', { color: faint, align: 'center' }));
         H.text(H.fmt.km(km, 0) + ' km' +
@@ -588,6 +598,7 @@ Studio.template({
         ctx.stroke(); ctx.restore();
 
         var largeur = marge.enColonne ? marge.largeur : u(38);
+        if (!dit.mesures) return;
         H.text(as.activity.date.toLocaleDateString('fr-CH', { day: '2-digit', month: 'short' }).toUpperCase(),
                xTexte, yMarge - u(3.4), H.t('label', { color: accent, align: al }));
         H.text(Library.nomCourt(as.activity, 22), xTexte, yMarge + u(1),
@@ -601,7 +612,6 @@ Studio.template({
     /* ================= légende ================= */
 
     function legende() {
-      var dit = Alpage.dit(o);
       if (dit.rien) return;
       var y = g.bottom;
 

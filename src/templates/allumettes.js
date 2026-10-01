@@ -26,7 +26,7 @@ Studio.template({
     { key: 'seuil', type: 'range', label: 'Seuil (% FTP)', default: 105, min: 90, max: 130 },
     { key: 'duree', type: 'range', label: 'Durée min. (s)', default: 20, min: 10, max: 90 },
     { key: 'profil', type: 'toggle', label: 'Relief derrière', default: true }
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   /* Le seuil ne s'applique qu'à une sortie dont on connaît le FTP : sans
    * lui la détection se cale sur un percentile, et en mode cardiaque sur la
@@ -39,6 +39,10 @@ Studio.template({
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
     var ink = o.encre;
+    /* Le réglage « Texte » ne touche ici qu'aux mentions : titre, pied,
+     * annotation du plus gros effort. Le grand nombre et sa légende de
+     * seuil restent — l'un EST la planche, l'autre dit ce qu'il compte. */
+    var dit = Alpage.dit(o);
     var faint = melange(ink, 0.45);
     var hair = melange(ink, 0.16);
     var variante = o.variante || 'pied';
@@ -70,7 +74,12 @@ Studio.template({
     // en bandeau, le compte descend dans le pied : le graphique prend tout
     if (variante === 'bandeau') pieds.unshift(['allumettes', String(n)]);
 
-    H.rule(g.left, footY - u(9), g.right, { color: hair });
+    /* En bandeau le compte est DANS le pied : on retire les mesures, pas
+     * la ligne. Supprimer la rangée entière effacerait le héros. */
+    if (!dit.mesures) {
+      pieds = pieds.filter(function (c) { return c[0] === 'allumettes'; });
+    }
+    if (pieds.length) H.rule(g.left, footY - u(9), g.right, { color: hair });
     var colW = g.width / pieds.length;
     pieds.forEach(function (c, i) {
       H.field(c[0], c[1], g.left + i * colW, footY - u(5.4), {
@@ -143,6 +152,7 @@ Studio.template({
       ctx.stroke();
       ctx.restore();
 
+      if (dit.mesures)
       H.text(parPuissance ? mx.moyenne + ' W pendant ' + H.fmt.duration(mx.duree)
                           : 'effort de ' + H.fmt.duration(mx.duree),
         ax, yTexte,
@@ -187,9 +197,11 @@ Studio.template({
      * seul tout en haut, avec quarante pour cent de rien en dessous, se lit
      * comme un trou, pas comme une marge. En « Angle » le haut est déjà
      * occupé par le compte, il y reste. */
-    H.text(a.name, g.left, titreY != null ? titreY : g.top + u(3.6), H.t('title', {
-      color: ink, maxWidth: variante === 'angle' ? g.w(3) : g.w(4)
-    }));
+    if (dit.titre) {
+      H.text(a.name, g.left, titreY != null ? titreY : g.top + u(3.6), H.t('title', {
+        color: ink, maxWidth: variante === 'angle' ? g.w(3) : g.w(4)
+      }));
+    }
 
     /* ================= une allumette =================
      * Longueur totale constante, part consumée proportionnelle au coût :

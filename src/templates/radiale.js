@@ -21,11 +21,12 @@ Studio.template({
       choices: [['barres', 'Barres radiales'], ['aire', 'Aire pleine']] },
     { key: 'trace', type: 'toggle', label: 'Parcours au centre', default: true },
     { key: 'grain', type: 'toggle', label: 'Grain', default: true }
-  ],
+  ].concat(Alpage.optionsTexte()),
 
   draw: function (s) {
     var ctx = s.ctx, w = s.w, h = s.h, a = s.a, o = s.o, H = s.H, u = H.u;
     var ink = o.encre, faint = alpha(ink, 0.55);
+    var dit = Alpage.dit(o);
 
     if (!H.surcouche()) {
       ctx.fillStyle = H.gradient([[0, o.fond], [1, o.fond2]]);
@@ -37,7 +38,12 @@ Studio.template({
     var CH = g.height;
 
     /* ---------- en-tête ---------- */
-    H.text(a.name, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
+    /* Le réglage « Texte » vaut pour cette planche aussi. Le titre et la
+     * rangée de mesures sont des MENTIONS — ce que la planche dit d'elle —
+     * et non sa composition : les taire ne retire rien au dessin. */
+    if (dit.titre) {
+      H.text(a.name, g.left, g.top + u(3.6), H.t('title', { color: ink, maxWidth: g.w(4) }));
+    }
 
     /* ---------- pied ---------- */
     var capBase = g.bottom;
@@ -48,7 +54,7 @@ Studio.template({
       ['dénivelé', H.fmt.int(a.elev_gain_m) + ' m']
     ];
     var colW = g.width / stats.length;
-    stats.forEach(function (st, i) {
+    if (dit.mesures) stats.forEach(function (st, i) {
       H.field(st[0], st[1], g.left + i * colW, capBase - u(4.8), {
         color: ink, labelColor: faint, size: 4.4, maxWidth: colW - u(2)
       });

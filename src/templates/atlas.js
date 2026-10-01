@@ -524,12 +524,19 @@ Studio.template({
       var yRegle   = yValeur - u(3.4);
       var yMention = yRegle - u(2.6);
 
-      var mentions = [semaine.length + (semaine.length > 1 ? ' sorties' : ' sortie')];
+      /* Le COMPTE est une mesure ; les trois autres entrées sont des
+       * avertissements de lecture — échelles non comparables, sorties
+       * comptées mais absentes de la carte. On retire la première, pas la
+       * ligne : sans elles, la planche affirmerait une semaine complète. */
+      var mentions = dit.mesures
+        ? [semaine.length + (semaine.length > 1 ? ' sorties' : ' sortie')] : [];
       if (estArchipel) mentions.push('chaque médaillon a son échelle — ils ne se comparent pas');
       if (sansGPS.length) mentions.push(sansGPS.length + ' sans GPS — comptées, hors carte');
       if (sansDate) mentions.push(sansDate + ' sans date — hors semaine');
-      H.text(mentions.join('   ·   ').toUpperCase(), colX, yMention,
-             H.t('label', { color: faint, maxWidth: colW }));
+      if (mentions.length) {
+        H.text(mentions.join('   ·   ').toUpperCase(), colX, yMention,
+               H.t('label', { color: faint, maxWidth: colW }));
+      }
 
       H.rule(colX, yRegle, colX + colW, { color: hair });
       var km = semaine.reduce(function (t, e) { return t + (e.activity.distance_km || 0); }, 0);
@@ -543,6 +550,7 @@ Studio.template({
         /* Largeur de colonne ET corps s'adaptent au format : « 2 807 m » à
          * 5,4 unités dans un tiers de colonne paysage débordait sur le
          * voisin. `maxWidth` rétrécit, mais rétrécir de moitié se voit. */
+        if (!dit.mesures) return;
         H.field(c[0], c[1], colX + i * (colW / 3), yValeur, {
           color: encre, labelColor: faint, size: corpsChiffre,
           maxWidth: colW / 3 - u(3)
