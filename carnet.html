@@ -125,6 +125,39 @@
   .h-reel-moments button.auto { border-style: dashed; }
   .h-reel-cmd { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; color: #EDEAE0; font: 13px "IBM Plex Mono", monospace; }
   @media (max-width: 700px) { .h-tete .t-titre, .h-tete .t-sous { flex: 1 1 100%; width: auto; } .h-bande canvas { height: 52vh; } }
+
+  /* ---------- l'écran « Le voyage » ---------- */
+  .voyage { position: fixed; inset: 0; z-index: 70; background: rgba(20, 20, 16, .55); display: flex; justify-content: center; align-items: flex-start; overflow-y: auto; padding: 4vh 16px; }
+  .voyage[hidden] { display: none; }
+  .v-feuille { width: min(860px, 100%); background: #F7F5EF; color: #252820; border-radius: 16px; padding: 28px 28px 22px; box-shadow: 0 20px 60px rgba(0, 0, 0, .3); }
+  .v-feuille h2 { font: 800 30px/1.05 "Archivo", sans-serif; font-stretch: 112%; margin: 4px 0 6px; }
+  .v-feuille .sur { font: 12px "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: #A54F37; }
+  .v-feuille .aide { color: #62665C; font-size: 14px; margin: 0 0 18px; }
+  .v-feuille h3 { font: 600 11px "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; color: #62665C; margin: 22px 0 8px; padding-bottom: 6px; border-bottom: 1px solid #D8D5CC; display: flex; gap: 10px; align-items: center; }
+  .v-feuille h3 .bouton { margin-left: auto; font-size: 12px; padding: 5px 11px; letter-spacing: 0; text-transform: none; font-family: "Archivo", sans-serif; font-weight: 500; }
+  .v-champ { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px 12px; align-items: center; margin-bottom: 8px; }
+  .v-champ label { font: 12px "IBM Plex Mono", monospace; color: #62665C; }
+  .v-feuille input[type=text], .v-feuille input[type=number], .v-feuille select { font: 15px "Archivo", sans-serif; border: 1px solid #D8D5CC; border-radius: 7px; padding: 7px 9px; background: #fff; color: #252820; width: 100%; min-width: 0; box-sizing: border-box; }
+  .v-lieux { display: grid; gap: 6px; }
+  .v-lieu { display: grid; grid-template-columns: 96px minmax(0, 1fr) 150px; gap: 10px; align-items: center; }
+  .v-lieu .quoi { font: 12px "IBM Plex Mono", monospace; color: #A54F37; }
+  .v-lieu .ou { font: 12px "IBM Plex Mono", monospace; color: #62665C; display: flex; gap: 6px; align-items: center; }
+  .v-lieu .ou input { width: 78px; }
+  .v-reperes { display: grid; gap: 4px; max-height: 46vh; overflow-y: auto; padding-right: 4px; }
+  .v-rep { display: grid; grid-template-columns: 26px minmax(0, 1fr) 190px; gap: 10px; align-items: center; padding: 4px 0; }
+  .v-rep.retire input[type=text] { opacity: .4; text-decoration: line-through; }
+  .v-rep .ou { font: 12px "IBM Plex Mono", monospace; color: #62665C; line-height: 1.35; }
+  .v-rep .orig { font: 11px "IBM Plex Mono", monospace; color: #8E8A7C; display: block; margin-top: 2px; }
+  .v-rep.horschemin .ou { color: #A3402C; }
+  .v-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; flex-wrap: wrap; }
+  .v-coche { display: flex; gap: 6px; align-items: center; font-size: 14px; }
+  @media (max-width: 640px) {
+    .v-feuille { padding: 20px 16px; }
+    .v-champ { grid-template-columns: 1fr; gap: 4px; }
+    .v-lieu { grid-template-columns: 1fr; gap: 4px; }
+    .v-rep { grid-template-columns: 26px minmax(0, 1fr); }
+    .v-rep .ou { grid-column: 2; }
+  }
 </style>
 </head>
 <body>
@@ -145,12 +178,41 @@
 <div id="carnet"></div>
 
 <div class="outils" id="outils" hidden>
+  <button class="bouton clair" id="bVoyage">Le voyage</button>
   <button class="bouton clair" id="bCaler" aria-pressed="false">Caler les photos</button>
   <button class="bouton clair" id="bHorizon">Instagram · Horizon</button>
   <button class="bouton clair" id="bRelief" hidden title="Les courbes de niveau et l’ombrage, depuis swisstopo">Ajouter la topo</button>
   <button class="bouton clair" id="bEnregistrer" title="Un fichier .carnet à rouvrir sur un autre ordinateur">Enregistrer le carnet</button>
   <button class="bouton" id="bExport">Exporter le carnet</button>
   <a class="bouton clair" id="bGalerie" href="carnet-local/galerie.html" hidden>Galerie</a>
+</div>
+
+<div class="voyage" id="voyage" hidden role="dialog" aria-modal="true" aria-labelledby="vTitreEcran">
+  <div class="v-feuille">
+    <div class="sur">Carnet de route</div>
+    <h2 id="vTitreEcran">Le voyage</h2>
+    <p class="aide">Son nom, ses étapes et les lieux qu’il traverse. Tout se change plus tard depuis le bouton « Le voyage ».</p>
+
+    <h3>Le titre</h3>
+    <div class="v-champ"><label for="vTitre">Titre</label><input type="text" id="vTitre"></div>
+    <div class="v-champ"><label for="vSous">Une phrase</label><input type="text" id="vSous" placeholder="Deux jours autour du Grand Combin, par les cols et les alpages."></div>
+
+    <h3>Les étapes
+      <select id="vNb" aria-label="Nombre d’étapes" style="width:auto;margin-left:auto"><option value="1">1 étape</option><option value="2">2 étapes</option><option value="3">3 étapes</option><option value="4">4 étapes</option><option value="5">5 étapes</option></select>
+    </h3>
+    <div class="v-lieux" id="vLieux"></div>
+    <label class="v-coche" style="margin-top:8px"><input type="checkbox" id="vBoucle"> Le parcours est une boucle : l’arrivée porte le nom du départ</label>
+
+    <h3>Les repères <span id="vCompte" style="letter-spacing:0;text-transform:none"></span>
+      <button type="button" class="bouton clair" id="vFrancais">Proposer en français</button>
+    </h3>
+    <div class="v-reperes" id="vReperes"></div>
+
+    <div class="v-actions">
+      <button type="button" class="bouton clair" id="vAnnuler">Annuler</button>
+      <button type="button" class="bouton" id="vAppliquer">Appliquer</button>
+    </div>
+  </div>
 </div>
 
 <div class="horizon" id="horizon" hidden>
@@ -203,6 +265,7 @@
 <script src="src/carnet/exif.js"></script>
 <script src="src/carnet/composer.js"></script>
 <script src="src/carnet/relief.js"></script>
+<script src="src/carnet/noms.js"></script>
 <script src="src/carnet/lecteur.js"></script>
 <script src="src/zip.js"></script>
 <script src="src/carnet/horizon.js"></script>

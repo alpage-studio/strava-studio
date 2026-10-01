@@ -318,5 +318,34 @@
     };
   }
 
-  global.Composer = { composer: composer, lireReperes: lireReperes };
+  /* les repères TELS QUE LE GPX LES DONNE, pour l'écran « Le voyage » : nom
+   * d'origine, kilomètre et altitude du passage, distance au chemin. Ceux à
+   * plus de 400 m du chemin y figurent aussi, marqués : le carnet ne les pose
+   * pas, mais il faut pouvoir dire pourquoi un repère n'apparaît pas. */
+  function reperesBruts(gpx) {
+    var pts = global.Activity.parseGPX(gpx).track;
+    return lireReperes(gpx).map(function (w) {
+      var best = 0, bd = Infinity;
+      for (var i = 0; i < pts.length; i += 2) { var dd = dist(w, pts[i]); if (dd < bd) { bd = dd; best = i; } }
+      return { nom: w.nom, km: pts[best].d / 1000, alt: pts[best].ele != null ? Math.round(pts[best].ele) : null,
+               ecart: Math.round(bd), surLeChemin: bd <= 400 };
+    }).sort(function (a, b) { return a.km - b.km; });
+  }
+
+  /* le profil brut, pour placer une nuit : kilomètre → altitude, et le
+   * point le plus bas d'un tronçon (un voyage en montagne dort en vallée) */
+  function profilBrut(gpx) {
+    var pts = global.Activity.parseGPX(gpx).track;
+    return {
+      total: pts[pts.length - 1].d / 1000,
+      alt: function (km) { var b = pts[0]; for (var i = 0; i < pts.length; i++) { if (pts[i].d / 1000 > km) break; b = pts[i]; } return b.ele != null ? Math.round(b.ele) : null; },
+      plusBas: function (a, b) {
+        var m = null;
+        pts.forEach(function (p) { var k = p.d / 1000; if (k >= a && k <= b && p.ele != null && (!m || p.ele < m.ele)) m = p; });
+        return m ? m.d / 1000 : (a + b) / 2;
+      }
+    };
+  }
+
+  global.Composer = { composer: composer, lireReperes: lireReperes, reperesBruts: reperesBruts, profilBrut: profilBrut };
 })(this);

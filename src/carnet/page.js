@@ -22,13 +22,25 @@
   }
 
   /* ---------- la mémoire des calages ---------- */
-  function cle() { return 'carnet:' + (entree.titre || '') + ':' + entree.medias.length; }
+  /* la clé de stockage d'un carnet : une empreinte de sa TRACE et son nombre
+   * de photos. Elle dépendait du titre — renommer le voyage aurait perdu tous
+   * les calages et tous les réglages du panneau. */
+  var empreinteDe = { gpx: null, k: '' };
+  function cle() {
+    if (empreinteDe.gpx !== entree.gpx) {
+      var h = 5381, t = entree.gpx || '';
+      for (var i = 0; i < t.length; i += 7) h = ((h * 33) ^ t.charCodeAt(i)) >>> 0;
+      empreinteDe = { gpx: entree.gpx, k: h.toString(36) + '-' + t.length.toString(36) };
+    }
+    return 'carnet:' + empreinteDe.k + ':' + entree.medias.length;
+  }
   function sauver() {
     var c = {};
     entree.medias.forEach(function (m) { if (m.km != null || m.legende) c[m.id] = { km: m.km, source: m.source || null, legende: m.legende || '' }; });
     try { localStorage.setItem(cle(), JSON.stringify(c)); } catch (e) { /* navigation privée */ }
   }
   function restaurer() {
+    restaurerVoyage();
     var c = null;
     try { c = JSON.parse(localStorage.getItem(cle()) || 'null'); } catch (e) { c = null; }
     if (!c) return;
@@ -105,6 +117,158 @@
     if (edition) note('Déplace une photo le long du parcours : elle devient une ancre, et les autres se replacent autour.', 4800);
   });
 
+  /* ---------- l'écran « Le voyage » ----------
+   * Le titre, les étapes et les noms des repères. Un GPX déposé n'apporte que
+   * son nom de fichier ou celui que Komoot lui a donné, des étapes appelées
+   * « Départ » et « Arrivée », et des repères en anglais. Cet écran les règle
+   * en une fois, juste après le dépôt, puis depuis le bouton « Le voyage ».
+   *
+   * Les étapes se décrivent par leurs LIEUX : le départ, chaque nuit et son
+   * kilomètre, l'arrivée. Une étape va d'un lieu au suivant : écrire « Ollomont »
+   * une fois suffit pour finir le jour 1 et commencer le jour 2. */
+  var vLieux = [], vReps = [];
+
+  function fmtKm(km) { return km.toFixed(1).replace('.', ','); }
+  function fmtM(m) { return m == null ? '—' : String(m).replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' m'; }
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+  function estBoucle() {
+    var T = lecteur && lecteur.data && lecteur.data.trace;
+    if (!T) return false;
+    var n = T.x.length - 1;
+    return Math.hypot(T.x[0] - T.x[n], T.y[0] - T.y[n]) * T.kmParUnite < 1.5;
+  }
+
+  function ouvrirVoyage(premiere) {
+    if (!entree || !lecteur) return;
+    var P = Composer.profilBrut(entree.gpx), data = lecteur.data;
+    vLieux = [{ nom: data.etapes[0].de, km: 0 }].concat(data.etapes.map(function (et) { return { nom: et.a, km: et.kmFin }; }));
+    vLieux[vLieux.length - 1].km = P.total;
+    $('vTitre').value = entree.titre || data.titre || '';
+    $('vSous').value = entree.sousTitre || '';
+    $('vNb').value = String(Math.min(5, data.etapes.length));
+    $('vBoucle').checked = estBoucle() && vLieux[0].nom === vLieux[vLieux.length - 1].nom || (premiere && estBoucle());
+    var noms = entree.noms || {};
+    vReps = Composer.reperesBruts(entree.gpx).map(function (r) {
+      var garde = noms[r.nom] !== null && r.surLeChemin;
+      return { orig: r.nom, nom: noms[r.nom] || r.nom, garde: garde, km: r.km, alt: r.alt, ecart: r.ecart, surLeChemin: r.surLeChemin };
+    });
+    dessinerLieux(P);
+    dessinerReperes();
+    $('vTitreEcran').textContent = premiere ? 'Le voyage — avant de commencer' : 'Le voyage';
+    $('voyage').hidden = false;
+    $('vTitre').focus();
+  }
+
+  function dessinerLieux(P) {
+    P = P || Composer.profilBrut(entree.gpx);
+    var box = $('vLieux'), n = vLieux.length - 1, boucle = $('vBoucle').checked;
+    box.innerHTML = '';
+    vLieux.forEach(function (l, i) {
+      var d = document.createElement('div');
+      d.className = 'v-lieu';
+      var quoi = i === 0 ? 'Départ' : i === n ? 'Arrivée' : 'Nuit ' + i;
+      var mirroir = i === n && boucle;
+      d.innerHTML = '<span class="quoi">' + quoi + '</span>' +
+        '<input type="text" value="' + esc(mirroir ? vLieux[0].nom : l.nom) + '"' + (mirroir ? ' disabled title="Une boucle revient à son départ"' : '') + ' aria-label="' + quoi + '">' +
+        '<span class="ou">' + (i > 0 && i < n
+          ? 'km <input type="number" min="1" max="' + Math.floor(P.total - 1) + '" step="0.1" value="' + l.km.toFixed(1) + '" aria-label="Kilomètre de la nuit ' + i + '"> <span class="alt">' + fmtM(P.alt(l.km)) + '</span>'
+          : 'km ' + fmtKm(l.km) + ' · ' + fmtM(P.alt(l.km))) + '</span>';
+      var t = d.querySelector('input[type=text]');
+      t.addEventListener('input', function () { l.nom = t.value; if (i === 0 && boucle) dessinerLieux(P); });
+      var k = d.querySelector('input[type=number]');
+      if (k) k.addEventListener('change', function () {
+        var lo = vLieux[i - 1].km + 1, hi = vLieux[i + 1].km - 1;
+        l.km = Math.max(lo, Math.min(hi, +k.value || l.km));
+        k.value = l.km.toFixed(1);
+        d.querySelector('.alt').textContent = fmtM(P.alt(l.km));
+      });
+      box.appendChild(d);
+    });
+  }
+
+  // un autre nombre d'étapes : les nuits se replacent au point le plus bas de
+  // chaque tronçon — un voyage en montagne dort en vallée —, les noms restent
+  function changerNombre() {
+    var P = Composer.profilBrut(entree.gpx), n = +$('vNb').value, anciens = vLieux.slice(1, -1);
+    var milieu = [];
+    for (var k = 1; k < n; k++) {
+      var km = P.plusBas(P.total * (k - 0.5) / n, P.total * (k + 0.5) / n);
+      milieu.push({ nom: anciens[k - 1] ? anciens[k - 1].nom : 'Étape ' + (k + 1), km: km });
+    }
+    vLieux = [vLieux[0]].concat(milieu, [vLieux[vLieux.length - 1]]);
+    dessinerLieux(P);
+  }
+
+  function dessinerReperes() {
+    var box = $('vReperes');
+    box.innerHTML = '';
+    vReps.forEach(function (r) {
+      var d = document.createElement('div');
+      d.className = 'v-rep' + (r.garde ? '' : ' retire') + (r.surLeChemin ? '' : ' horschemin');
+      d.innerHTML = '<input type="checkbox"' + (r.garde ? ' checked' : '') + (r.surLeChemin ? '' : ' disabled') + ' aria-label="Garder ce repère">' +
+        '<span><input type="text" value="' + esc(r.nom) + '" aria-label="Nom du repère">' +
+        (r.nom !== r.orig ? '<span class="orig">Komoot : ' + esc(r.orig) + '</span>' : '') + '</span>' +
+        '<span class="ou">' + (r.surLeChemin
+          ? 'km ' + fmtKm(r.km) + '<br>passage à ' + fmtM(r.alt)
+          : 'à ' + (r.ecart / 1000).toFixed(1).replace('.', ',') + ' km du chemin<br>non posé') + '</span>';
+      var c = d.querySelector('input[type=checkbox]'), t = d.querySelector('input[type=text]');
+      c.addEventListener('change', function () { r.garde = c.checked; d.classList.toggle('retire', !r.garde); majCompte(); });
+      t.addEventListener('change', function () { r.nom = t.value.trim() || r.orig; dessinerReperes(); });
+      box.appendChild(d);
+    });
+    majCompte();
+  }
+  function majCompte() {
+    var g = vReps.filter(function (r) { return r.garde; }).length;
+    $('vCompte').textContent = '· ' + g + ' gardé' + (g > 1 ? 's' : '') + ' sur ' + vReps.length;
+    $('vFrancais').hidden = !vReps.length;
+  }
+
+  // seuls les noms encore D'ORIGINE reçoivent une proposition : un nom déjà
+  // écrit à la main n'est jamais remplacé
+  $('vFrancais').addEventListener('click', function () {
+    var n = 0;
+    vReps.forEach(function (r) { if (r.nom === r.orig) { var p = Noms.proposer(r.orig); if (p !== r.orig) { r.nom = p; n++; } } });
+    dessinerReperes();
+    note(n ? n + ' noms proposés en français — relis-les avant d’appliquer.' : 'Aucun nom à traduire : tous sont déjà en français ou écrits à la main.', 4500);
+  });
+  $('vNb').addEventListener('change', changerNombre);
+  $('vBoucle').addEventListener('change', function () { dessinerLieux(); });
+  $('vAnnuler').addEventListener('click', function () { $('voyage').hidden = true; });
+  $('voyage').addEventListener('keydown', function (e) { if (e.key === 'Escape') $('voyage').hidden = true; });
+  $('bVoyage').addEventListener('click', function () { ouvrirVoyage(false); });
+
+  $('vAppliquer').addEventListener('click', function () {
+    var boucle = $('vBoucle').checked, n = vLieux.length - 1;
+    var noms = vLieux.map(function (l, i) { return (i === n && boucle ? vLieux[0].nom : l.nom).trim() || (i === 0 ? 'Départ' : i === n ? 'Arrivée' : 'Étape ' + (i + 1)); });
+    entree.titre = $('vTitre').value.trim() || entree.titre;
+    entree.sousTitre = $('vSous').value.trim();
+    entree.etapes = vLieux.slice(1).map(function (l, i) { return { de: noms[i], a: noms[i + 1], finKm: +l.km.toFixed(2) }; });
+    entree.noms = {};
+    vReps.forEach(function (r) { if (!r.garde) entree.noms[r.orig] = null; else if (r.nom !== r.orig) entree.noms[r.orig] = r.nom; });
+    sauverVoyage();
+    $('voyage').hidden = true;
+    rendre();
+    if (!$('horizon').hidden) { hRendre(); hMoments(); }
+    note('Voyage mis à jour : ' + entree.etapes.length + (entree.etapes.length > 1 ? ' étapes' : ' étape') + ', ' +
+      vReps.filter(function (r) { return r.garde; }).length + ' repères.', 4000);
+  });
+
+  // le voyage se garde avec les calages, et part dans le fichier .carnet avec l'entrée
+  function sauverVoyage() {
+    try {
+      localStorage.setItem(cle() + ':voyage', JSON.stringify({ titre: entree.titre, sousTitre: entree.sousTitre, etapes: entree.etapes, noms: entree.noms }));
+    } catch (e) { /* navigation privée */ }
+  }
+  function restaurerVoyage() {
+    var v = null;
+    try { v = JSON.parse(localStorage.getItem(cle() + ':voyage') || 'null'); } catch (e) { v = null; }
+    if (!v) return false;
+    ['titre', 'sousTitre', 'etapes', 'noms'].forEach(function (k) { if (v[k] != null) entree[k] = v[k]; });
+    return true;
+  }
+
   /* ---------- déposer des fichiers ---------- */
   function dims(url) {
     return new Promise(function (ok) {
@@ -159,7 +323,9 @@
         delete m.gps;
       });
       restaurer();
+      var dejaRegle = !!(entree.etapes && entree.etapes.length);
       rendre();
+      if (!dejaRegle) ouvrirVoyage(true);
       var avis = [];
       if (sansGps) avis.push(sansGps + ' sur ' + res.length + ' sans position : placées par l’heure');
       if (sansHeure) avis.push(sansHeure + ' sans heure');

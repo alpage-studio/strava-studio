@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.3';
+var STUDIO_VERSION = '3.17.4';
 var STUDIO_DATE = '01.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,9 @@ var STUDIO_DATE = '01.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.4', d: '01.10.2026', points: [
+    'Rien ne change dans le studio. Le carnet de route gagne l’écran « Le voyage » : le titre, les étapes par leurs lieux — le départ, chaque nuit et son kilomètre, l’arrivée — et les repères du GPX, à renommer, garder ou retirer, avec une proposition de noms français pour ceux que Komoot écrit en anglais.'
+  ] },
   { v: '3.17.3', d: '01.10.2026', points: [
     'LE RÉGLAGE « TEXTE » ATTEINT VINGT-CINQ PLANCHES DE PLUS — trente-cinq sur trente-sept au lieu de dix. Les autres gravaient leur titre et leur rangée de mesures quel que soit ton choix : le réglage existait, il ne portait simplement pas jusqu’à elles.',
     'Ce qui se tait est ce que la planche dit D’ELLE : son titre, ses mesures, et — en « Signature » — ses notes de fabrication. Trace, Médaillon et la partition musicale deviennent entièrement muettes ; il ne reste que le dessin.',
