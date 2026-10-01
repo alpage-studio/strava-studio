@@ -467,10 +467,20 @@
    * L'export PNG vivait dans sources.js ; il rejoint ses deux frères, parce
    * que deux écouteurs sur le même bouton se seraient déclenchés tous les
    * deux le jour où l'un aurait cessé de décider seul. */
+  /* LES FORMATS QUI ONT UNE TAILLE PHYSIQUE, et eux seuls.
+   *
+   * A4 et A3 sont calcules a 300 points par pouce ; sans bloc `pHYs` dans le
+   * PNG, un logiciel d'impression les pose a 72 dpi et l'A3 sort plus de
+   * quatre fois trop grand. Une story, elle, n'a pas de taille physique : lui
+   * inventer une resolution serait aussi faux que de taire celle d'un A3. */
+  var DPI_IMPRESSION = { a4: 300, a3: 300 };
+
   function exporteImage() {
-    var size = SIZES[$('#size').value];
+    var cle = $('#size').value;
+    var size = SIZES[cle];
     Studio.exportPNG(canvas, slug() + '_' + E.current.id + '_' +
-                     size[0] + 'x' + size[1] + '.png');
+                     size[0] + 'x' + size[1] + '.png',
+                     DPI_IMPRESSION[cle] || null);
   }
 
   /* RIEN A EXPORTER N'EST PAS UN FICHIER VIDE.

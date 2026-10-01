@@ -248,6 +248,105 @@
   $('#support').dispatchEvent(new Event('change'));
   await attends(400);
 
+  /* ---------- UN PNG D'IMPRESSION DIT SA RÉSOLUTION ----------
+   *
+   * LE DÉFAUT RÉEL : A4 et A3 sont CALCULÉS à 300 points par pouce — 2480×3508
+   * et 3508×4961 pixels — mais le PNG produit par `toBlob` ne porte aucun bloc
+   * `pHYs`. Sans résolution déclarée, les logiciels d'impression posent le
+   * fichier à 72 dpi : l'A3 sortait plus de quatre fois trop grand, et rien ne
+   * le disait. Le calcul était juste, son résultat illisible pour une
+   * imprimante.
+   *
+   * ON RELIT LES OCTETS, pas le code. Un bloc mal formé — mauvais CRC,
+   * mauvaise place — produit un fichier qu'aucun lecteur n'ouvre, et seul un
+   * lecteur peut le dire : le dernier cas repasse donc le PNG au décodeur du
+   * navigateur. */
+  if (Studio.posePhys) {
+    var cvP = document.createElement('canvas');
+    cvP.width = 300; cvP.height = 420;
+    var cxP = cvP.getContext('2d');
+    cxP.fillStyle = '#F7F5EF'; cxP.fillRect(0, 0, 300, 420);
+    cxP.fillStyle = '#111'; cxP.fillRect(40, 40, 220, 340);
+    var brut = new Uint8Array(await (await new Promise(function (r) {
+      cvP.toBlob(r, 'image/png');
+    })).arrayBuffer());
+
+    function lisPhys(oct) {
+      var vue = new DataView(oct.buffer, oct.byteOffset, oct.byteLength);
+      var pos = 8, avantIdat = true, trouve = null, combien = 0;
+      while (pos + 8 <= oct.length) {
+        var taille = vue.getUint32(pos);
+        var type = String.fromCharCode(oct[pos + 4], oct[pos + 5], oct[pos + 6], oct[pos + 7]);
+        if (type === 'pHYs') {
+          combien++;
+          trouve = { x: vue.getUint32(pos + 8), y: vue.getUint32(pos + 12),
+                     unite: oct[pos + 16], avantIdat: avantIdat };
+        }
+        if (type === 'IDAT') avantIdat = false;
+        if (type === 'IEND') break;
+        pos += 12 + taille;
+      }
+      return { phys: trouve, combien: combien };
+    }
+
+    ok('impression · un PNG de canvas ne déclare aucune résolution',
+       lisPhys(brut).phys === null,
+       'sans ce point de départ, le cas suivant pourrait être vert sans rien avoir posé');
+
+    var avec = Studio.posePhys(brut, 300);
+    var lu = lisPhys(avec);
+    /* 300 points par pouce = 300 / 0,0254 pixels par mètre */
+    ok('impression · 300 dpi s’écrivent 11811 pixels par mètre, avant le premier IDAT  (' +
+       (lu.phys ? lu.phys.x + ', unité ' + lu.phys.unite : 'aucun') + ')',
+       !!lu.phys && lu.phys.x === 11811 && lu.phys.y === 11811 &&
+       lu.phys.unite === 1 && lu.phys.avantIdat === true);
+
+    ok('impression · l’appliquer deux fois n’empile pas deux blocs  (' +
+       lisPhys(Studio.posePhys(avec, 300)).combien + ')',
+       lisPhys(Studio.posePhys(avec, 300)).combien === 1);
+
+    /* LE FICHIER DOIT RESTER LISIBLE. Un CRC faux passe inaperçu à la lecture
+     * des octets et arrête net un vrai décodeur. */
+    var urlP = URL.createObjectURL(new Blob([avec], { type: 'image/png' }));
+    var imP = new Image();
+    var relu = false;
+    try {
+      await new Promise(function (o, n) { imP.onload = o; imP.onerror = n; imP.src = urlP; });
+      relu = imP.naturalWidth === 300 && imP.naturalHeight === 420;
+    } catch (e) { relu = false; }
+    URL.revokeObjectURL(urlP);
+    ok('impression · le PNG reste lisible par un vrai décodeur  (' +
+       imP.naturalWidth + 'x' + imP.naturalHeight + ')', relu,
+       'un CRC faux ne se voit pas dans les octets, seulement à l’ouverture');
+
+    /* LE CÂBLAGE : qui reçoit quelle résolution. Une story n'a pas de taille
+     * physique ; lui inventer 300 dpi serait aussi faux que de taire celle
+     * d'un A3. */
+    var vraiExport = Studio.exportPNG;
+    var recus = [];
+    Studio.exportPNG = function (cv, nom, dpi) { recus.push({ nom: nom, dpi: dpi || null }); };
+    try {
+      var tailleAvant = $('#size').value;
+      var sortieAvant = $('#sortie') ? $('#sortie').value : null;
+      if ($('#sortie')) $('#sortie').value = 'image';
+      ['a3', 'a4', 'story'].forEach(function (f) {
+        $('#size').value = f;
+        $('#size').dispatchEvent(new Event('change'));
+        $('#export').click();
+      });
+      $('#size').value = tailleAvant;
+      $('#size').dispatchEvent(new Event('change'));
+      if ($('#sortie') && sortieAvant) $('#sortie').value = sortieAvant;
+    } finally {
+      Studio.exportPNG = vraiExport;
+    }
+    ok('impression · A3 et A4 partent à 300 dpi, une story sans résolution  (' +
+       recus.map(function (r) { return r.dpi === null ? 'aucune' : r.dpi; }).join(' / ') + ')',
+       recus.length === 3 && recus[0].dpi === 300 && recus[1].dpi === 300 &&
+       recus[2].dpi === null,
+       JSON.stringify(recus));
+  }
+
   /* ---------- AUCUNE PLANCHE N'ÉCRIT CE QU'ELLE N'A PAS MESURÉ ----------
    *
    * LE DÉFAUT RÉEL, RAPPORTÉ PAR DOUZE RELECTEURS : sur une sortie sans

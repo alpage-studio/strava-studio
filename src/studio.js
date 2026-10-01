@@ -793,12 +793,90 @@
     lines.forEach(function (l, i) { ctx.fillText(l, x, y + i * lh); });
   }
 
-  function exportPNG(canvas, filename) {
+  /* ---------- UN PNG QUI DIT SA RÉSOLUTION ----------
+   *
+   * LE DÉFAUT RÉEL : les formats A4 et A3 sont CALCULÉS à 300 points par pouce
+   * — 2480×3508 et 3508×4961 pixels — mais le PNG produit par `toBlob` ne
+   * porte aucun bloc `pHYs`. Un fichier sans résolution déclarée est posé à
+   * 72 dpi par la plupart des logiciels d'impression : l'A3 sortait plus de
+   * quatre fois trop grand, et rien ne le disait. Le calcul était juste, son
+   * résultat illisible pour une imprimante.
+   *
+   * `pHYs` tient en neuf octets : deux entiers de pixels par unité, et l'unité
+   * elle-même (1 = le mètre). Il doit précéder le premier `IDAT`.
+   *
+   * ON NE DÉCLARE RIEN POUR LES FORMATS D'ÉCRAN. Une story n'a pas de taille
+   * physique : lui inventer 300 dpi serait aussi faux que de taire celle d'un
+   * A3. L'appelant passe la résolution quand elle existe, et rien sinon. */
+  var TABLE_CRC = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  }());
+
+  function crc32(octets, debut, fin) {
+    var c = 0xFFFFFFFF;
+    for (var i = debut; i < fin; i++) c = TABLE_CRC[(c ^ octets[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  /* Rend un nouveau Uint8Array, bloc `pHYs` inséré avant le premier IDAT.
+   * Si l'image en porte déjà un, ou si elle n'a pas la tête d'un PNG, on la
+   * rend telle quelle : réécrire ce qu'on n'a pas compris casserait le
+   * fichier au lieu de l'améliorer. */
+  function posePhys(octets, dpi) {
+    var SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
+    for (var i = 0; i < 8; i++) if (octets[i] !== SIGNATURE[i]) return octets;
+
+    var vue = new DataView(octets.buffer, octets.byteOffset, octets.byteLength);
+    var pos = 8, debutIdat = -1;
+    while (pos + 8 <= octets.length) {
+      var taille = vue.getUint32(pos);
+      var type = String.fromCharCode(octets[pos + 4], octets[pos + 5],
+                                     octets[pos + 6], octets[pos + 7]);
+      if (type === 'pHYs') return octets;          // déjà déclarée
+      if (type === 'IDAT') { debutIdat = pos; break; }
+      pos += 12 + taille;
+    }
+    if (debutIdat < 0) return octets;
+
+    /* pixels par MÈTRE : un pouce vaut 0,0254 mètre */
+    var ppm = Math.round(dpi / 0.0254);
+    var bloc = new Uint8Array(21);                 // 4 taille + 4 type + 9 données + 4 crc
+    var vb = new DataView(bloc.buffer);
+    vb.setUint32(0, 9);
+    bloc[4] = 112; bloc[5] = 72; bloc[6] = 89; bloc[7] = 115;   // « pHYs »
+    vb.setUint32(8, ppm);
+    vb.setUint32(12, ppm);
+    bloc[16] = 1;                                   // unité : le mètre
+    vb.setUint32(17, crc32(bloc, 4, 17));
+
+    var sortie = new Uint8Array(octets.length + bloc.length);
+    sortie.set(octets.subarray(0, debutIdat), 0);
+    sortie.set(bloc, debutIdat);
+    sortie.set(octets.subarray(debutIdat), debutIdat + bloc.length);
+    return sortie;
+  }
+
+  function exportPNG(canvas, filename, dpi) {
     canvas.toBlob(function (blob) {
-      // sur téléphone, la feuille de partage native ; ailleurs, un téléchargement
-      if (global.Share) global.Share.file(blob, filename);
-      else {
-        var url = URL.createObjectURL(blob);
+      if (!dpi) return livre(blob);
+      /* On relit le fichier pour y poser la résolution. Si quoi que ce soit
+       * échoue, on livre le PNG d'origine : un fichier sans dpi s'imprime mal,
+       * un fichier corrompu ne s'ouvre pas. */
+      blob.arrayBuffer().then(function (buf) {
+        var avec = posePhys(new Uint8Array(buf), dpi);
+        livre(new Blob([avec], { type: 'image/png' }));
+      }).catch(function () { livre(blob); });
+
+      function livre(b) {
+        // sur téléphone, la feuille de partage native ; ailleurs, un téléchargement
+        if (global.Share) return global.Share.file(b, filename);
+        var url = URL.createObjectURL(b);
         var a = document.createElement('a');
         a.href = url; a.download = filename;
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -810,7 +888,7 @@
   global.Studio = {
     template: template, all: all, get: get, chrono: chrono,
     estTransparent: estTransparent,
-    render: render, exportPNG: exportPNG, setPhoto: setPhoto, setMinimal: setMinimal,
+    render: render, exportPNG: exportPNG, posePhys: posePhys, setPhoto: setPhoto, setMinimal: setMinimal,
     setLibrary: setLibrary, setHistorique: setHistorique,
     setAchromatique: setAchromatique,
     setSupport: setSupport, setSurface: setSurface,
