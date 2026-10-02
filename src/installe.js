@@ -44,9 +44,24 @@
   var annonceFaite = false;
 
   global.addEventListener('load', function () {
-    navigator.serviceWorker.register('sw.js').catch(function (e) {
-      console.warn('service worker non enregistré :', e.message);
-    });
+    /* `updateViaCache: 'none'` ET un `update()` explicite.
+     *
+     * LE DÉFAUT, REPRODUIT. On déploie une version, l'utilisateur recharge
+     * QUATRE fois : il reste sur l'ancienne, et aucun bandeau ne l'avertit.
+     * Mesuré sur deux générations successives servies au même endroit — le
+     * réseau rendait bien le nouveau `sw.js`, mais l'enregistrement ne
+     * montrait ni `installing` ni `waiting` : le navigateur n'allait pas
+     * voir. Par défaut, le script du service worker passe par le cache HTTP
+     * et `register()` seul ne force rien.
+     *
+     * C'est le même défaut que la 3.13.1 — « resté bloqué sur une ancienne
+     * version » — par un autre chemin : là, les octets de sw.js ne changeaient
+     * pas ; ici ils changent et personne ne les lit. */
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+      .then(function (reg) { return reg.update(); })
+      .catch(function (e) {
+        console.warn('service worker non enregistré :', e.message);
+      });
   });
 
   navigator.serviceWorker.addEventListener('controllerchange', function () {

@@ -29,7 +29,7 @@ const VERSION = 'studio-v' + STUDIO_VERSION;
  * src/version.js, qui demeure la source unique. Un contrôle du harnais refuse
  * qu'elle diverge, exactement comme il refuse un journal dont la première
  * entrée ne porte pas le numéro servi. */
-const GENERATION = '3.17.7';
+const GENERATION = '3.17.8';
 
 /* Le strict nécessaire pour démarrer hors ligne. Les templates sont listés
  * un par un : en ajouter un demande une ligne ici, et un changement de
@@ -134,7 +134,7 @@ const SHELL = [
   './src/templates/ov-ardoise.js',
   './src/templates/ov-heros.js',
   './src/templates/ov-tranche.js',
-  './src/templates/ov-sommet.js'
+  './src/templates/ov-sommet.js',
 
   /* LE CARNET ET L'ACCUEIL ENTRENT DANS LE CACHE.
    *

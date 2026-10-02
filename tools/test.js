@@ -2222,6 +2222,83 @@ function testsMotGrave() {
      'choisie pour les images');
 }
 
+/* ========== 2 quindecies. LE SERVICE WORKER DOIT S'ÉVALUER =================
+ *
+ * LE DÉFAUT, ET IL ÉTAIT EN PRODUCTION.
+ *
+ * En ajoutant le Carnet et l'accueil au SHELL, une virgule a manqué sur
+ * l'entrée précédente : `'./src/templates/ov-sommet.js'` suivi d'un commentaire
+ * puis d'une chaîne. `sw.js` ne se parsait plus. Il a été publié ainsi, deux
+ * versions de suite.
+ *
+ * CE QUE ÇA FAIT, ET POURQUOI PERSONNE NE LE VOIT.
+ *   Un service worker qui lève à l'évaluation ne s'installe pas. Le site
+ *   marche — il n'a simplement plus de hors ligne. Mais surtout : celui qui
+ *   avait DÉJÀ un service worker valide garde l'ancien, pour toujours. Son
+ *   navigateur continue de servir l'ancien shell depuis l'ancien cache, et
+ *   aucun rechargement n'y change rien. Mesuré : quatre rechargements après
+ *   le déploiement, toujours l'ancienne version, et aucun bandeau.
+ *
+ *   C'est ainsi qu'« Atlas renvoie vers Trace » : l'adresse change, le
+ *   contenu vient d'une génération qui ne connaît pas Atlas. Et que « passer
+ *   en anglais ne marche pas » : l'ancien shell ne charge pas le socle.
+ *
+ * POURQUOI RIEN NE L'A VU.
+ *   Le harnais LIT sw.js — il y cherche des motifs, compte les entrées du
+ *   SHELL, compare la génération. Lire n'est pas évaluer. L'acceptation, elle,
+ *   ouvre des pages : un service worker en panne y est parfaitement silencieux.
+ *   Et j'ai moi-même « vérifié » ce fichier avec un readFileSync, qui ne fait
+ *   que le lire.
+ *
+ * CE CONTRÔLE L'ÉVALUE POUR DE BON, dans un bac avec les quelques objets
+ * qu'un service worker attend, `importScripts` compris. */
+
+function testsServiceWorker() {
+  titre('2 quindecies. LE SERVICE WORKER DOIT S’ÉVALUER');
+
+  const vm = require('vm');
+  const src = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+
+  let erreur = null;
+  const bac = {
+    console: { log() {}, warn() {}, error() {} },
+    self: {
+      addEventListener() {},
+      location: 'https://exemple.test/portee/sw.js',
+      skipWaiting() {},
+      clients: { claim() {} }
+    },
+    caches: { open() { return Promise.resolve({}); }, keys() { return Promise.resolve([]); } },
+    fetch() {}, URL, Set, Map, Promise, Response: { error() {} },
+    setTimeout, clearTimeout
+  };
+  bac.self.self = bac.self;
+  /* `importScripts` charge vraiment : c'est par lui que sw.js lit le numéro de
+   * version, et une erreur dans CE fichier casserait le worker tout autant. */
+  bac.importScripts = function (f) {
+    const p = path.join(ROOT, String(f).replace(/^[.][/]/, ''));
+    vm.runInContext(fs.readFileSync(p, 'utf8'), bac, { filename: String(f) });
+  };
+  try {
+    vm.createContext(bac);
+    vm.runInContext(src, bac, { filename: 'sw.js' });
+  } catch (e) {
+    erreur = e.message;
+  }
+
+  ok('sw.js · il s’évalue sans lever  (' + Math.round(src.length / 1024) + ' Ko)',
+     erreur === null,
+     erreur + ' — un service worker qui lève ne s’installe pas, et celui qui ' +
+     'en avait un garde l’ancien POUR TOUJOURS : plus aucune mise à jour');
+
+  /* Le bac doit être assez complet pour que l'évaluation ait un sens : s'il
+   * manquait `self`, le fichier lèverait pour une raison qui n'est pas la
+   * bonne, et ce contrôle crierait au loup à chaque version. */
+  ok('sw.js · le bac porte ce qu’un service worker attend',
+     typeof bac.self === 'object' && typeof bac.caches === 'object' &&
+     typeof bac.importScripts === 'function');
+}
+
 /* ================= 2 quater. MENUS REMPLIS =================
  *
  * Le défaut réel : `<select id="collection">` était vide dans index.html et
@@ -2651,6 +2728,7 @@ function testsLangue() {
   testsPorteeDynamique();
   testsNomsPropres();
   testsMotGrave();
+  testsServiceWorker();
   testsLangue();
   testsMenus();
   testsChaine();

@@ -11,8 +11,8 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.7';
-var STUDIO_DATE = '01.10.2026';
+var STUDIO_VERSION = '3.17.8';
+var STUDIO_DATE = '02.10.2026';
 
 /* ---------- le journal ----------
  *
@@ -34,6 +34,12 @@ var STUDIO_DATE = '01.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.8', d: '02.10.2026', points: [
+    'SI TU ÉTAIS BLOQUÉ SUR UNE VIEILLE VERSION, VOICI POURQUOI. En ajoutant le Carnet à la réserve hors ligne, une virgule a manqué : le fichier qui pilote cette réserve ne se lisait plus. Il a été publié ainsi deux versions de suite.',
+    'Un tel fichier, s’il ne se lit pas, ne s’installe pas — et celui qui en avait un valide garde L’ANCIEN, pour toujours. Son navigateur continue de servir l’ancienne version, et aucun rechargement n’y change rien : mesuré, quatre rechargements après la publication, toujours l’ancienne, et aucun bandeau pour le dire.',
+    'C’est ainsi qu’un clic sur Atlas ramenait à Trace : l’adresse changeait, le contenu venait d’une version qui ne connaît pas Atlas. Et que le choix de la langue ne faisait rien : l’ancienne page ne charge pas ce qu’il faut.',
+    'Rien ne l’a vu parce que les contrôles LISAIENT ce fichier — ils y cherchaient des motifs, comptaient des lignes — sans jamais l’exécuter. Un contrôle l’évalue désormais pour de bon, et il a été vu refuser la virgule manquante.'
+  ] },
   { v: '3.17.7', d: '02.10.2026', points: [
     'LES AFFICHES PARLENT ANGLAIS. L’interface était passée à l’anglais, mais les trente-sept planches gravaient encore leur texte en français : on obtenait une affiche anglaise portant « EN MOUVEMENT » et « DÉNIVELÉ ». C’est exactement le défaut des versions 3.5 à 3.11, que douze relecteurs sur douze avaient vu.',
     'La langue des IMAGES se règle à part, près du format. On peut vouloir le studio en anglais et des affiches en français — c’est même le cas courant pour qui roule ici et partage ailleurs. Changer de langue redessine la planche et les vignettes immédiatement.',
