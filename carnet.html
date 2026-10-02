@@ -37,7 +37,11 @@
   /* ---------- l'accueil : déposer ---------- */
   .accueil { min-height: 100vh; display: grid; place-items: center; padding: 24px 16px; }
   .depot { width: min(620px, 100%); border: 1.5px dashed #B9B5AA; border-radius: 14px; padding: 48px 36px;
-    text-align: left; transition: background .2s, border-color .2s; }
+    text-align: left; transition: background .2s, border-color .2s;
+    /* border-box : en content-box, « 100 % » plus les marges dépassait l'écran
+       de 21 px sur téléphone, et toute la page défilait de côté */
+    box-sizing: border-box; }
+  @media (max-width: 520px) { .depot { padding: 32px 20px; } }
   .depot.survol { background: #EEEAE1; border-color: #A54F37; }
   .depot .sur { font: 12px "IBM Plex Mono", monospace; letter-spacing: .16em; text-transform: uppercase; color: #A54F37; }
   .depot h1 { font: 800 clamp(36px, 6vw, 56px)/.95 "Archivo", sans-serif; font-stretch: 118%; letter-spacing: -.03em; margin: 12px 0 18px; }
@@ -216,7 +220,7 @@
   <button class="bouton clair" id="bRelief" hidden title="Les courbes de niveau et l’ombrage, depuis swisstopo">Ajouter la topo</button>
   <button class="bouton clair" id="bEnregistrer" title="Un fichier .carnet à rouvrir sur un autre ordinateur">Enregistrer le carnet</button>
   <button class="bouton" id="bExport">Exporter le carnet</button>
-  <a class="bouton clair" id="bGalerie" href="carnet-local/galerie.html" hidden>Galerie</a>
+  <a class="bouton clair" id="bGalerie" href="apercus/?outil=carnet">Galerie</a>
 </div>
 
 <div class="voyage" id="voyage" hidden role="dialog" aria-modal="true" aria-labelledby="vTitreEcran">

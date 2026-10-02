@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.10';
+var STUDIO_VERSION = '3.17.11';
 var STUDIO_DATE = '02.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,10 @@ var STUDIO_DATE = '02.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.11', d: '02.10.2026', points: [
+    'Le Carnet ne déborde plus sur téléphone. Sa page d’accueil dépassait l’écran de 21 pixels : la zone de dépôt comptait sa largeur sans ses marges, et toute la page glissait de côté.',
+    'Le bouton Galerie du Carnet mène à la galerie du site, ouverte directement sur le Carnet. Il n’apparaissait jusqu’ici que sur la machine qui avait préparé le carnet.'
+  ] },
   { v: '3.17.10', d: '02.10.2026', points: [
     'LA GALERIE MONTRE AUSSI LE CARNET. Un voyage d’exemple de deux jours, rendu par le vrai code — la couverture, les étapes nommées par leurs lieux, l’arrivée. Le filtre par outil n’avait là qu’un texte.',
     'C’est un itinéraire PLANIFIÉ : ni cardio, ni cadence, ni puissance, donc aucune donnée de performance de personne. Et SANS les dix-neuf photos du carnet d’origine, qui montrent des gens reconnaissables — un exemple public n’a pas besoin d’elles.',

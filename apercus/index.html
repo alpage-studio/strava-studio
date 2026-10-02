@@ -306,6 +306,13 @@
 <script>
 var C = window.Apercus.CATALOGUE;
 var etatF = null, etatG = null, etatO = null;
+/* L'outil peut venir de l'adresse : le bouton Galerie du Carnet ouvre
+ * apercus/?outil=carnet. Trois valeurs seulement — une autre donnerait -1 à
+ * indexOf plus bas, qui n'est pas null et se comporterait mal. */
+(function () {
+  var o = (new URLSearchParams(location.search).get('outil') || '').toLowerCase();
+  if (['trace', 'atlas', 'carnet'].indexOf(o) >= 0) etatO = o;
+}());
 
 /* QUEL OUTIL POUR QUELLE PLANCHE ?
  *

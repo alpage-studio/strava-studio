@@ -397,10 +397,11 @@
   });
   document.addEventListener('drop', function (e) { if (e.dataTransfer && e.dataTransfer.files.length) lireFichiers(e.dataTransfer.files); });
 
-  /* la galerie locale n'existe que sur la machine qui a préparé le carnet
-   * (carnet-local/, ignoré par git) : le lien ne s'affiche que si elle répond */
+  /* la galerie : celle du site (apercus/, filtre Carnet), sauf sur la machine
+   * qui a préparé le carnet, où la galerie locale — les vraies photos, dans
+   * carnet-local/ ignoré par git — prend sa place si elle répond */
   if (location.protocol.indexOf('http') === 0) {
-    fetch('carnet-local/galerie.html', { method: 'HEAD' }).then(function (r) { if (r.ok) $('bGalerie').hidden = false; }).catch(function () {});
+    fetch('carnet-local/galerie.html', { method: 'HEAD' }).then(function (r) { if (r.ok) $('bGalerie').href = 'carnet-local/galerie.html'; }).catch(function () {});
   }
 
   /* ---------- un carnet préparé ---------- */
