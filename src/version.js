@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.9';
+var STUDIO_VERSION = '3.17.10';
 var STUDIO_DATE = '02.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,15 @@ var STUDIO_DATE = '02.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.10', d: '02.10.2026', points: [
+    'LA GALERIE MONTRE AUSSI LE CARNET. Un voyage d’exemple de deux jours, rendu par le vrai code — la couverture, les étapes nommées par leurs lieux, l’arrivée. Le filtre par outil n’avait là qu’un texte.',
+    'C’est un itinéraire PLANIFIÉ : ni cardio, ni cadence, ni puissance, donc aucune donnée de performance de personne. Et SANS les dix-neuf photos du carnet d’origine, qui montrent des gens reconnaissables — un exemple public n’a pas besoin d’elles.',
+    'L’Horizon de ce voyage est montré aussi : c’est la pièce qu’on partage, et le seul endroit où la signature du club se dessine — elle ne figure pas dans le carnet qui défile.',
+    'HUIT PLANCHES DE PLUS DANS TRACE : Affiche, Bandes, Diagonale, Grille, Main, Photo, Pied lourd, Tracé dominant. Ce sont des mises en page étudiées il y a longtemps, restées dans un dossier que git ignore — jamais publiées, jamais vues. Quarante-cinq planches en tout.',
+    'Ce qui les distingue n’est pas ce qu’elles dessinent mais COMMENT elles l’arrangent. Diagonale fait de la réserve son sujet : les deux tiers de la feuille ne portent rien. Grille abandonne toute hiérarchie — six mesures du même corps, comme une fiche technique. Pied lourd tasse tout en bas et laisse le haut au parcours.',
+    'LE CARNET A ENFIN SA NAVIGATION. Depuis Trace on allait partout ; depuis le Carnet il fallait repasser par l’accueil. Les trois outils sont là, sur l’écran de dépôt, et un retour vers l’accueil dans la barre du lecteur — une seule entrée là, parce qu’elle porte déjà sept boutons et flotte sur la carte.',
+    'La trace ne se dessinait sur AUCUNE des huit nouvelles planches. Le parcours n’est pas un tableau mais un objet, et le test écrit pour un tableau était toujours faux — sans erreur, sans rien à voir. Il a fallu les regarder pour s’en apercevoir.'
+  ] },
   { v: '3.17.9', d: '02.10.2026', points: [
     'ATLAS SE RECONNAÎT D’UN COUP D’ŒIL. Les deux outils partagent la même page : sans rien pour les distinguer, on ne savait pas où l’on était avant d’avoir lu l’entête. La rouille reste à Trace — une sortie, de l’encre sur du papier ; Atlas prend un bleu de carte, et porte son nom, sa devise et son titre.',
     'LA GALERIE MONTRE LES TROIS OUTILS AU MÊME ENDROIT. Un filtre : Trace, Atlas, Carnet. Il ne tient aucune liste — il demande au moteur, pour CHAQUE carte et avec SES réglages : une Empreinte « Collection » est d’Atlas, une Empreinte « Sceau » est de Trace.',

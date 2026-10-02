@@ -57,6 +57,16 @@
   .depot .langues { display: flex; gap: 8px; margin-top: 18px; }
   input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
 
+  /* La barre des trois outils, sur l'écran de dépôt. Mise en ligne et non
+     en pile : à 390 px elle tient en une rangée de trois mots courts. */
+  .outils-suite { display: flex; gap: 2px; margin: 10px 0 18px; font-size: 13px; }
+  .outils-suite a, .outils-suite span {
+    padding: 5px 9px; border: 1px solid currentColor; border-radius: 999px;
+    text-decoration: none; color: inherit; opacity: .55;
+  }
+  .outils-suite a:hover { opacity: 1; }
+  .outils-suite span[aria-current] { opacity: 1; }
+
   /* ---------- la barre d'outils du carnet ---------- */
   .outils { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 40; display: flex; gap: 8px;
     flex-wrap: wrap; justify-content: flex-end; }
@@ -171,6 +181,16 @@
 <div class="accueil" id="accueil">
   <div class="depot" id="depot">
     <div class="sur" data-brut><a href="accueil.html" style="color:inherit;text-decoration:none">alpage</a> · carnet</div>
+    <!-- LES TROIS OUTILS, COMME DANS LE STUDIO.
+         Depuis Trace on allait partout ; depuis le Carnet il fallait repasser
+         par l'accueil. `data-brut` est indispensable : le dictionnaire contient
+         « Trace » → « Route » et « Carnet » → « Notebook » pour des PLANCHES
+         homonymes, et la barre annoncerait trois outils qui n'existent pas. -->
+    <nav class="outils-suite" data-brut aria-label="Les outils alpage">
+      <a href="index.html">Trace</a>
+      <a href="atlas.html">Atlas</a>
+      <span aria-current="page">Carnet</span>
+    </nav>
     <h1>Un voyage, pas une sortie.</h1>
     <p>Dépose le GPX du parcours — un tour Komoot exporté fait l’affaire — et, en vrac, les photos et les vidéos du voyage.</p>
     <p id="dCarnet" data-brut>Un carnet déjà enregistré (fichier <b>.carnet</b>) se rouvre de la même façon.</p>
@@ -185,6 +205,9 @@
 <div id="carnet" data-brut></div>
 
 <div class="outils" id="outils" hidden>
+  <!-- Une seule entrée ici, et non les trois : cette barre porte déjà sept
+       boutons et deux sélecteurs, et elle flotte au-dessus de la carte. -->
+  <a class="bouton clair" href="accueil.html" data-brut title="Trace, Atlas, Carnet">alpage</a>
   <span data-langue="interface"></span>
   <span data-langue="images"></span>
   <button class="bouton clair" id="bVoyage">Le voyage</button>

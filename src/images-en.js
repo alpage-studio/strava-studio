@@ -214,6 +214,14 @@
     'de mouvement': 'of moving time',
     'kilomètres parcourus': 'kilometres ridden',
 
+    /* ---------- les huit mises en page venues de design/ ---------- */
+    'Sortie': 'Ride',
+    'allure moyenne': 'average pace',
+    'altitude max': 'max elevation',
+    'm D+': 'm climbed',
+    'M': 'M',
+    '{n} M': '{n} M',
+
     /* ---------- Métro : les stations ---------- */
     'Départ / Arrivée': 'Start / Finish',
     'Départ': 'Start',

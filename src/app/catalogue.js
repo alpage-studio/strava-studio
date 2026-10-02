@@ -34,7 +34,12 @@
   var GROUPES_STYLE = [
     { id: 'affiches', nom: 'Affiches',
       ids: ['encre', 'empreinte', 'mots', 'editorial', 'trace', 'chiffres',
-            'allumettes', 'pente', 'radiale', 'sommet-ligne', 'sommet-barres'] },
+            'allumettes', 'pente', 'radiale', 'sommet-ligne', 'sommet-barres',
+            /* Les huit mises en page venues de design/. Elles rejoignent les
+             * Affiches et non un groupe à part : ce qui les distingue est
+             * l'arrangement, pas le sujet. */
+            'affiche', 'bandes', 'diagonale', 'grille', 'main', 'photo',
+            'pied-lourd', 'trace-dominante'] },
     { id: 'cartes', nom: 'Cartes',
       ids: ['medaillon', 'atlas', 'metro', 'exploration', 'sous-bois', 'trame'] },
     { id: 'reliefs', nom: 'Reliefs et données',

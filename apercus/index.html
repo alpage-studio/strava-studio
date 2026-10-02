@@ -492,16 +492,46 @@ function rend() {
   document.getElementById('compte').textContent =
     liste.length + ' ' + T(liste.length > 1 ? 'compositions' : 'composition');
   if (etatO === 'carnet') {
-    /* LE CARNET N'A PAS DE VIGNETTES ICI, ET ON NE FAIT PAS SEMBLANT.
-     * Ses pages se composent d'un voyage entier — étapes, photos, récit —
-     * pas d'une sortie rendue en 1080 × 1920. Fabriquer une fausse vignette
-     * pour remplir la case dirait quelque chose de faux sur ce qu'il fait. */
+    /* LE CARNET MONTRE UN VOYAGE D'EXEMPLE, RENDU PAR LE VRAI CODE.
+     *
+     * Il n'avait ici qu'un texte : ses pages se composent d'un voyage
+     * entier, pas d'une sortie en 1080 x 1920, et on ne fabrique pas une
+     * fausse vignette pour remplir la case.
+     *
+     * CE QUI EST MONTRE, ET CE QUI NE L'EST PAS. Un vrai itineraire de deux
+     * jours, PLANIFIE sur Komoot : ni cardio, ni cadence, ni puissance,
+     * donc aucune donnee de performance de qui que ce soit. Sans les dix-neuf
+     * photos du carnet d'origine, qui montrent des personnes reconnaissables,
+     * et sans la signature de club qui les accompagnait. Ces deux-la vivent
+     * dans carnet-local/, ignore par git pour cette raison exacte. */
+    var vues = [
+      ['couverture', 'La couverture et le parcours entier'],
+      ['etape-1', 'La première étape, nommée par ses lieux'],
+      ['etape-2', 'Le parcours avance, les étapes se suivent'],
+      ['fiche', 'L’arrivée, et ce que le voyage a pesé'],
+      /* L'Horizon est la piece d'export du Carnet — et le seul endroit ou la
+       * signature de club se dessine : elle ne figure pas dans le carnet qui
+       * defile. */
+      ['horizon', 'L’Horizon : ce qu’on partage, avec la signature du club']
+    ];
     sortie.innerHTML =
-      '<div class="vide" style="text-align:left;max-width:48ch;line-height:1.5">' +
+      '<h2><em>' + T('Carnet') + '</em> · ' + T('un voyage d’exemple') + '</h2>' +
+      '<div class="grille">' + vues.map(function (v) {
+        /* L'Horizon est une bande tres large : lui imposer le rapport des
+         * captures d'ecran l'ecraserait. On laisse le navigateur lire la
+         * taille du fichier. */
+        var large = v[0] === 'horizon';
+        return '<figure' + (large ? ' style="grid-column:1/-1"' : '') + '>' +
+               '<img src="carnet/' + v[0] + '.webp" loading="lazy" alt=""' +
+               (large ? '' : ' width="1100" height="773"') + '>' +
+               '<figcaption>' + T(v[1]) + '</figcaption></figure>';
+      }).join('') + '</div>' +
+      '<div class="vide" style="text-align:left;max-width:52ch;line-height:1.5">' +
       '<p>' + T('Le Carnet raconte un voyage, jour après jour : des étapes, des photos, un récit.') +
-      '</p><p>' + T('Ses pages ne se montrent pas en vignette — elles se composent d’un voyage entier.') +
+      '</p><p>' + T('Cet exemple est un vrai itinéraire de deux jours, sans aucune photo.') +
       ' <a href="../carnet.html" data-brut>' + T('Ouvrir le Carnet') + '</a></p></div>';
-    document.getElementById('compte').textContent = '';
+    document.getElementById('compte').textContent =
+      vues.length + ' ' + T('compositions');
     return;
   }
   if (!liste.length) { sortie.innerHTML = '<div class="vide">' + T('Aucune composition.') + '</div>'; return; }
