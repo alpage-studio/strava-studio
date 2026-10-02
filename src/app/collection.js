@@ -94,7 +94,7 @@
   /* Rouvrir REMPLACE la bibliothèque. Partagé entre le fichier choisi par
    * l'utilisateur et l'année de démonstration : deux chemins qui divergent
    * finissent par restaurer deux états différents du même fichier. */
-  function appliqueProjet(p) {
+  function appliqueProjet(p, texte) {
     Library.clear();
     p.sorties.forEach(function (so) {
       var entree = Library.add(so.activity);
@@ -116,12 +116,20 @@
      * chose, sans un mot.
      *
      * On ne bascule pas d'autorité : rouvrir un projet ne doit pas changer
-     * d'outil sous les pieds. On le DIT, et on donne le lien. */
+     * d'outil sous les pieds. On le DIT, et on donne le lien — et le lien
+     * EMPORTE LE PROJET : il le pose dans la session de l'onglet, et l'autre
+     * outil le rouvre en arrivant (voir « un projet qui arrive » plus bas).
+     * Sans ça, il fallait rouvrir le fichier une seconde fois à la main. */
     var dansLOutil = !A.dansLOutil || A.dansLOutil(p.reglages.tpl);
     if (p.reglages.tpl && Studio.get(p.reglages.tpl).id === p.reglages.tpl && dansLOutil) {
       $('#tpl').value = p.reglages.tpl;
     } else if (p.reglages.tpl && Studio.get(p.reglages.tpl).id === p.reglages.tpl) {
       var ailleurs = A.outil === 'atlas' ? 'index.html' : 'atlas.html';
+      /* atlas.html redirige sans garder la requête : on vise directement la
+       * page que la redirection ouvrirait. */
+      if (texte && poseTransfert(texte)) {
+        ailleurs = A.outil === 'atlas' ? 'index.html?projet=transfert' : 'index.html?outil=atlas&projet=transfert';
+      }
       var nomOutil = A.outil === 'atlas' ? 'Trace' : 'Atlas';
       var note = $('#projet-state');
       if (note) {
@@ -135,6 +143,18 @@
         a.setAttribute('data-brut', '');
         note.appendChild(a);
         note.appendChild(document.createTextNode('. ' + I18N.T('Tes sorties sont chargées.')));
+        /* ET ON OUVRE LE REPLI QUI LE CONTIENT.
+         *
+         * `#projet-state` vit sous « Garder », un <details> fermé. Le
+         * message disait donc pourquoi la planche n'a pas changé, et le
+         * lien emportait le projet — dans un panneau que personne
+         * n'ouvre. Charger l'année dans Trace donnait 106 sorties, une
+         * planche inchangée, et aucune explication visible.
+         *
+         * On n'ouvre QUE pour le lien : un simple compte de sorties ne
+         * justifie pas de déplier un panneau sous les doigts. */
+        var repli = note.closest ? note.closest('details') : null;
+        if (repli) repli.open = true;
       }
     }
     if (p.reglages.size && SIZES[p.reglages.size]) $('#size').value = p.reglages.size;
@@ -170,6 +190,42 @@
     if (A.save) A.save();
   }
 
+  /* ---------- un projet qui passe d'un outil à l'autre ----------
+   * sessionStorage et pas localStorage : le projet ne vit que le temps de
+   * l'onglet, et il est effacé dès qu'il est relu — il ne doit pas revenir
+   * à chaque ouverture d'Atlas. Un projet trop gros pour la session (rare :
+   * une année en fait 90 Ko) laisse simplement le lien nu. */
+  var CLE_TRANSFERT = 'alpage-projet-transfert';
+  function poseTransfert(texte) {
+    try { sessionStorage.setItem(CLE_TRANSFERT, texte); return true; }
+    catch (e) { return false; }
+  }
+  A.auDemarrage(function () {
+    if (!/(^|[?&])projet=transfert(&|$)/.test(location.search)) return;
+    var texte = null;
+    try { texte = sessionStorage.getItem(CLE_TRANSFERT); sessionStorage.removeItem(CLE_TRANSFERT); } catch (e) { /* rien */ }
+    /* l'adresse redevient celle de l'outil : un rechargement ne doit pas
+     * chercher un projet qui a déjà été relu */
+    try {
+      history.replaceState(null, '', location.pathname + (A.outil === 'atlas' ? '?outil=atlas' : '') + location.hash);
+    } catch (e) { /* tant pis : la clé est déjà effacée */ }
+    if (!texte) return;
+    var note = $('#projet-state');
+    try {
+      appliqueProjet(Projet.lire(texte));
+      // même garde que sur #projet-open : un message qui porte un lien prime sur le compte
+      if (note && !note.querySelector('a')) note.textContent = sortiesRouvertes();
+    } catch (err) {
+      if (note) note.textContent = err.message;
+    }
+  });
+  function sortiesRouvertes() {
+    var n = Library.count();
+    // le singulier : 0 et 1 en français, 1 seul en anglais
+    var un = I18N.langue() === 'fr' ? n < 2 : n === 1;
+    return I18N.T(un ? '{n} sortie rouverte.' : '{n} sorties rouvertes.').replace('{n}', n);
+  }
+
   /* Une année entière, pour Almanac : 106 sorties avec leurs creux, leurs
    * semaines chargées et deux journées hors norme. En GPX il aurait fallu
    * cent fichiers ; le format projet en fait un seul de 90 ko. */
@@ -179,7 +235,11 @@
     fetch('exemple-annee.json')
       .then(function (r) { if (!r.ok) throw new Error('indisponible'); return r.text(); })
       .then(function (txt) {
-        appliqueProjet(Projet.lire(txt));
+        /* `txt` et pas seulement l'objet lu : sans lui le lien vers Atlas
+         * s'affiche mais n'emporte rien, et le clic ouvre Atlas vide.
+         * C'est le chemin le PLUS emprunté — « Charger l'année » est un
+         * bouton, rouvrir un projet demande un fichier sous la main. */
+        appliqueProjet(Projet.lire(txt), txt);
         b.textContent = avant;
       })
       .catch(function () { b.textContent = 'Année indisponible'; })
@@ -194,8 +254,10 @@
     var reader = new FileReader();
     reader.onload = function () {
       try {
-        appliqueProjet(Projet.lire(reader.result));
-        note.textContent = Library.count() + ' sorties rouvertes.';
+        appliqueProjet(Projet.lire(reader.result), reader.result);
+        /* le message du lien vers l'autre outil prime : il dit pourquoi la
+         * planche n'a pas changé */
+        if (!note.querySelector('a')) note.textContent = sortiesRouvertes();
       } catch (err) {
         note.textContent = err.message;
       }

@@ -296,6 +296,94 @@ async function passeAtlas(navigateur, base) {
                                null, { timeout: 20000, polling: 200 });
     const apres = await page.evaluate(function () { return window.App.outil; });
     ok('atlas · atlas.html mène bien à l’outil Atlas  (' + apres + ')', apres === 'atlas');
+
+    /* ---------- LE PROJET PASSE D'UN OUTIL À L'AUTRE ----------
+     *
+     * Ce cas est ici et non dans acceptation.js parce qu'il NAVIGUE : la page
+     * change, et un cas qui vit dans la page ne survit pas à son propre clic.
+     *
+     * Le parcours entier, depuis Trace : charger l'année d'exemple, dont la
+     * planche (Almanac) est multi et n'existe donc pas dans Trace ; lire le
+     * lien proposé ; le suivre ; et retrouver les 106 sorties de l'autre côté.
+     * Le lien seul ne prouve rien — il s'affichait déjà avant, et menait à un
+     * Atlas vide où il fallait rouvrir le fichier à la main. */
+    await page.goto(base, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForFunction(function () { return window.App && window.App.outil; },
+                               null, { timeout: 20000, polling: 200 });
+    /* Le bouton vit dans un <details class="autres"> replie : sept boutons
+     * alignes feraient de l'accueil un menu de debogage. Replie, il n'est
+     * pas cliquable — mon cas echouait la-dessus et non sur le transfert. */
+    await page.evaluate(function () {
+      var d = document.querySelector('details.autres');
+      if (d) d.open = true;
+    });
+    await page.click('#load-year');
+    await page.waitForFunction(function () {
+      var n = document.querySelector('#projet-state a');
+      return n && /projet=transfert/.test(n.getAttribute('href') || '');
+    }, null, { timeout: 25000, polling: 200 }).then(function () {}, function () {});
+
+    const avantSaut = await page.evaluate(function () {
+      const a = document.querySelector('#projet-state a');
+      return {
+        outil: window.App.outil,
+        lien: a ? a.getAttribute('href') : null,
+        /* VU, et pas seulement present dans le document : ce message a
+         * vecu cache dans un <details> ferme. Un cas qui se contente de
+         * le trouver serait vert sur un message que personne ne lit. */
+        vu: !!(a && a.offsetParent !== null),
+        texte: (document.querySelector('#projet-state') || {}).textContent || '',
+        charge: window.Library ? window.Library.count() : -1,
+        pose: (function () { try { return !!sessionStorage.getItem('alpage-projet-transfert'); }
+                             catch (e) { return false; } }())
+      };
+    });
+
+    ok('transfert · dans Trace, l’année d’exemple propose Atlas  (' +
+       (avantSaut.lien || 'aucun lien') + ')',
+       avantSaut.outil === 'trace' && !!avantSaut.lien && avantSaut.charge === 106,
+       avantSaut.charge + ' sorties, texte : ' + avantSaut.texte.trim());
+
+    ok('transfert · le projet est posé pour l’autre outil', avantSaut.pose,
+       'sans ça le lien mène à un Atlas vide');
+
+    ok('transfert · et le lien se VOIT sans rien déplier', avantSaut.vu,
+       'écrit dans « Garder », un repli fermé : personne ne l’ouvre');
+
+    if (avantSaut.lien) {
+      await page.click('#projet-state a');
+      await page.waitForFunction(function () { return window.App && window.App.outil; },
+                                 null, { timeout: 25000, polling: 200 });
+      await page.waitForFunction(function () {
+        return window.Library && window.Library.count() > 0;
+      }, null, { timeout: 25000, polling: 200 }).then(function () {}, function () {});
+
+      const arrivee = await page.evaluate(function () {
+        return {
+          outil: window.App.outil,
+          charge: window.Library ? window.Library.count() : -1,
+          tpl: (document.querySelector('#tpl') || {}).value || '',
+          adresse: location.search,
+          reste: (function () { try { return !!sessionStorage.getItem('alpage-projet-transfert'); }
+                                catch (e) { return false; } }())
+        };
+      });
+
+      ok('transfert · on arrive dans Atlas avec les 106 sorties  (' +
+         arrivee.outil + ', ' + arrivee.charge + ')',
+         arrivee.outil === 'atlas' && arrivee.charge === 106,
+         'planche ' + arrivee.tpl);
+
+      ok('transfert · et sur la planche du projet  (' + arrivee.tpl + ')',
+         arrivee.tpl === 'almanac');
+
+      /* La clé s'efface et l'adresse se nettoie : sinon le projet revient à
+       * chaque rechargement, et l'adresse garde une requête qui ne veut plus
+       * rien dire. */
+      ok('transfert · rien ne traîne derrière  (' + (arrivee.adresse || 'adresse nue') + ')',
+         !arrivee.reste && !/projet=transfert/.test(arrivee.adresse),
+         'clé ' + (arrivee.reste ? 'encore là' : 'effacée') + ', adresse ' + arrivee.adresse);
+    }
   } catch (e) {
     resultats.push({ cas: 'atlas · le passage a levé', verdict: 'ÉCHEC', detail: String(e.message) });
   } finally {

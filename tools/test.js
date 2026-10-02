@@ -2775,6 +2775,38 @@ function testsLangue() {
   });
 }
 
+/* ================= Atlas : l'import en tête, un projet qui change d'outil =================
+ *
+ * Deux finitions qui cassent sans bruit. L'ordre du bloc d'import ne se lit
+ * qu'à l'œil, et un projet rouvert dans le mauvais outil retombait sur une
+ * autre planche — puis, une fois le lien ajouté, sur un Atlas VIDE : le lien
+ * ne portait pas le projet, et le message qui le proposait était écrasé une
+ * ligne plus loin par « N sorties rouvertes. ». */
+function testsAtlasFinitions() {
+  console.log('\n— Atlas : finitions —');
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const remonte = function (id) {
+    return new RegExp(':root\\[data-outil="atlas"\\] #strava > #' + id + '[^{]*\\{[^}]*order: 0').test(html) ||
+           new RegExp('#strava > #' + id + ',[\\s\\S]{0,200}\\{ order: 0; \\}').test(html);
+  };
+  ok('atlas · le bloc d’import de période remonte ENTIER (menu, bouton, progression)',
+     ['opt-icu-periode', 'icu-importer', 'icu-progres'].every(remonte));
+  ok('atlas · la période d’une planche (#opt-periode) n’est pas emportée avec l’import',
+     !/#strava > #opt-periode/.test(html));
+
+  const col = fs.readFileSync(path.join(ROOT, 'src', 'app', 'collection.js'), 'utf8');
+  /* atlas.html redirige vers une adresse FIXE : un lien vers atlas.html?projet=…
+   * perdrait le projet à la redirection. */
+  ok('projet · le lien vers l’autre outil emporte le projet, sans passer par la redirection',
+     /'index\.html\?outil=atlas&projet=transfert'/.test(col) && /'index\.html\?projet=transfert'/.test(col) &&
+     !/atlas\.html\?projet/.test(col));
+  ok('projet · relu une fois, le projet transmis est effacé',
+     /sessionStorage\.removeItem\(CLE_TRANSFERT\)/.test(col) && /history\.replaceState/.test(col));
+  ok('projet · le message vers l’autre outil n’est pas écrasé par le compte des sorties',
+     /if \(!note\.querySelector\('a'\)\) note\.textContent = sortiesRouvertes\(\)/.test(col) &&
+     !/appliqueProjet\(Projet\.lire\(reader\.result\)[^;]*\);\s*note\.textContent =/.test(col));
+}
+
 /* ================= exécution ================= */
 
 (async function () {
@@ -2791,6 +2823,7 @@ function testsLangue() {
   testsMotGrave();
   testsServiceWorker();
   testsLangue();
+  testsAtlasFinitions();
   testsMenus();
   testsChaine();
   testsBibliotheque(chargeLibrary());

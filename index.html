@@ -842,6 +842,19 @@
     :root[data-outil="atlas"]:not([data-theme="light"]) { --acc: #6BA3A8; }
   }
   :root[data-theme="dark"][data-outil="atlas"] { --acc: #6BA3A8; }
+  /* DANS ATLAS, ON IMPORTE UNE PÉRIODE AVANT TOUT. Le menu des cinq dernières
+     sorties sert l'affiche du jour, le geste de Trace ; dans Atlas on vient
+     chercher une semaine, une saison, une année. Les deux outils servent le
+     MÊME index.html : l'ordre se pose donc ici, sur l'outil, et le bloc
+     d'import remonte ENTIER — menu, bouton, progression. `#opt-periode` (la
+     période d'une planche) est une autre chose et ne bouge pas. */
+  :root[data-outil="atlas"] #strava { display: flex; flex-direction: column; }
+  :root[data-outil="atlas"] #strava > * { order: 1; }
+  :root[data-outil="atlas"] #strava > #strava-state { order: -1; }
+  :root[data-outil="atlas"] #strava > #opt-icu-periode,
+  :root[data-outil="atlas"] #strava > #icu-importer,
+  :root[data-outil="atlas"] #strava > #icu-progres { order: 0; }
+  :root[data-outil="atlas"] #strava > #icu-importer { align-self: flex-start; margin-bottom: 9px; }
   header .outils { display: flex; gap: 2px; align-items: center; }
   header .outils a { padding: 5px 8px; }
   /* L'outil courant ne se clique pas : un lien vers la page où l'on est

@@ -80,18 +80,9 @@
     $('#icu-form').style.display = visible ? '' : 'none';
     $('#icu-forget').style.display = visible ? 'none' : '';
     var p = $('#opt-icu-periode'), b = $('#icu-importer'), n = $('#icu-progres');
-    /* DANS ATLAS, ON IMPORTE UNE PÉRIODE AVANT TOUT.
-     *
-     * Le menu des cinq dernières sorties sert à composer l'affiche du jour :
-     * c'est le geste de Trace. Dans Atlas, ce qu'on vient chercher est une
-     * semaine, une saison, une année — et l'import de période arrivait sous
-     * un menu qui ne sert à rien ici. On le remonte, une fois, au moment où
-     * le bloc apparaît. */
-    if (A.outil === 'atlas' && p && p.parentNode && !p.dataset.remonte) {
-      p.dataset.remonte = '1';
-      var premier = p.parentNode.firstElementChild;
-      if (premier && premier !== p) p.parentNode.insertBefore(p, premier);
-    }
+    /* Dans Atlas, ce bloc passe en tête : c'est le style de index.html
+     * (html[data-outil="atlas"] #strava) qui l'ordonne, pas un déplacement
+     * de nœuds — le menu remonté seul laissait son bouton en bas. */
     if (p) p.style.display = visible ? 'none' : '';
     if (b) b.style.display = visible ? 'none' : '';
     if (n && visible) n.textContent = '';

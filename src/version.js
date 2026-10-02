@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.12';
+var STUDIO_VERSION = '3.17.13';
 var STUDIO_DATE = '02.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,13 @@ var STUDIO_DATE = '02.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.13', d: '02.10.2026', points: [
+    'LE PROJET PASSE D’UN OUTIL À L’AUTRE. Rouvrir dans Trace un projet dont la planche vit dans Atlas proposait un lien — qui menait à un Atlas vide, où il fallait rouvrir le fichier une seconde fois. Le lien emporte maintenant le projet : on clique, et les sorties sont là, sur leur planche.',
+    'Ce message n’avait JAMAIS été visible depuis qu’il a été écrit, pour deux raisons empilées : le compte des sorties l’écrasait une ligne plus bas, et il était rangé sous « Garder », un repli que personne n’ouvre. Le compte ne s’écrit plus par-dessus, et le repli s’ouvre quand le message porte un lien — seulement dans ce cas.',
+    'Le bouton « Voir une année » n’emportait rien non plus, alors que c’est le chemin le plus emprunté : un bouton, contre un fichier qu’il faut avoir sous la main.',
+    'DANS ATLAS, L’IMPORT D’UNE PÉRIODE EST EN TÊTE. Le menu des cinq dernières sorties sert l’affiche du jour, le geste de Trace ; dans Atlas on vient chercher une semaine, une saison, une année. Le bloc remonte entier — menu, bouton et progression — et l’ordre est posé par le style, puisque les deux outils servent la même page.',
+    'Onze contrôles de plus, dont six qui suivent le parcours entier, clic compris, jusqu’aux cent six sorties retrouvées de l’autre côté. L’un d’eux exige que le lien se VOIE, et pas seulement qu’il existe : c’est ce qui manquait pour que les deux défauts d’invisibilité se fassent remarquer.'
+  ] },
   { v: '3.17.12', d: '02.10.2026', points: [
     'LE CARNET REFUSAIT TOUT GPX NEUF. Déposer une trace dont les étapes n’étaient pas encore réglées s’arrêtait net sur « M is not a function » — c’est-à-dire le premier geste de qui ouvre le Carnet pour la première fois.',
     'La cause : deux choses portaient le même nom au même endroit. Le modèle d’allure s’appelait M, comme la fonction qui écrit les mots des images, et il la masquait. Nommer une étape « Départ » revenait à appeler un tableau de nombres. Le modèle d’allure a changé de nom.',
