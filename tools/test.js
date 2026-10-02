@@ -2701,6 +2701,67 @@ function testsLangue() {
   ok('langue · le lecteur exporté emporte son dictionnaire',
      !!(bac.CarnetLecteur && bac.CarnetLecteur.MOTS_EN && Object.keys(bac.CarnetLecteur.MOTS_EN).length >= 8));
 
+  /* DÉPOSER UN GPX NEUF — le premier geste, et celui qui cassait.
+   *
+   * Tant qu'aucune étape n'est réglée, le composer nomme lui-même : Départ,
+   * Étape n, Arrivée. Ces trois mots passent par M(), le traducteur du
+   * fichier — et une variable locale `var M = modeleAllure(pts).t` portait le
+   * même nom dans la même portée. Le tableau gagnait : « M is not a function »
+   * dès le chargement, sans qu'aucun contrôle ne bronche.
+   *
+   * CE QUI L'A LAISSÉ PASSER. Le harnais chargeait les modules du Carnet sans
+   * jamais les APPELER, et l'acceptation ouvrait un voyage d'exemple qui porte
+   * déjà ses étapes — donc jamais la branche des noms par défaut. Un module
+   * qui se charge ne prouve pas qu'il fonctionne. */
+  (function () {
+    bac.DOMParser = function () {
+      this.parseFromString = function () {
+        return { getElementsByTagName: function () { return []; } };
+      };
+    };
+    const pts = [];
+    for (let i = 0; i < 600; i++) {
+      pts.push({ lat: 46 + i * 0.0004, lon: 7.2 + i * 0.0005,
+                 ele: 1400 + 600 * Math.sin(i / 60), t: null, d: i * 120 });
+    }
+    bac.Activity = { parseGPX: function () { return { track: pts }; } };
+
+    function compose(medias) {
+      try {
+        return { r: bac.Composer.composer({ gpx: '<gpx/>', etapes: null, noms: {}, medias: medias || [] }) };
+      } catch (e) { return { e: e.message }; }
+    }
+
+    /* La langue est DITE, jamais supposee : hors navigateur le socle n'a ni
+     * localStorage ni navigator, et retombe sur l'anglais. Un cas qui
+     * dependrait de cet ambiant mesurerait le bac, pas le composer. */
+    bac.Langue.choisir('images', 'fr');
+    const seul = compose([]);
+    ok('carnet · un GPX sans étapes réglées se compose', !seul.e && seul.r.etapes.length === 1, seul.e);
+    ok('carnet · ses deux bouts portent les noms par défaut',
+       !seul.e && seul.r.etapes[0].de === 'Départ' && seul.r.etapes[0].a === 'Arrivée',
+       seul.e || (seul.r.etapes[0].de + ' → ' + seul.r.etapes[0].a));
+
+    /* Trois jours de photos : les étapes du milieu sont NUMÉROTÉES, et c'est
+     * le seul endroit où le traducteur reçoit un emplacement à remplir. */
+    const J = Date.UTC(2026, 6, 10, 9), JOUR = 86400000;
+    const trois = compose([0, 1, 2].map(function (k) {
+      return { id: 'p' + k, src: '', t: J + k * JOUR, w: 10, h: 10 };
+    }));
+    ok('carnet · trois jours de photos donnent trois étapes numérotées',
+       !trois.e && trois.r.etapes.length === 3 && trois.r.etapes[1].de === 'Étape 1',
+       trois.e || trois.r.etapes.map(function (e) { return e.de; }).join(' | '));
+
+    /* Et ces noms-là se traduisent : ce sont des mots de l'application, pas
+     * une donnée saisie. Un nom écrit à la main, lui, ne bouge jamais. */
+    bac.Langue.choisir('images', 'en');
+    const en = compose([]);
+    ok('carnet · en anglais les bouts se nomment Start / Finish',
+       !en.e && en.r.etapes[0].de === 'Start' && en.r.etapes[0].a === 'Finish',
+       en.e || (en.r.etapes[0].de + ' → ' + en.r.etapes[0].a));
+    bac.Langue.choisir('images', 'fr');
+  }());
+
   /* Le socle AVANT le dictionnaire, sur toute page qui traduit : chargé
    * après, i18n.js ne le voit pas et retombe en français sans rien dire. */
   ['index.html', 'atlas.html', 'accueil.html', 'carnet.html', path.join('apercus', 'index.html')].forEach(function (f) {

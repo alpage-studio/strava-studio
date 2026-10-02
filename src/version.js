@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.11';
+var STUDIO_VERSION = '3.17.12';
 var STUDIO_DATE = '02.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,11 @@ var STUDIO_DATE = '02.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.12', d: '02.10.2026', points: [
+    'LE CARNET REFUSAIT TOUT GPX NEUF. Déposer une trace dont les étapes n’étaient pas encore réglées s’arrêtait net sur « M is not a function » — c’est-à-dire le premier geste de qui ouvre le Carnet pour la première fois.',
+    'La cause : deux choses portaient le même nom au même endroit. Le modèle d’allure s’appelait M, comme la fonction qui écrit les mots des images, et il la masquait. Nommer une étape « Départ » revenait à appeler un tableau de nombres. Le modèle d’allure a changé de nom.',
+    'Ce qui l’a laissé passer : les contrôles chargeaient les modules du Carnet sans jamais les appeler, et le voyage d’exemple porte déjà ses étapes — donc jamais la branche des noms par défaut. Un module qui se charge ne prouve pas qu’il fonctionne. Quatre cas couvrent maintenant ce premier geste, dans les deux langues.'
+  ] },
   { v: '3.17.11', d: '02.10.2026', points: [
     'Le Carnet ne déborde plus sur téléphone. Sa page d’accueil dépassait l’écran de 21 pixels : la zone de dépôt comptait sa largeur sans ses marges, et toute la page glissait de côté.',
     'Le bouton Galerie du Carnet mène à la galerie du site, ouverte directement sur le Carnet. Il n’apparaissait jusqu’ici que sur la machine qui avait préparé le carnet.'

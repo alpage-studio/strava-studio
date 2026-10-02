@@ -121,7 +121,10 @@
     var act = global.Activity.parseGPX(entree.gpx);
     var pts = act.track;
     var total = pts[pts.length - 1].d / 1000;
-    var M = modeleAllure(pts).t;
+    /* `allure`, et surtout pas `M` : M() est le traducteur de ce fichier,
+     * et une variable du meme nom dans cette portee le masquait — nommer
+     * une etape par defaut revenait alors a appeler un Float64Array. */
+    var allure = modeleAllure(pts).t;
     var kms = pts.__km = pts.map(function (p) { return p.d / 1000; });
 
     /* ----- les étapes ----- */
@@ -179,7 +182,7 @@
     etapes.forEach(function (et, i) {
       var ts = parEtape[i].filter(function (m) { return m.t; }).map(function (m) { return m.t; });
       if (ts.length < 2) return;
-      var modele = (kmVersModele(pts, M, et.kmFin) - kmVersModele(pts, M, et.kmDebut)) * 1000;
+      var modele = (kmVersModele(pts, allure, et.kmFin) - kmVersModele(pts, allure, et.kmDebut)) * 1000;
       var r = (Math.max.apply(null, ts) - Math.min.apply(null, ts) + 30 * MIN) / modele;
       if (k == null || r > k) k = r;
     });
@@ -189,13 +192,13 @@
     etapes.forEach(function (et, i) {
       var liste = parEtape[i];
       var ts = liste.filter(function (m) { return m.t; }).map(function (m) { return m.t; });
-      var m0 = kmVersModele(pts, M, et.kmDebut), m1 = kmVersModele(pts, M, et.kmFin);
+      var m0 = kmVersModele(pts, allure, et.kmDebut), m1 = kmVersModele(pts, allure, et.kmFin);
       var dep = et.depart || (ts.length ? Math.min.apply(null, ts) - 20 * MIN : 0);
       var arr = et.arrivee || Math.max(dep + k * (m1 - m0) * 1000, ts.length ? Math.max.apply(null, ts) + 10 * MIN : 0);
       et.fenetre = [dep, arr];
 
       var ancres = [{ t: dep, v: m0 }];
-      liste.forEach(function (m) { if (m.km != null && m.t) ancres.push({ t: m.t, v: kmVersModele(pts, M, m.km) }); });
+      liste.forEach(function (m) { if (m.km != null && m.t) ancres.push({ t: m.t, v: kmVersModele(pts, allure, m.km) }); });
       ancres.push({ t: arr, v: m1 });
       ancres.sort(function (a, b) { return a.t - b.t; });
       // une ancre qui ferait reculer le modèle est ignorée plutôt que de tout tordre
@@ -218,7 +221,7 @@
                 break;
               }
             }
-            km = modeleVersKm(pts, M, v);
+            km = modeleVersKm(pts, allure, v);
           }
           km = Math.max(et.kmDebut + 0.15, Math.min(et.kmFin - 0.15, km));
         }
