@@ -503,7 +503,24 @@ function rend() {
      * donc aucune donnee de performance de qui que ce soit. Sans les dix-neuf
      * photos du carnet d'origine, qui montrent des personnes reconnaissables,
      * et sans la signature de club qui les accompagnait. Ces deux-la vivent
-     * dans carnet-local/, ignore par git pour cette raison exacte. */
+     * dans carnet-local/, ignore par git pour cette raison exacte.
+     *
+     * COMMENT CES CINQ IMAGES SE REFONT. Leur source n'est PAS dans le depot :
+     * la regle `*.gpx` du .gitignore ne versionne que les exemples
+     * synthetiques, et cet itineraire est reel. Decision prise, pas oubli.
+     *
+     * Pour les regenerer il faut donc reconstruire la source d'abord, depuis
+     * carnet-local/combins.json :
+     *   - un exemple-voyage.gpx allege (1390 points sur 5554), en-tete refait
+     *     sans le lien auteur de Komoot ;
+     *   - un exemple-voyage.json qui reprend titre, sousTitre, etapes, noms et
+     *     signature, avec `medias: []` — aucune photo ;
+     * puis carnet.html?manifeste=exemple-voyage.json, quatre captures aux
+     * fractions 0, 0.30, 0.62 et 0.97 de la hauteur, et l'Horizon par le
+     * bouton du meme nom. Les deux fichiers restent hors du depot.
+     *
+     * Sans cette note, quelqu'un qui clone trouve cinq images qu'il ne peut ni
+     * refaire ni expliquer. */
     var vues = [
       ['couverture', 'La couverture et le parcours entier'],
       ['etape-1', 'La première étape, nommée par ses lieux'],
