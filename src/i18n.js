@@ -906,6 +906,16 @@
     'carte et jours': 'map and days',
     'Territoire': 'Territory',
     'la carte domine, traits distincts': 'the map dominates, lines kept distinct',
+    'une période, révélée': 'one period, revealed',
+    'Le Carnet raconte un voyage, jour après jour : des étapes, des photos, un récit.':
+      'The Notebook tells a journey, day by day: stages, photographs, a story.',
+    'Ses pages ne se montrent pas en vignette — elles se composent d’un voyage entier.':
+      'Its pages don’t show as thumbnails — they are composed from a whole journey.',
+    'Ouvrir le Carnet': 'Open the Notebook',
+    'Tous': 'All',
+    'Ce projet utilise': 'This project uses',
+    'qui vit dans': 'which lives in',
+    'Tes sorties sont chargées.': 'Your rides are loaded.',
     'Carnet': 'Notebook',
     'cinq fiches d’activité': 'five ride cards',
     'Archipel': 'Archipelago',

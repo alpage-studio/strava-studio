@@ -1038,6 +1038,34 @@
     });
   }
 
+  /* L'ENTÊTE DIT OÙ L'ON EST. Le markup est partagé par les deux outils :
+   * c'est ici qu'on pose le mot de la marque, la devise, et le repère de
+   * l'outil courant — qui ne doit pas être un lien vers la page où l'on est. */
+  if (A.outil === 'atlas') {
+    var second = document.querySelector('header h1 .second');
+    if (second) second.textContent = 'atlas';
+    var devise = document.querySelector('header .sub');
+    if (devise) devise.textContent = I18N.T('une période, révélée');
+    var nav = document.querySelector('header .outils');
+    if (nav) {
+      var ici = nav.querySelector('.ici');
+      var versAtlas = nav.querySelector('a[href="atlas.html"]');
+      if (ici && versAtlas) {
+        var lienTrace = document.createElement('a');
+        lienTrace.className = 'lien-galerie outil';
+        lienTrace.href = 'index.html';
+        lienTrace.textContent = ici.textContent;
+        ici.parentNode.replaceChild(lienTrace, ici);
+        var marque = document.createElement('span');
+        marque.className = 'lien-galerie outil ici';
+        marque.setAttribute('aria-current', 'page');
+        marque.textContent = versAtlas.textContent;
+        versAtlas.parentNode.replaceChild(marque, versAtlas);
+      }
+    }
+    try { document.title = 'alpage atlas'; } catch (e) { /* sans titre, tant pis */ }
+  }
+
   A.auDemarrage(function () {
     /* La version s'affiche dans l'en-tête : c'est ce qui permet de savoir,
      * d'un coup d'œil, si la page ouverte est bien la dernière déployée. */

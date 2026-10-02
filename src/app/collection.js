@@ -107,8 +107,35 @@
      * `select.value` devient '', et tout le reste retombe silencieusement
      * sur Encre. On compare l'identifiant rendu à celui demandé, comme le
      * fait déjà la restauration depuis le stockage local. */
-    if (p.reglages.tpl && Studio.get(p.reglages.tpl).id === p.reglages.tpl) {
+    /* UN PROJET D'ATLAS ROUVERT DANS TRACE NE SE PERD PLUS EN SILENCE.
+     *
+     * Les deux outils partagent le moteur mais pas leur liste de planches.
+     * Un projet enregistré sur Almanac, rouvert dans Trace, désignait donc
+     * une planche absente du menu : `select.value` devenait '' et tout
+     * retombait sur la première. On ouvrait son projet et on obtenait autre
+     * chose, sans un mot.
+     *
+     * On ne bascule pas d'autorité : rouvrir un projet ne doit pas changer
+     * d'outil sous les pieds. On le DIT, et on donne le lien. */
+    var dansLOutil = !A.dansLOutil || A.dansLOutil(p.reglages.tpl);
+    if (p.reglages.tpl && Studio.get(p.reglages.tpl).id === p.reglages.tpl && dansLOutil) {
       $('#tpl').value = p.reglages.tpl;
+    } else if (p.reglages.tpl && Studio.get(p.reglages.tpl).id === p.reglages.tpl) {
+      var ailleurs = A.outil === 'atlas' ? 'index.html' : 'atlas.html';
+      var nomOutil = A.outil === 'atlas' ? 'Trace' : 'Atlas';
+      var note = $('#projet-state');
+      if (note) {
+        note.textContent = '';
+        note.appendChild(document.createTextNode(
+          I18N.T('Ce projet utilise') + ' « ' + Studio.get(p.reglages.tpl).name.split(' — ')[0] +
+          ' », ' + I18N.T('qui vit dans') + ' '));
+        var a = document.createElement('a');
+        a.href = ailleurs;
+        a.textContent = nomOutil;
+        a.setAttribute('data-brut', '');
+        note.appendChild(a);
+        note.appendChild(document.createTextNode('. ' + I18N.T('Tes sorties sont chargées.')));
+      }
     }
     if (p.reglages.size && SIZES[p.reglages.size]) $('#size').value = p.reglages.size;
     if (p.reglages.collection) $('#collection').value = p.reglages.collection;

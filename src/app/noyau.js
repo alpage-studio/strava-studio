@@ -105,6 +105,11 @@
     return 'trace';
   }());
 
+  /* L'OUTIL SE VOIT. Posé sur <html>, AVANT que la page s'affiche : une
+   * couleur d'accent qui changerait après coup se verrait changer. */
+  try { global.document.documentElement.setAttribute('data-outil', outil); }
+  catch (e) { /* pas de document : rien à teinter */ }
+
   global.App = {
     $: $,
     SIZES: SIZES,

@@ -233,6 +233,7 @@
 </div>
 
 <div class="barre">
+  <div class="groupe" id="outils"><b>Outil</b></div>
   <div class="groupe" id="familles"><b>Famille</b></div>
   <div class="groupe" id="groupes"><b>Version</b></div>
   <div class="groupe taille"><b>Taille</b>
@@ -304,7 +305,29 @@
 <script src="../apercus-catalogue.js"></script>
 <script>
 var C = window.Apercus.CATALOGUE;
-var etatF = null, etatG = null;
+var etatF = null, etatG = null, etatO = null;
+
+/* QUEL OUTIL POUR QUELLE PLANCHE ?
+ *
+ * On ne tient PAS une liste ici : elle divergerait du studio au premier
+ * ajout, et c'est exactement ce qu'on reproche a une copie. On pose la
+ * question au moteur, qui repond pour le catalogue comme pour l'outil.
+ *
+ * `peutEtreMulti` dit « a sa place dans Atlas » ; une planche mono a ses
+ * reglages par defaut a sa place dans Trace. Empreinte est dans les deux,
+ * et c'est voulu. */
+function outilDe(e) {
+  if (!window.Studio || !window.Studio.connait || !window.Studio.connait(e.t)) return null;
+  var t = window.Studio.get(e.t);
+  var vals = {};
+  (t.options || []).forEach(function (o) { vals[o.key] = o.default; });
+  Object.keys(e.o || {}).forEach(function (k) { vals[k] = e.o[k]; });
+  /* La carte porte SES options : une Empreinte « Collection » est d'Atlas,
+   * une Empreinte « Sceau » est de Trace. Demander au template seul aurait
+   * mis les sept variantes du même côté. */
+  return window.Studio.estMulti(t, vals) ? 'atlas' : 'trace';
+}
+
 
 /* LE CHEMIN DANS L'OUTIL.
  *
@@ -386,15 +409,26 @@ function uniques(champ) {
   return out;
 }
 
-function bouton(txt, actif, onClic) {
+/* `brut` : un NOM PROPRE ne se traduit pas. Le dictionnaire contient
+ * « Trace » → « Route » et « Carnet » → « Notebook » pour des PLANCHES qui
+ * portent ces noms ; sans cela, le filtre par outil annonçait
+ * « Route · Atlas · Notebook » — trois outils qui n'existent pas. */
+function bouton(txt, actif, onClic, brut) {
   var b = document.createElement('button');
   b.className = 'f' + (actif ? ' on' : '');
-  b.textContent = T(txt);
+  if (brut) b.setAttribute('data-brut', '');
+  b.textContent = brut ? txt : T(txt);
   b.addEventListener('click', onClic);
   return b;
 }
 
 function barre() {
+  var bo = document.getElementById('outils');
+  [['Tous', null], ['Trace', 'trace'], ['Atlas', 'atlas'], ['Carnet', 'carnet']]
+    .forEach(function (p) {
+      bo.appendChild(bouton(p[0], etatO === p[1],
+                            function () { etatO = p[1]; refait(); }, !!p[1]));
+    });
   var bf = document.getElementById('familles');
   var bg = document.getElementById('groupes');
   [['Toutes', null]].concat(uniques('f').map(function (x) { return [nomFamille(x), x]; }))
@@ -437,6 +471,10 @@ function refait() {
   document.querySelectorAll('#familles .f, #groupes .f').forEach(function (b) { b.classList.remove('on'); });
   var fs = document.querySelectorAll('#familles .f');
   fs[[null].concat(uniques('f')).indexOf(etatF)].classList.add('on');
+  var os = document.querySelectorAll('#outils .f');
+  os.forEach(function (b) { b.classList.remove('on'); });
+  var iO = [null, 'trace', 'atlas', 'carnet'].indexOf(etatO);
+  if (os[iO]) os[iO].classList.add('on');
   var gs = document.querySelectorAll('#groupes .f');
   gs[[null].concat(uniques('g')).indexOf(etatG)].classList.add('on');
   rend();
@@ -447,10 +485,25 @@ function rend() {
   var sortie = document.getElementById('sortie');
   sortie.innerHTML = '';
   var liste = C.filter(function (e) {
-    return (!etatF || e.f === etatF) && (!etatG || e.g === etatG);
+    return (!etatF || e.f === etatF) && (!etatG || e.g === etatG) &&
+           (!etatO || etatO === 'carnet' || outilDe(e) === etatO);
   });
+  if (etatO === 'carnet') liste = [];
   document.getElementById('compte').textContent =
     liste.length + ' ' + T(liste.length > 1 ? 'compositions' : 'composition');
+  if (etatO === 'carnet') {
+    /* LE CARNET N'A PAS DE VIGNETTES ICI, ET ON NE FAIT PAS SEMBLANT.
+     * Ses pages se composent d'un voyage entier — étapes, photos, récit —
+     * pas d'une sortie rendue en 1080 × 1920. Fabriquer une fausse vignette
+     * pour remplir la case dirait quelque chose de faux sur ce qu'il fait. */
+    sortie.innerHTML =
+      '<div class="vide" style="text-align:left;max-width:48ch;line-height:1.5">' +
+      '<p>' + T('Le Carnet raconte un voyage, jour après jour : des étapes, des photos, un récit.') +
+      '</p><p>' + T('Ses pages ne se montrent pas en vignette — elles se composent d’un voyage entier.') +
+      ' <a href="../carnet.html" data-brut>' + T('Ouvrir le Carnet') + '</a></p></div>';
+    document.getElementById('compte').textContent = '';
+    return;
+  }
   if (!liste.length) { sortie.innerHTML = '<div class="vide">' + T('Aucune composition.') + '</div>'; return; }
 
   /* Regroupement famille → version, dans l'ordre du catalogue : c'est lui

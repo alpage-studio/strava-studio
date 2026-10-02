@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.8';
+var STUDIO_VERSION = '3.17.9';
 var STUDIO_DATE = '02.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,14 @@ var STUDIO_DATE = '02.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.9', d: '02.10.2026', points: [
+    'ATLAS SE RECONNAÎT D’UN COUP D’ŒIL. Les deux outils partagent la même page : sans rien pour les distinguer, on ne savait pas où l’on était avant d’avoir lu l’entête. La rouille reste à Trace — une sortie, de l’encre sur du papier ; Atlas prend un bleu de carte, et porte son nom, sa devise et son titre.',
+    'LA GALERIE MONTRE LES TROIS OUTILS AU MÊME ENDROIT. Un filtre : Trace, Atlas, Carnet. Il ne tient aucune liste — il demande au moteur, pour CHAQUE carte et avec SES réglages : une Empreinte « Collection » est d’Atlas, une Empreinte « Sceau » est de Trace.',
+    'Le Carnet n’y a pas de vignettes, et on ne fait pas semblant : ses pages se composent d’un voyage entier, pas d’une sortie rendue en 1080 × 1920. La galerie le dit et donne le lien.',
+    'UN PROJET D’ATLAS ROUVERT DANS TRACE NE SE PERD PLUS EN SILENCE. Il désignait une planche absente du menu, et tout retombait sur la première : on ouvrait son projet et on obtenait autre chose. Le studio le dit maintenant, et donne le lien vers l’outil qui sait l’ouvrir — sans basculer de force.',
+    'Dans Atlas, l’import d’une période passe en tête. Le menu des cinq dernières sorties sert à composer l’affiche du jour : c’est le geste de Trace, pas celui d’Atlas.',
+    'Les noms des outils étaient encore traduits DANS LA GALERIE — « Route · Atlas · Notebook ». Le contrôle posé à la version précédente ne lisait que les entêtes écrites en HTML, pas les boutons construits à l’exécution.'
+  ] },
   { v: '3.17.8', d: '02.10.2026', points: [
     'SI TU ÉTAIS BLOQUÉ SUR UNE VIEILLE VERSION, VOICI POURQUOI. En ajoutant le Carnet à la réserve hors ligne, une virgule a manqué : le fichier qui pilote cette réserve ne se lisait plus. Il a été publié ainsi deux versions de suite.',
     'Un tel fichier, s’il ne se lit pas, ne s’installe pas — et celui qui en avait un valide garde L’ANCIEN, pour toujours. Son navigateur continue de servir l’ancienne version, et aucun rechargement n’y change rien : mesuré, quatre rechargements après la publication, toujours l’ancienne, et aucun bandeau pour le dire.',

@@ -80,6 +80,18 @@
     $('#icu-form').style.display = visible ? '' : 'none';
     $('#icu-forget').style.display = visible ? 'none' : '';
     var p = $('#opt-icu-periode'), b = $('#icu-importer'), n = $('#icu-progres');
+    /* DANS ATLAS, ON IMPORTE UNE PÉRIODE AVANT TOUT.
+     *
+     * Le menu des cinq dernières sorties sert à composer l'affiche du jour :
+     * c'est le geste de Trace. Dans Atlas, ce qu'on vient chercher est une
+     * semaine, une saison, une année — et l'import de période arrivait sous
+     * un menu qui ne sert à rien ici. On le remonte, une fois, au moment où
+     * le bloc apparaît. */
+    if (A.outil === 'atlas' && p && p.parentNode && !p.dataset.remonte) {
+      p.dataset.remonte = '1';
+      var premier = p.parentNode.firstElementChild;
+      if (premier && premier !== p) p.parentNode.insertBefore(p, premier);
+    }
     if (p) p.style.display = visible ? 'none' : '';
     if (b) b.style.display = visible ? 'none' : '';
     if (n && visible) n.textContent = '';
