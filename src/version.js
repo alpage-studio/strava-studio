@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.16';
+var STUDIO_VERSION = '3.17.17';
 var STUDIO_DATE = '02.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,11 @@ var STUDIO_DATE = '02.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.17', d: '05.10.2026', points: [
+    'RIEN NE CHANGE À L’ÉCRAN. Cette version ne corrige qu’un contrôle — mais elle porte un numéro parce qu’un numéro déjà étiqueté ne se réutilise pas : « revenir à la 3.17.16 » doit désigner un seul état.',
+    'Un contrôle se SAUTAIT sur le moteur de Safari : il dormait un temps fixe après avoir ouvert une famille du catalogue, puis concluait que la planche cherchée était introuvable. Elle était là. Il attend maintenant que les cartes soient dessinées, et un échec remplace le saut — un cas sauté disparaît dans un total vert, et celui-là avait traversé deux publications en se déplaçant d’une largeur à l’autre.',
+    'Six cas de plus tournent réellement : 566 → 572, et les onze sauts restants sont tous nommés et légitimes.'
+  ] },
   { v: '3.17.16', d: '05.10.2026', points: [
     'TROIS GROUPES DE RÉGLAGES AU LIEU DE QUATRE : Import, Planche, Export. Le texte n’était pas un groupe — c’est un réglage de la planche comme ses teintes, et il obligeait à l’aller-retour entre deux panneaux pour écrire un titre sur l’image qu’on règle.',
     'LE CATALOGUE EST RANGÉ PAR CE QUE LES PLANCHES SONT. « Affiches » portait dix-neuf planches sur quarante-six, dont une carte : un groupe qui contient 40 % du catalogue ne range plus, il cache. Sept groupes maintenant — Affiches, Tracés, Profils et données, Terrain, Plusieurs sorties, Films et son, Voile compris — et un contrôle refuse qu’un seul dépasse le tiers.',
