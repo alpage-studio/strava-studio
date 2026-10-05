@@ -1,4 +1,9 @@
 # Sorties de débogage et d'export
+# Les rendus d'essai ecrits a la racine par un script de banc : un PNG de
+# 1,6 Mo est entre dans le depot ainsi, sans que personne le voie passer.
+/topo*.png
+/finesse-*.png
+/anim-*.png
 tools/preview.png
 tools/frame*.png
 tools/planches-*.png
