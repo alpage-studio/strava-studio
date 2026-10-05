@@ -493,6 +493,15 @@
 
   section { padding: 16px 0; border-bottom: 1px solid var(--line); }
   section:last-of-type { border-bottom: 0; }
+  /* Un sous-titre DANS un groupe : même famille que le titre, un cran
+     plus discret, et sans le trait qui ouvre un groupe. */
+  section > h3 {
+    font: 600 10px/1 "IBM Plex Mono", monospace;
+    letter-spacing: .14em; text-transform: uppercase;
+    color: var(--mut); opacity: .72; margin: 14px 0 9px;
+  }
+  section > h3:first-of-type { margin-top: 2px; }
+
   section > h2 {
     font: 600 10px/1 "IBM Plex Mono", monospace;
     letter-spacing: .18em; text-transform: uppercase;
@@ -976,8 +985,12 @@
      pendant qu'on règle. Masquée au-dessus de 900 px, où la colonne fait
      déjà ce travail. -->
 <nav id="barre" hidden>
-  <button type="button" data-feuille="style">Style</button>
-  <button type="button" data-feuille="teintes">Teintes</button>
+  <!-- QUATRE ONGLETS, DANS L'ORDRE DU GESTE : d'où vient la sortie, à quoi
+       ressemble l'image, ce qui est écrit dessus, ce qu'on produit. Les mêmes
+       quatre, et les mêmes mots, que les titres de la colonne sur grand écran
+       — ils disaient six choses d'un côté et quatre de l'autre. -->
+  <button type="button" data-feuille="activite">Activité</button>
+  <button type="button" data-feuille="planche">Planche</button>
   <button type="button" data-feuille="texte">Texte</button>
   <!-- UN SEUL « EXPORT », ET LE BOUTON QUI EXPORTE EST DEDANS.
 
@@ -990,7 +1003,7 @@
        bouton qui est là. Un geste de plus qu'avant, et une question de
        moins : plus personne n'a à deviner la différence entre deux mots
        identiques. -->
-  <button type="button" data-feuille="format">Export</button>
+  <button type="button" data-feuille="export">Export</button>
 </nav>
 
 <div id="feuille" hidden>
@@ -1001,10 +1014,10 @@
       <button type="button" id="feuille-fermer">Voir le résultat</button>
     </div>
     <div class="corps">
-      <div class="zone" data-zone="style"></div>
-      <div class="zone" data-zone="teintes"></div>
+      <div class="zone" data-zone="activite"></div>
+      <div class="zone" data-zone="planche"></div>
       <div class="zone" data-zone="texte"></div>
-      <div class="zone" data-zone="format"></div>
+      <div class="zone" data-zone="export"></div>
     </div>
   </div>
 </div>
@@ -1101,7 +1114,12 @@
            bas de la colonne, repliee, apres tout le reste — on reglait une
            surcouche sans jamais voir ce qu'il y avait dessous. -->
       <section id="section-fond">
-        <h2>Photo ou vidéo</h2>
+        <!-- PLANCHE ouvre le groupe : la photo, le support, le catalogue et
+             les teintes décident tous de la même chose — à quoi ressemble
+             l'image. Ils portaient quatre titres de même rang, ce qui les
+             faisait lire comme quatre sujets séparés. -->
+        <h2>Planche</h2>
+        <h3>Photo ou vidéo</h3>
         <details open>
           <summary class="titre" hidden>Photo ou vidéo</summary>
         <label class="file">
@@ -1130,7 +1148,7 @@
         </details>
       </section>
       <section id="section-support">
-        <h2>Support</h2>
+        <h3>Support</h3>
         <label class="opt" id="opt-support"><span>Support</span>
           <!-- SANS FOND PAR DEFAUT.
                Le studio sert d'abord a poser une planche sur une photo ou une
@@ -1191,7 +1209,7 @@
            mélangés. Deux rangements différents pour la même application, c'est
            un de trop : celui qu'on apprend sur l'un ne sert pas sur l'autre. -->
       <section>
-        <h2>Style</h2>
+        <h3>Le catalogue</h3>
         <!-- Le choix en deux temps : une famille, puis sa variante. Le menu
              déroulant listait trente-trois noms à la suite, sans image et sans
              hiérarchie — il fallait connaître le catalogue pour s'en servir. -->
@@ -1213,7 +1231,7 @@
       </section>
 
       <section>
-        <h2>Teintes</h2>
+        <h3>Teintes</h3>
         <!-- LA PALETTE S'APPELAIT « COLLECTION ».
              Le mot désignait trois choses à la fois : cette palette, les
              planches gardées, et une composition d'Empreinte. Un mot pour
@@ -1255,22 +1273,6 @@
            écrire un cartel, ranger des pièces — quand tout le reste du studio
            demande de faire une affiche. Personne ne l'a rempli, et la planche
            qui le dessinait n'avait donc jamais rien à montrer. -->
-      <section class="pliable" id="section-garder">
-        <details>
-          <summary class="titre">Garder</summary>
-          <div class="projet">
-            <button class="ghost" id="hist-add" type="button">Ajouter ces sorties à l’historique</button>
-            <button class="ghost" id="hist-clear" type="button">Effacer l’historique</button>
-            <div id="hist-state"></div>
-          </div>
-          <div class="projet">
-            <button class="ghost" id="projet-save" type="button">Enregistrer le projet</button>
-            <label class="file"><input type="file" id="projet-open" accept=".json,application/json">
-              <span>Rouvrir un projet</span></label>
-            <div id="projet-state"></div>
-          </div>
-        </details>
-      </section>
 
       <!-- SUPPORT : SUR QUOI LA PLANCHE SE POSE.
            Ces deux réglages vivaient dans « Teintes », où ils n'ont rien à
@@ -1292,7 +1294,12 @@
            on peut vouloir le studio en anglais et des affiches en français, ou
            l'inverse selon à qui on l'envoie. Et l'entête est pleine à 390 px —
            mesuré : zéro pixel de marge avec les trois outils. -->
-      <label class="opt" id="opt-langue-images">
+      <!-- EXPORT N'AVAIT PAS DE TITRE SUR GRAND ÉCRAN : ce bloc flottait au
+           bas de la colonne, après « Garder », sans rien pour dire où il
+           commençait. Sur téléphone il avait pourtant son onglet. -->
+      <section id="section-export">
+        <h2>Export</h2>
+            <label class="opt" id="opt-langue-images">
         <span>Langue des images</span>
         <span data-langue="images"></span>
       </label>
@@ -1364,6 +1371,28 @@
         <div id="son-state"></div>
       </div>
       <div id="video-state"></div>
+      <!-- « GARDER » EST DANS EXPORT, des deux cotes.
+           Il etait entre Texte et Export dans la colonne, alors que le
+           telephone le rangeait deja dans Export : les deux dispositions
+           racontaient deux produits differents. Enregistrer un projet est
+           une sortie — ce qu on emporte. -->
+      <section class="pliable" id="section-garder">
+        <details>
+          <summary class="titre">Garder</summary>
+          <div class="projet">
+            <button class="ghost" id="hist-add" type="button">Ajouter ces sorties à l’historique</button>
+            <button class="ghost" id="hist-clear" type="button">Effacer l’historique</button>
+            <div id="hist-state"></div>
+          </div>
+          <div class="projet">
+            <button class="ghost" id="projet-save" type="button">Enregistrer le projet</button>
+            <label class="file"><input type="file" id="projet-open" accept=".json,application/json">
+              <span>Rouvrir un projet</span></label>
+            <div id="projet-state"></div>
+          </div>
+        </details>
+      </section>
+      </section>
     </div>
   </aside>
 

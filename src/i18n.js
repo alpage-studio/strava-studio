@@ -315,7 +315,7 @@
     /* ---------- le texte des planches ---------- */
     'Sans texte — le dessin seul': 'No text — the drawing alone',
     'Signature — titre et deux mesures': 'Signature — title and two figures',
-    'Données — tout ce que la planche sait': 'Data — everything the plate knows',
+    'Données — tout ce que la planche sait': 'Data — everything the artwork knows',
     'Export': 'Export',
     'Garder': 'Keep',
     'Photo ou vidéo': 'Photo or video',
@@ -954,6 +954,8 @@
     'Force des courbes': 'Contour strength',
     'Toutes les 100 m': 'Every 100 m',
     'Une sur cinq — 500 m': 'One in five — 500 m',
+    'Planche': 'Artwork',
+    'Le catalogue': 'The catalogue',
     'Ce projet utilise': 'This project uses',
     'qui vit dans': 'which lives in',
     'Tes sorties sont chargées.': 'Your rides are loaded.',

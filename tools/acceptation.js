@@ -1159,6 +1159,36 @@
   if (!petit) {
     resultats.push({ cas: 'téléphone · panneaux', verdict: 'sauté',
                      detail: 'fenêtre large — rétrécir sous 900 px pour ce bloc' });
+
+    /* LES DEUX DISPOSITIONS NOMMENT-ELLES LES MÊMES GROUPES ?
+     *
+     * C'est le défaut qu'OZ a nommé : la colonne portait SIX titres plus un
+     * bloc d'export sans titre du tout, le téléphone QUATRE panneaux, et les
+     * deux découpages ne se correspondaient pas — un panneau appelé « Style »
+     * contenait l'import du GPX.
+     *
+     * Le cas se mesure ICI, à grande largeur, parce que c'est le seul moment
+     * où la colonne est entière : sous 900 px ses sections sont DÉPLACÉES dans
+     * les panneaux, et les compter là mesurerait le déménagement.
+     *
+     * Les onglets existent dans le document même quand la barre est masquée :
+     * on compare donc deux listes de mots, et non deux mises en page. */
+    var onglets = Array.prototype.map.call(
+      document.querySelectorAll('#barre button[data-feuille]'),
+      function (b) { return (b.textContent || '').trim(); });
+    var groupes = Array.prototype.map.call(
+      document.querySelectorAll('aside section > h2'),
+      function (h) { return (h.textContent || '').trim(); });
+    ok('cohérence · la colonne et la barre nomment les mêmes groupes  (' +
+       groupes.join(' · ') + ')',
+       onglets.length === 4 && groupes.join('|') === onglets.join('|'),
+       'colonne [' + groupes.join(' · ') + ']  barre [' + onglets.join(' · ') + ']');
+
+    /* Et aucun sous-titre ne doit se faire passer pour un groupe : c'est par
+     * là que la colonne en avait gagné six. */
+    var sous = document.querySelectorAll('aside section > h3').length;
+    ok('cohérence · les sous-titres restent des sous-titres  (' + sous + ' sous « ' +
+       (groupes[1] || '?') + ' »)', sous >= 3);
   } else {
     ok('téléphone · la barre d’outils est là', !$('#barre').hidden);
 
@@ -1184,7 +1214,7 @@
       var el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
       return el === b || b.contains(el);
     };
-    $('#barre button[data-feuille="format"]').click();
+    $('#barre button[data-feuille="export"]').click();
     await attends(300);
     ok('téléphone · le bouton qui exporte est dans la feuille Export, et reçoit le clic',
        recoitLeClic('#export'),
@@ -1197,11 +1227,11 @@
     $('#feuille-fermer').click();
     await attends(200);
     var couverts = [];
-    for (var iz = 0; iz < ['style', 'teintes', 'texte', 'format'].length; iz++) {
-      var zone = ['style', 'teintes', 'texte', 'format'][iz];
+    for (var iz = 0; iz < ['activite', 'planche', 'texte', 'export'].length; iz++) {
+      var zone = ['activite', 'planche', 'texte', 'export'][iz];
       $('#barre button[data-feuille="' + zone + '"]').click();
       await attends(250);
-      if (!recoitLeClic('#barre button[data-feuille="style"]')) couverts.push(zone);
+      if (!recoitLeClic('#barre button[data-feuille="activite"]')) couverts.push(zone);
       $('#feuille-fermer').click();
       await attends(200);
     }
@@ -1210,53 +1240,71 @@
        'recouverts quand on ouvre : ' + couverts.join(', '));
     ok('téléphone · la colonne est masquée',
        getComputedStyle(document.querySelector('aside')).display === 'none');
-    $('#barre button[data-feuille="style"]').click();
+    $('#barre button[data-feuille="activite"]').click();
     await attends(400);
     ok('téléphone · le panneau s’ouvre', !$('#feuille').hidden);
-    ok('téléphone · il contient de quoi choisir une sortie',
-       !!document.querySelector('#feuille .zone[data-zone="style"] #section-activite'));
+
+    /* LES DEUX DISPOSITIONS DOIVENT NOMMER LES MÊMES GROUPES.
+     *
+     * C'est le défaut qu'OZ a nommé : la colonne portait SIX titres plus un
+     * bloc d'export sans titre, le téléphone QUATRE panneaux, et les deux
+     * découpages ne se correspondaient pas. Un panneau appelé « Style » y
+     * contenait l'import du GPX.
+     *
+     * Ce cas compare les deux listes de mots. Il échouerait au premier titre
+     * ajouté d'un côté seulement — c'est exactement ainsi que les deux avaient
+     * divergé. */
+    var onglets = Array.prototype.map.call(
+      document.querySelectorAll('#barre button[data-feuille]'),
+      function (b) { return b.getAttribute('data-feuille'); });
+    ok('téléphone · quatre onglets  (' + onglets.join(' · ') + ')',
+       onglets.join(',') === 'activite,planche,texte,export');
+
+    /* CHAQUE PANNEAU RÉPOND À UNE SEULE QUESTION, et surtout : rien de ce qui
+     * appartient à un autre. Les cas précédents vérifiaient une présence ; ils
+     * vérifient maintenant aussi une ABSENCE, qui est la moitié qui manquait. */
+    var dans = function (zone, sel) {
+      return !!document.querySelector('#feuille .zone[data-zone="' + zone + '"] ' + sel);
+    };
+
+    ok('téléphone · Activité porte la source, et rien de la planche',
+       dans('activite', '#gpx') && dans('activite', '#relief-ajouter') &&
+       !dans('activite', '#choix-style') && !dans('activite', '#opt-sortie'),
+       'gpx ' + dans('activite', '#gpx') + ' · relief ' + dans('activite', '#relief-ajouter'));
+
     $('#feuille-fermer').click();
     await attends(300);
     ok('téléphone · le panneau se ferme', $('#feuille').hidden);
-    $('#barre button[data-feuille="teintes"]').click();
+    $('#barre button[data-feuille="planche"]').click();
     await attends(300);
-    /* CHAQUE PANNEAU REPOND A UNE SEULE QUESTION.
-     *
-     * Ce cas exigeait que Teintes porte le rendu ET le support. Il a echoue le
-     * jour ou le support est parti dans Export — a juste titre : le support ne
-     * decide d'aucune couleur, il decide du fond. Le cas ne verifie donc plus
-     * qu'une presence, mais un PARTAGE : ce qui est de la couleur d'un cote,
-     * ce qui est du fond de l'autre, et rien des deux a la fois. */
-    var dansTeintes = function (sel) {
-      return !!document.querySelector('#feuille .zone[data-zone="teintes"] ' + sel);
-    };
-    ok('téléphone · Teintes ne porte que des couleurs',
-       dansTeintes('#opt-teintes') && dansTeintes('#opt-collection') &&
-       !dansTeintes('#opt-support') && !dansTeintes('#opt-voile'),
-       'rendu ' + dansTeintes('#opt-teintes') + ' · palette ' + dansTeintes('#opt-collection') +
-       ' · support (ne devrait pas) ' + dansTeintes('#opt-support'));
+
+    /* Les teintes ont rejoint la planche : ce sont des réglages de l'image
+     * comme les autres, et les tenir à part obligeait à faire l'aller-retour
+     * entre deux panneaux pour un seul choix. */
+    ok('téléphone · Planche porte le catalogue, les teintes, la photo et le support',
+       dans('planche', '#choix-style') && dans('planche', '#opt-teintes') &&
+       dans('planche', '#section-fond') && dans('planche', '#opt-support'),
+       'catalogue ' + dans('planche', '#choix-style') + ' · teintes ' + dans('planche', '#opt-teintes') +
+       ' · photo ' + dans('planche', '#section-fond') + ' · support ' + dans('planche', '#opt-support'));
+
+    ok('téléphone · et RIEN de l’export — c’est l’onglet d’à côté',
+       !dans('planche', '#opt-sortie') && !dans('planche', '#export') &&
+       !dans('planche', '#rangee-format') && !dans('planche', '#section-garder'),
+       'sortie ' + dans('planche', '#opt-sortie') + ' · bouton ' + dans('planche', '#export') +
+       ' · format ' + dans('planche', '#rangee-format') + ' · garder ' + dans('planche', '#section-garder'));
+
     $('#feuille-voile').click();
     await attends(250);
-    $('#barre button[data-feuille="format"]').click();
+    $('#barre button[data-feuille="export"]').click();
     await attends(300);
-    var dansExport = function (sel) {
-      return !!document.querySelector('#feuille .zone[data-zone="format"] ' + sel);
-    };
-    ok('téléphone · Export ne porte que la sortie',
-       dansExport('#rangee-format') && dansExport('#opt-sortie') &&
-       !dansExport('#section-fond'),
-       'format ' + dansExport('#rangee-format') + ' · sortie ' + dansExport('#opt-sortie') +
-       ' · photo (ne devrait plus y etre) ' + dansExport('#section-fond'));
-    /* LA PHOTO OUVRE LE PANNEAU STYLE. On choisit l'image, puis la planche qui
-     * va dessus — l'inverse revenait a regler une surcouche sans voir ce qu'il
-     * y avait dessous. */
-    $('#feuille-voile').click();
-    await attends(250);
-    $('#barre button[data-feuille="style"]').click();
-    await attends(300);
-    ok('téléphone · la photo et le support ouvrent le panneau Style',
-       !!document.querySelector('#feuille .zone[data-zone="style"] #section-fond') &&
-       !!document.querySelector('#feuille .zone[data-zone="style"] #opt-support'));
+    ok('téléphone · Export porte ce qu’on produit, et le bouton qui le produit',
+       dans('export', '#rangee-format') && dans('export', '#opt-sortie') &&
+       dans('export', '#export') && dans('export', '#section-garder') &&
+       !dans('export', '#section-fond') && !dans('export', '#choix-style'),
+       'format ' + dans('export', '#rangee-format') + ' · bouton ' + dans('export', '#export') +
+       ' · garder ' + dans('export', '#section-garder') +
+       ' · photo (ne devrait pas) ' + dans('export', '#section-fond'));
+
     $('#feuille-voile').click();
     await attends(250);
     ok('téléphone · le voile ferme aussi', $('#feuille').hidden);

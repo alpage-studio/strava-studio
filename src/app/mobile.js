@@ -27,43 +27,27 @@
    * accord — et elles auraient divergé au premier réglage ajouté.
    *
    * Au-dessus de 900 px, tout revient dans la colonne. */
+  /* QUATRE PANNEAUX, UNE QUESTION CHACUN — et les mêmes que les titres de la
+   * colonne sur grand écran. Avant : « Style » portait l'import du GPX, la
+   * photo, le support, le catalogue et ses réglages ; « Teintes » vivait à
+   * part alors que ce sont des réglages de la planche comme les autres ; et
+   * l'export n'avait aucun titre dans la colonne.
+   *
+   * Les contrôles ne sont pas DUPLIQUÉS mais DÉPLACÉS — voir plus haut. Une
+   * section entière se déplace avec son sous-titre, ce qui évite de lister
+   * ses enfants un par un et de les oublier quand elle en gagne un. */
   var ZONES = {
-    /* La sortie vit dans le panneau Style : sans elle, sur un téléphone où la
-     * colonne est masquée, il n'y aurait AUCUN moyen d'importer un GPX ni de
-     * choisir une activité — l'application serait jolie et inutilisable. */
-    /* LA PHOTO OUVRE LE PANNEAU. Le studio pose une planche sur une image :
-     * on choisit l'image, puis la planche qui va dessus. L'inverse revenait a
-     * regler une surcouche sans voir ce qu'il y avait dessous. */
-    style:   ['#section-activite', '#section-fond', '#opt-support', '#opt-voile',
-              '#choix-style', '#opt-minimal', '#opts'],
-    /* La palette a rejoint les teintes : c'est une affaire de couleur, pas de
-     * composition, et elle s'appelait « Collection » au milieu du choix de
-     * style — un mot qui designait deja deux autres choses ailleurs. */
-    /* Teintes ne porte plus QUE des couleurs : la palette, le rendu, et les
-     * couleurs du template. Le support et le voile sont partis dans Export —
-     * ils ne decident d'aucune couleur, ils decident du fond. */
-    teintes: ['#opt-collection', '#collection-note', '#opt-teintes', '#opt-photo-nb',
-              '#opts-couleur'],
-    texte:   ['#opts-texte'],
-    /* « Garder » rejoint le panneau Style : c'est ce qu'on fait d'une sortie
-     * une fois qu'on en a une. Sans cela ces blocs restaient dans la colonne
-     * masquée du téléphone — perdus deux fois. */
-    /* Format porte aussi les SORTIES : aperçu animé, vidéo, séquence, son.
-     * Elles vivaient dans le socle de la colonne — masqué sous 900 px — et
-     * devenaient donc introuvables sur téléphone. Un contrôle resté dans un
-     * conteneur qu'on cache ne disparaît pas de l'écran : il disparaît de
-     * l'application. */
-    /* La photo et la video de fond ont rejoint l'export. Elles etaient dans
-     * les teintes, ou elles n'ont rien a faire : on choisit une image de fond
-     * au moment de produire la sortie, pas au moment de regler une couleur.
-     * « Garder » aussi : enregistrer un projet est une sortie. */
-    /* L'ORDRE EST CELUI DU GESTE : le format, ce qu'on produit, combien de
-     * temps — puis le bouton qui exporte. `#export` manquait tout
-     * simplement à cette liste : il restait dans la colonne masquée, et le
-     * seul bouton qui exportait était celui de la barre. La durée, elle,
-     * arrivait APRÈS l'aperçu, loin du choix qu'elle concerne. */
-    format:  ['#rangee-format', '#opt-sortie', '#opt-duree', '#export',
-              '#preview-play', '#son', '#video-state', '#section-garder']
+    activite: ['#section-activite'],
+    planche:  ['#section-fond', '#section-support',
+               '#choix-style', '#opt-minimal', '#opts',
+               '#opt-collection', '#collection-note', '#opt-teintes',
+               '#opt-photo-nb', '#opts-couleur'],
+    texte:    ['#opts-texte'],
+    /* « Garder » est ici : enregistrer un projet est une sortie, et c'est le
+     * seul panneau qui parle de ce qu'on emporte. */
+    export:   ['#opt-langue-images', '#rangee-format', '#opt-placement',
+               '#opt-sortie', '#opt-duree', '#export', '#preview-play',
+               '#son', '#video-state', '#section-garder']
   };
   var placeOrigine = {};        // sélecteur -> { parent, suivant } avant déplacement
   var feuilleOuverte = null;
@@ -118,9 +102,12 @@
     });
     /* « Export » et non « Format » : l'onglet et son panneau portent le
      * même mot, sinon on ouvre Export et on arrive dans Format. */
-    var titres = { style: 'Style', teintes: 'Teintes', texte: 'Texte', format: 'Export' };
+    var titres = { activite: 'Activité', planche: 'Planche',
+                   texte: 'Texte', export: 'Export' };
     $('#feuille-titre').textContent = T(titres[z] || '');
-    f.classList.toggle('large', z === 'style');
+    /* Planche est le panneau où l'on REGARDE (le catalogue) au lieu de
+     * régler : il a droit à presque tout l'écran. */
+    f.classList.toggle('large', z === 'planche');
     f.hidden = false;
     Array.prototype.forEach.call(document.querySelectorAll('#barre button[data-feuille]'),
       function (b) { b.classList.toggle('on', b.getAttribute('data-feuille') === z); });

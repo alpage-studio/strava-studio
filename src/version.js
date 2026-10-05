@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.14';
+var STUDIO_VERSION = '3.17.15';
 var STUDIO_DATE = '02.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,13 @@ var STUDIO_DATE = '02.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.15', d: '05.10.2026', points: [
+    'LES RÉGLAGES SE RANGENT EN QUATRE GROUPES, ET CE SONT LES MÊMES SUR TÉLÉPHONE ET SUR GRAND ÉCRAN : Activité, Planche, Texte, Export. La colonne en portait six, plus un bloc d’export sans titre du tout ; le téléphone en avait quatre. Les deux ne se correspondaient pas, et c’était le même produit.',
+    'Chaque groupe répond maintenant à une seule question. ACTIVITÉ : d’où vient la sortie — le GPX, Strava, intervals, le relief. PLANCHE : à quoi ressemble l’image — le catalogue, ses réglages, les teintes, la photo dessous, le support. TEXTE : ce qui est écrit dessus. EXPORT : ce qu’on produit, et le bouton qui le produit.',
+    '« Style » était le mauvais mot : ce panneau portait l’import du GPX, c’est-à-dire ce qui n’a rien d’un style. Il s’appelle Planche, le mot qu’emploie tout le reste du studio. En anglais il se disait tantôt « plate », tantôt « artwork » — trois mots pour un objet ; c’est « artwork » partout.',
+    'Les teintes ont rejoint la planche : ce sont des réglages de l’image comme les autres, et les tenir à part obligeait à l’aller-retour entre deux panneaux pour un seul choix. « Garder » rejoint Export des deux côtés — il y était déjà sur téléphone, et ailleurs sur grand écran.',
+    'Un contrôle compare désormais les deux listes de mots. Il échouerait au premier titre ajouté d’un seul côté — c’est exactement ainsi qu’elles avaient divergé.'
+  ] },
   { v: '3.17.14', d: '05.10.2026', points: [
     'SUR TÉLÉPHONE, L’EXPORT ÉTAIT INATTEIGNABLE. Le bouton qui exporte était celui de la barre, et le panneau « Export » s’ouvrait PAR-DESSUS lui : on choisissait « Vidéo », on pressait, et le doigt tombait sur le panneau. Rien ne partait, rien ne le disait. L’export vidéo paraissait cassé ; il ne l’a jamais été.',
     'UN SEUL « EXPORT ». La barre portait un onglet « Export » et, juste à côté, un bouton « Exporter » — en anglais, deux fois le même mot. Le panneau qu’ouvrait le premier s’appelait encore autrement, « Format ». Désormais : on ouvre Export, on choisit ce qu’on produit, on presse le bouton qui est là. La durée de l’apparition remonte avec ce choix, au lieu d’arriver après l’aperçu.',
