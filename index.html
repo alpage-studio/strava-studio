@@ -18,9 +18,15 @@
                            worker a quitté le bas de cette page pour
                            src/installe.js : autoriser 'unsafe-inline' aurait
                            vidé la règle de son sens.
-       connect-src         la même origine, et intervals.icu — le fournisseur
-                           que l'utilisateur a lui-même choisi. Rien d'autre
-                           ne peut être contacté.
+       connect-src         la même origine, intervals.icu — le fournisseur que
+                           l'utilisateur a lui-même choisi — et api3.geo.admin.ch,
+                           qui donne le relief swisstopo. Rien d'autre ne peut
+                           être contacté.
+                           CES DEUX ADRESSES NE SONT PAS APPELÉES TOUTES SEULES :
+                           l'une demande une clé, l'autre un bouton et une
+                           confirmation qui dit ce qui part. La liste autorise,
+                           elle ne déclenche rien — mais l'élargir reste une
+                           décision, et c'est pour ça qu'elle s'écrit ici.
        img-src blob: data: la photo de fond arrive en blob: local, et les
                            planches s'exportent en data:.
        style-src 'unsafe-inline' : les attributs style= de la page. Une
@@ -39,7 +45,7 @@
   img-src 'self' blob: data:;
   media-src 'self' blob:;
   font-src 'self';
-  connect-src 'self' https://intervals.icu;
+  connect-src 'self' https://intervals.icu https://api3.geo.admin.ch;
   form-action 'none';
   frame-src 'none';
   object-src 'none';
@@ -403,14 +409,26 @@
      * reprend sa hauteur naturelle, et réserve la place de la barre. */
     body.telephone.vide #stage {
       height: auto; min-height: 0;
-      padding-bottom: calc(74px + env(safe-area-inset-bottom));
+      padding-bottom: var(--h-barre);
     }
   }
 
   /* ---------- barre et panneau du téléphone ---------- */
+  /* LA BARRE RESTE AU-DESSUS DE LA FEUILLE, ET CE N'EST PAS UN DETAIL.
+
+     Sur telephone, `#export` est masque : le SEUL bouton qui exporte est
+     celui de la barre. La feuille montait a z-index 9 contre 8, et son
+     panneau descend jusqu'en bas — elle recouvrait donc ce bouton. On
+     ouvrait « Export », on choisissait « Video », on pressait « Exporter »
+     et le doigt tombait sur la feuille. Rien ne partait, rien ne le disait.
+
+     La barre porte la navigation ET l'action : elle doit rester atteignable
+     quoi qu'il arrive. La feuille passe donc dessous, et s'arrete au-dessus
+     d'elle plutot que de glisser derriere. */
+  :root { --h-barre: calc(74px + env(safe-area-inset-bottom)); }
   #barre {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 8;
-    display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     background: var(--panel); border-top: 1px solid var(--line);
   }
@@ -427,7 +445,7 @@
   #feuille { position: fixed; inset: 0; z-index: 9; }
   #feuille .voile { position: absolute; inset: 0; background: rgba(37, 40, 32, .30); }
   #feuille .panneau {
-    position: absolute; left: 0; right: 0; bottom: 0;
+    position: absolute; left: 0; right: 0; bottom: var(--h-barre);
     max-height: 62vh; display: flex; flex-direction: column;
     background: var(--bg); border-top: 1px solid var(--line-2);
     border-radius: 16px 16px 0 0;
@@ -961,11 +979,18 @@
   <button type="button" data-feuille="style">Style</button>
   <button type="button" data-feuille="teintes">Teintes</button>
   <button type="button" data-feuille="texte">Texte</button>
+  <!-- UN SEUL « EXPORT », ET LE BOUTON QUI EXPORTE EST DEDANS.
+
+       La barre portait un onglet « Export » et, juste à côté, un bouton
+       « Exporter ». En anglais les deux affichaient le MÊME mot : Export,
+       Export. L'un ouvrait des réglages, l'autre agissait, et le panneau
+       qu'ouvrait le premier s'intitulait encore autrement — « Format ».
+
+       Désormais on ouvre Export, on choisit ce qu'on produit, on presse le
+       bouton qui est là. Un geste de plus qu'avant, et une question de
+       moins : plus personne n'a à deviner la différence entre deux mots
+       identiques. -->
   <button type="button" data-feuille="format">Export</button>
-  <!-- LE MOT DU BOUTON EST CELUI DE L'ACTION. Il disait « Enregistrer » et
-       déclenchait l'export ; à deux écrans de là, « Enregistrer le projet » en
-       fait tout autre chose. Un seul geste, un seul verbe. -->
-  <button type="button" id="barre-enregistrer" class="principal">Exporter</button>
 </nav>
 
 <div id="feuille" hidden>
@@ -1036,6 +1061,12 @@
         <div id="gpx-err" data-brut></div>
         <div id="summary" data-brut></div>
         <div id="library" data-brut></div>
+        <!-- LE TERRAIN AUTOUR DU PARCOURS, SUR DEMANDE.
+             Ici et pas ailleurs : c'est une donnée de la SORTIE, pas un
+             réglage de planche. Le bouton reste caché tant qu'aucune trace
+             n'est chargée — il n'aurait rien autour de quoi demander. -->
+        <button class="ghost" id="relief-ajouter" type="button" hidden>Ajouter le relief (swisstopo)</button>
+        <div id="relief-state" class="muted" data-brut hidden></div>
         <!-- Les planches multi-sorties ne se composent pas en cochant des
              fichiers un par un : elles racontent une PÉRIODE. Le menu ne
              s'affiche que pour elles, et il dit combien de sorties il retient
@@ -1457,6 +1488,7 @@
 <script src="src/templates/photo.js"></script>
 <script src="src/templates/pied-lourd.js"></script>
 <script src="src/templates/trace-dominante.js"></script>
+<script src="src/templates/topo.js"></script>
 
 <!-- interface -->
 <script src="src/app/noyau.js"></script>
@@ -1468,6 +1500,10 @@
 <script src="src/app/collection.js"></script>
 <script src="src/app/exports.js"></script>
 <script src="src/app/sources.js"></script>
+<!-- Le calcul du relief est celui du Carnet, le MÊME fichier : deux
+     reliefs écrits deux fois finiraient par ne pas dire la même chose. -->
+<script src="src/carnet/relief.js"></script>
+<script src="src/app/relief.js"></script>
 <script src="src/app/demarrage.js"></script>
 
 <script src="src/installe.js"></script>

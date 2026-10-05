@@ -1426,6 +1426,60 @@ function testsCoherence() {
        Hi.cases(grossier).length > 60);
   }());
 
+  /* LA PROJECTION PUBLIÉE DOIT REFAIRE LA TRACE.
+   *
+   * `route.proj` existe pour qu'on puisse poser autre chose que la trace dans
+   * le cadre de la trace — des courbes de niveau, aujourd'hui. Si ces nombres
+   * ne reproduisent pas EXACTEMENT `route.pts`, le relief tombe à côté du
+   * parcours. Et un relief décalé ne se lit pas comme une erreur : il se lit
+   * comme un parcours qui ne suit pas la vallée. Personne ne le signalerait.
+   *
+   * On refait donc le chemin inverse : depuis les latitudes d'origine, en
+   * n'utilisant QUE ce que `proj` publie, on doit retomber sur les points
+   * calculés par activity.js. */
+  (function () {
+    const faux = {};
+    new Function('window', 'DOMParser', fs.readFileSync(path.join(ROOT, 'src', 'activity.js'), 'utf8'))
+      (faux, function () {});
+
+    const pts = [];
+    for (let i = 0; i < 120; i++) {
+      /* Une forme qui n'est NI carrée ni centrée : un cadre carré masquerait
+       * une erreur sur le décalage, et c'est justement lui qui est subtil. */
+      pts.push({ lat: 46.52 + Math.sin(i / 19) * 0.09, lon: 6.31 + i * 0.0021,
+                 ele: 700 + i * 2, t: new Date(Date.UTC(2026, 8, 6, 7, 0, i * 5)), d: 0 });
+    }
+    const act = faux.Activity.fromPoints({ name: 'Essai', type: 'ride' }, pts);
+    const r = act.route, j = r.proj;
+
+    ok('projection · la trace dit comment elle a été projetée',
+       !!(j && j.k != null && j.s && j.w && j.h),
+       JSON.stringify(j));
+
+    if (j) {
+      const decX = (j.s - j.w) / (2 * j.s), decY = (j.s - j.h) / (2 * j.s);
+      let pire = 0, oiu = -1;
+      pts.forEach(function (p, i) {
+        const x = (p.lon * j.k - j.minX) / j.s + decX;
+        const y = (-p.lat - j.minY) / j.s + decY;
+        const e = Math.max(Math.abs(x - r.pts[i].x), Math.abs(y - r.pts[i].y));
+        if (e > pire) { pire = e; oiu = i; }
+      });
+      ok('projection · la règle publiée refait les ' + pts.length + ' points  (écart max ' +
+         pire.toExponential(1) + ')', pire < 1e-12, 'pire au point ' + oiu);
+
+      /* Et elle doit tenir aux BORDS : un point du cadre doit tomber dans
+       * [0, 1]. Une règle juste au centre et fausse aux bords dessinerait un
+       * relief qui déborde sans qu'on sache pourquoi. */
+      const xs = r.pts.map(function (q) { return q.x; });
+      const ys = r.pts.map(function (q) { return q.y; });
+      ok('projection · la trace tient dans son cadre  (x ' +
+         Math.min.apply(null, xs).toFixed(3) + '…' + Math.max.apply(null, xs).toFixed(3) + ')',
+         Math.min.apply(null, xs) >= -1e-9 && Math.max.apply(null, xs) <= 1 + 1e-9 &&
+         Math.min.apply(null, ys) >= -1e-9 && Math.max.apply(null, ys) <= 1 + 1e-9);
+    }
+  }());
+
   /* Un projet doit se rouvrir À L'IDENTIQUE. Une composition à plusieurs se
    * reprend des semaines plus tard : si l'aller-retour perd une sortie, une
    * couleur ou une altitude, on le découvre le jour où c'est trop tard. */

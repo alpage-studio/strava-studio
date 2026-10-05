@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.13';
+var STUDIO_VERSION = '3.17.14';
 var STUDIO_DATE = '02.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,13 @@ var STUDIO_DATE = '02.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.14', d: '05.10.2026', points: [
+    'SUR TÉLÉPHONE, L’EXPORT ÉTAIT INATTEIGNABLE. Le bouton qui exporte était celui de la barre, et le panneau « Export » s’ouvrait PAR-DESSUS lui : on choisissait « Vidéo », on pressait, et le doigt tombait sur le panneau. Rien ne partait, rien ne le disait. L’export vidéo paraissait cassé ; il ne l’a jamais été.',
+    'UN SEUL « EXPORT ». La barre portait un onglet « Export » et, juste à côté, un bouton « Exporter » — en anglais, deux fois le même mot. Le panneau qu’ouvrait le premier s’appelait encore autrement, « Format ». Désormais : on ouvre Export, on choisit ce qu’on produit, on presse le bouton qui est là. La durée de l’apparition remonte avec ce choix, au lieu d’arriver après l’aperçu.',
+    'UNE PLANCHE DE PLUS : TOPOGRAPHIE — le parcours sur le terrain qu’il traverse, en courbes de niveau. C’est la seule planche qui demande une donnée extérieure : un GPX ne connaît que l’altitude SUR le chemin, jamais le relief autour. On l’ajoute depuis « Activité », et la fenêtre dit avant ce qui part — les coordonnées d’un rectangle autour du parcours, ni la trace, ni le nom de la sortie.',
+    'Le calcul est celui du Carnet, le même fichier, y compris son contrôle : il compare l’altitude swisstopo à celle du GPX et REFUSE de dessiner si l’écart est trop grand. Hors de Suisse il ne dessine donc rien plutôt que des courbes inventées — une carte fausse ne se dénonce pas, elle se croit. Le crédit swisstopo, lui, s’écrit toujours : ce n’est pas notre signature à masquer.',
+    'Les contrôles allaient moins vite à mesure que le studio grandissait : l’un d’eux cliquait TOUTES les planches du catalogue pour en trouver une. Les cartes portent maintenant leur identifiant, et la suite complète a regagné une minute sur le moteur de Safari.'
+  ] },
   { v: '3.17.13', d: '02.10.2026', points: [
     'LE PROJET PASSE D’UN OUTIL À L’AUTRE. Rouvrir dans Trace un projet dont la planche vit dans Atlas proposait un lien — qui menait à un Atlas vide, où il fallait rouvrir le fichier une seconde fois. Le lien emporte maintenant le projet : on clique, et les sorties sont là, sur leur planche.',
     'Ce message n’avait JAMAIS été visible depuis qu’il a été écrit, pour deux raisons empilées : le compte des sorties l’écrasait une ligne plus bas, et il était rangé sous « Garder », un repli que personne n’ouvre. Le compte ne s’écrit plus par-dessus, et le repli s’ouvre quand le message porte un lien — seulement dans ce cas.',

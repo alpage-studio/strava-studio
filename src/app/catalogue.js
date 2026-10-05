@@ -39,7 +39,11 @@
              * Affiches et non un groupe à part : ce qui les distingue est
              * l'arrangement, pas le sujet. */
             'affiche', 'bandes', 'diagonale', 'grille', 'main', 'photo',
-            'pied-lourd', 'trace-dominante'] },
+            'pied-lourd', 'trace-dominante',
+            /* La seule qui demande une donnée extérieure — swisstopo. Elle
+             * reste dans les Affiches : c'est bien une affiche d'UNE sortie,
+             * et la ranger à part suggérerait un outil qu'elle n'est pas. */
+            'topo'] },
     { id: 'cartes', nom: 'Cartes',
       ids: ['medaillon', 'atlas', 'metro', 'exploration', 'sous-bois', 'trame'] },
     { id: 'reliefs', nom: 'Reliefs et données',
@@ -242,6 +246,7 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.textContent = T(g.nom);
+      b.setAttribute('data-groupe', g.id);
       b.className = g.id === groupeCourant ? 'on' : '';
       b.addEventListener('click', function () {
         groupeCourant = g.id; construitChoixStyle();
@@ -260,6 +265,15 @@
       var carte = document.createElement('button');
       carte.type = 'button';
       carte.className = 'carte-style' + (id === $('#tpl').value ? ' on' : '');
+      /* LA CARTE DIT QUELLE PLANCHE ELLE EST.
+       *
+       * Rien ne la nommait : ni identifiant, ni attribut — seulement un
+       * libellé traduit. Un contrôle qui cherchait une planche précise
+       * devait donc CLIQUER chaque carte jusqu'à tomber dessus, et ce
+       * balayage coûtait une minute dans WebKit. Il s'allongeait à chaque
+       * planche ajoutée : le contrôle devenait plus lent à mesure que le
+       * produit grandissait, ce qui est exactement le mauvais sens. */
+      carte.setAttribute('data-id', id);
       var cv = document.createElement('canvas');
       carte.appendChild(cv);
       var nom = document.createElement('span');

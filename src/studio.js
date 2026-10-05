@@ -465,6 +465,18 @@
   /* ---------- helpers de dessin ---------- */
 
   function helpers(ctx, w, h, state) {
+    /* LE CADRE DU PARCOURS, calcule une seule fois.
+     *
+     * `route` et `relief` doivent tomber au MEME endroit, au pixel pres.
+     * Deux copies de ce calcul finiraient par diverger — et un relief
+     * decale de trois pixels ne se lit pas comme une erreur, il se lit
+     * comme un parcours qui ne suit pas la vallee. */
+    function cadre(box, pad) {
+      pad = pad == null ? 0 : pad;
+      var bw = box.w - 2 * pad, bh = box.h - 2 * pad;
+      var s = Math.min(bw, bh);
+      return { ox: box.x + pad + (bw - s) / 2, oy: box.y + pad + (bh - s) / 2, s: s };
+    }
     var H = {
       w: w, h: h, ctx: ctx, fmt: fmt,
 
@@ -560,10 +572,8 @@
           route = { pts: fullRoute.pts.slice(0, n), aspect: fullRoute.aspect };
         }
         opt = opt || {};
-        var pad = opt.pad == null ? 0 : opt.pad;
-        var bw = box.w - 2 * pad, bh = box.h - 2 * pad;
-        var s = Math.min(bw, bh);
-        var ox = box.x + pad + (bw - s) / 2, oy = box.y + pad + (bh - s) / 2;
+        var c = cadre(box, opt.pad);
+        var ox = c.ox, oy = c.oy, s = c.s;
 
         ctx.save();
         ctx.beginPath();
@@ -588,6 +598,57 @@
             ctx.fill(); ctx.restore();
           });
         }
+      },
+
+      /* LES COURBES DE NIVEAU, DANS LE CADRE DU PARCOURS.
+       *
+       * Elles ne se dessinent QUE si la trace dit comment elle a ete
+       * projetee (`route.proj`). Sans cette information on ne peut pas
+       * savoir ou tombe une latitude dans ce cadre — et poser des courbes
+       * a peu pres serait pire que de n'en poser aucune : une carte fausse
+       * ne se denonce pas, elle se croit.
+       *
+       * Les courbes ne suivent PAS `state.progress` : le terrain est la
+       * avant le parcours et n'a pas a se dessiner avec lui. C'est le
+       * trace qui avance sur un relief deja pose. */
+      relief: function (relief, route, box, opt) {
+        if (!relief || !relief.courbes || !relief.courbes.length) return 0;
+        if (!route || !route.proj) return 0;
+        opt = opt || {};
+        var p = route.proj, c = cadre(box, opt.pad);
+        var decX = (p.s - p.w) / (2 * p.s), decY = (p.s - p.h) / (2 * p.s);
+        var tracees = 0;
+        ctx.save();
+        /* LES COURBES TIENNENT DANS LEUR CADRE.
+         *
+         * Le relief couvre 2,5 km de plus que le parcours de chaque cote :
+         * sans decoupe, une courbe qui entre dans le cadre se poursuit a
+         * travers toute la feuille — par-dessus le titre et les chiffres.
+         * Vu sur la premiere image : le terrain avait mange la planche. */
+        ctx.beginPath();
+        ctx.rect(box.x, box.y, box.w, box.h);
+        ctx.clip();
+        ctx.lineJoin = ctx.lineCap = 'round';
+        relief.courbes.forEach(function (co) {
+          if (!co.pts || co.pts.length < 2) return;
+          if (opt.maitressesSeules && !co.maitresse) return;
+          ctx.beginPath();
+          var dehors = true;
+          co.pts.forEach(function (ll, i) {
+            var x = (ll[1] * p.k - p.minX) / p.s + decX;
+            var y = (-ll[0] - p.minY) / p.s + decY;
+            if (x >= -0.2 && x <= 1.2 && y >= -0.2 && y <= 1.2) dehors = false;
+            var px = c.ox + x * c.s, py = c.oy + y * c.s;
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          });
+          if (dehors) return;      // une courbe entierement hors cadre ne coute rien a sauter
+          ctx.lineWidth = co.maitresse ? (opt.widthMaitresse || H.u(0.5)) : (opt.width || H.u(0.22));
+          ctx.strokeStyle = co.maitresse ? (opt.colorMaitresse || opt.color || '#000') : (opt.color || '#000');
+          ctx.stroke();
+          tracees++;
+        });
+        ctx.restore();
+        return tracees;
       },
 
       /* Profil d'altitude en aire remplie. */

@@ -57,8 +57,13 @@
      * les teintes, ou elles n'ont rien a faire : on choisit une image de fond
      * au moment de produire la sortie, pas au moment de regler une couleur.
      * « Garder » aussi : enregistrer un projet est une sortie. */
-    format:  ['#rangee-format', '#opt-sortie', '#preview-play', '#son',
-              '#opt-duree', '#video-state', '#section-garder']
+    /* L'ORDRE EST CELUI DU GESTE : le format, ce qu'on produit, combien de
+     * temps — puis le bouton qui exporte. `#export` manquait tout
+     * simplement à cette liste : il restait dans la colonne masquée, et le
+     * seul bouton qui exportait était celui de la barre. La durée, elle,
+     * arrivait APRÈS l'aperçu, loin du choix qu'elle concerne. */
+    format:  ['#rangee-format', '#opt-sortie', '#opt-duree', '#export',
+              '#preview-play', '#son', '#video-state', '#section-garder']
   };
   var placeOrigine = {};        // sélecteur -> { parent, suivant } avant déplacement
   var feuilleOuverte = null;
@@ -111,7 +116,9 @@
     Array.prototype.forEach.call(document.querySelectorAll('#feuille .zone'), function (el) {
       el.hidden = el.getAttribute('data-zone') !== z;
     });
-    var titres = { style: 'Style', teintes: 'Teintes', texte: 'Texte', format: 'Format' };
+    /* « Export » et non « Format » : l'onglet et son panneau portent le
+     * même mot, sinon on ouvre Export et on arrive dans Format. */
+    var titres = { style: 'Style', teintes: 'Teintes', texte: 'Texte', format: 'Export' };
     $('#feuille-titre').textContent = T(titres[z] || '');
     f.classList.toggle('large', z === 'style');
     f.hidden = false;
@@ -143,10 +150,8 @@
     });
   $('#feuille-fermer').addEventListener('click', fermeFeuille);
   $('#feuille-voile').addEventListener('click', fermeFeuille);
-  $('#barre-enregistrer').addEventListener('click', function () {
-    fermeFeuille();
-    $('#export').click();
-  });
+  /* Le pont « bouton de la barre -> #export » a disparu avec le bouton :
+   * `#export` est maintenant DANS la feuille, et se presse directement. */
   /* La bascule se declare ICI, avec le code qu'elle declenche. Elle etait
    * restee dans app.js apres la coupe — un ecouteur separe de ce qu'il
    * appelle, c'est exactement ce que le decoupage doit supprimer. */

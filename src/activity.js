@@ -118,7 +118,14 @@
     var pts = xs.map(function (x, i) {
       return { x: (x - minX) / s + (s - w) / (2 * s), y: (ys[i] - minY) / s + (s - h) / (2 * s) };
     });
-    return { pts: pts, aspect: w / h };
+    /* LA PROJECTION SE DIT, elle ne se devine pas. Tout ce qui doit se
+     * poser SUR le parcours — des courbes de niveau, un repère, une
+     * frontière — a besoin exactement de ces nombres-là. Les recalculer
+     * ailleurs, c'est accepter qu'un jour les deux ne disent plus la même
+     * chose, et un décalage de quelques pixels ne se voit pas sur une
+     * carte : il se voit sur une affiche. */
+    return { pts: pts, aspect: w / h,
+             proj: { k: k, minX: minX, minY: minY, s: s, w: w, h: h } };
   }
 
   function profile(points) {

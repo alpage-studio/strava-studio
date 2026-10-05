@@ -29,7 +29,7 @@ const VERSION = 'studio-v' + STUDIO_VERSION;
  * src/version.js, qui demeure la source unique. Un contrôle du harnais refuse
  * qu'elle diverge, exactement comme il refuse un journal dont la première
  * entrée ne porte pas le numéro servi. */
-const GENERATION = '3.17.13';
+const GENERATION = '3.17.14';
 
 /* Le strict nécessaire pour démarrer hors ligne. Les templates sont listés
  * un par un : en ajouter un demande une ligne ici, et un changement de
@@ -99,6 +99,8 @@ const SHELL = [
   './src/app/collection.js',
   './src/app/exports.js',
   './src/app/sources.js',
+  './src/app/relief.js',
+  './src/carnet/relief.js',
   './src/app/demarrage.js',
   './src/templates/encre.js',
   './src/templates/strates.js',
@@ -143,6 +145,7 @@ const SHELL = [
   './src/templates/photo.js',
   './src/templates/pied-lourd.js',
   './src/templates/trace-dominante.js',
+  './src/templates/topo.js',
 
   /* LE CARNET ET L'ACCUEIL ENTRENT DANS LE CACHE.
    *

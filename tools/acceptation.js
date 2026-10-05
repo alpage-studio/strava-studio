@@ -1022,19 +1022,23 @@
    * déroulante — et tout ce qui demandait une combinaison restait invisible :
    * « Fragment » de Médaillon est un cadrage ET un décalage. Le contrôle vise
    * donc une famille qui déclare ses variantes, pas une famille quelconque. */
+  /* ON VA DROIT A MEDAILLON, au lieu de cliquer tout le catalogue.
+   *
+   * Ce bloc ouvrait chaque groupe puis chaque carte jusqu'a reconnaitre
+   * « medaillon » a `#tpl.value`. Mesure dans WebKit : une minute pour ce seul
+   * cas, et dix secondes de plus a chaque planche ajoutee. Les cartes portent
+   * desormais `data-id` : on ouvre le groupe qui contient la carte, et on
+   * clique la carte. Meme couverture, un geste au lieu de quarante. */
   var famille = null;
   var groupes = document.querySelectorAll('.groupes-style button');
   for (var g = 0; g < groupes.length && !famille; g++) {
     groupes[g].click();
     await attends(320);
-    var cartes = document.querySelectorAll('#choix-style .familles .carte-style');
-    for (var c = 0; c < cartes.length; c++) {
-      cartes[c].click();
-      await attends(420);
-      if ($('#tpl').value === 'medaillon') { famille = true; break; }
-      var retourF = document.querySelector('.retour-familles');
-      if (retourF) { retourF.click(); await attends(260); }
-    }
+    var cible = document.querySelector('#choix-style .familles [data-id="medaillon"]');
+    if (!cible) continue;
+    cible.click();
+    await attends(420);
+    famille = $('#tpl').value === 'medaillon';
   }
   if (!famille) {
     resultats.push({ cas: 'variantes · Médaillon', verdict: 'sauté',
@@ -1157,6 +1161,53 @@
                      detail: 'fenêtre large — rétrécir sous 900 px pour ce bloc' });
   } else {
     ok('téléphone · la barre d’outils est là', !$('#barre').hidden);
+
+    /* CE QUI EXPORTE DOIT ÊTRE SOUS LE DOIGT — ET CE N'EST PLUS LA BARRE.
+     *
+     * La barre portait un bouton « Exporter » que la feuille recouvrait :
+     * z-index 9 contre 8, et un panneau qui descend jusqu'en bas. On ouvrait
+     * « Export », on choisissait « Vidéo », on pressait — et le doigt tombait
+     * sur la feuille. Rien ne partait, rien ne le disait.
+     *
+     * Depuis, `#export` vit DANS la feuille Export, et la barre n'a plus que
+     * ses quatre onglets. Deux choses doivent donc tenir : le bouton qui
+     * exporte se voit et reçoit le clic une fois la feuille ouverte, et les
+     * onglets restent atteignables pour passer de l'un à l'autre.
+     *
+     * Ces cas n'interrogent pas le style mais le DOIGT : qui reçoit vraiment
+     * le clic. Un z-index juste qu'un panneau recouvre quand même serait vert
+     * sur une mesure et faux sous le doigt. */
+    var recoitLeClic = function (sel) {
+      var b = $(sel);
+      if (!b || b.offsetParent === null) return false;
+      var r = b.getBoundingClientRect();
+      var el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      return el === b || b.contains(el);
+    };
+    $('#barre button[data-feuille="format"]').click();
+    await attends(300);
+    ok('téléphone · le bouton qui exporte est dans la feuille Export, et reçoit le clic',
+       recoitLeClic('#export'),
+       $('#export') ? ($('#export').offsetParent === null ? 'invisible ici' : 'recouvert')
+                    : 'bouton absent');
+    ok('téléphone · la barre n’a plus qu’un seul mot « Export »  (' +
+       Array.prototype.map.call(document.querySelectorAll('#barre button'),
+         function (b) { return b.textContent.trim(); }).join(' | ') + ')',
+       document.querySelectorAll('#barre button').length === 4);
+    $('#feuille-fermer').click();
+    await attends(200);
+    var couverts = [];
+    for (var iz = 0; iz < ['style', 'teintes', 'texte', 'format'].length; iz++) {
+      var zone = ['style', 'teintes', 'texte', 'format'][iz];
+      $('#barre button[data-feuille="' + zone + '"]').click();
+      await attends(250);
+      if (!recoitLeClic('#barre button[data-feuille="style"]')) couverts.push(zone);
+      $('#feuille-fermer').click();
+      await attends(200);
+    }
+    ok('téléphone · les onglets restent atteignables, chaque panneau ouvert',
+       couverts.length === 0,
+       'recouverts quand on ouvre : ' + couverts.join(', '));
     ok('téléphone · la colonne est masquée',
        getComputedStyle(document.querySelector('aside')).display === 'none');
     $('#barre button[data-feuille="style"]').click();

@@ -290,6 +290,9 @@
   function rendLibrary() {
     var box = $('#library');
     var entrees = Library.list();
+    /* Le bouton du relief suit la bibliothèque : il n'a de sens qu'avec
+     * une sortie chargée, et il doit redire son état quand elle change. */
+    if (A.majRelief) A.majRelief();
     box.className = entrees.length > 1 ? 'on' : '';
     if (entrees.length < 2) { box.innerHTML = ''; return; }
     box.innerHTML = '';
