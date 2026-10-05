@@ -1033,7 +1033,15 @@
   var groupes = document.querySelectorAll('.groupes-style button');
   for (var g = 0; g < groupes.length && !famille; g++) {
     groupes[g].click();
-    await attends(320);
+    /* ON ATTEND QUE LE GROUPE AIT REDESSINE SES CARTES, pas 320 ms.
+     *
+     * C'est cette attente-la qui decide si la carte existe — et sous la charge
+     * d'une execution complete, six passages a la suite, le catalogue n'avait
+     * pas fini. `querySelector` rendait null, la boucle passait au groupe
+     * suivant, et le cas se sautait sur « famille introuvable ». */
+    await jusqua(function () {
+      return document.querySelectorAll('#choix-style .familles .carte-style').length > 0;
+    }, 5000);
     var cible = document.querySelector('#choix-style .familles [data-id="medaillon"]');
     if (!cible) continue;
     cible.click();
@@ -1046,8 +1054,13 @@
     famille = await jusqua(function () { return $('#tpl').value === 'medaillon'; }, 6000);
   }
   if (!famille) {
-    resultats.push({ cas: 'variantes · Médaillon', verdict: 'sauté',
-                     detail: 'famille introuvable dans le catalogue' });
+    /* PAS « sauté » : ÉCHEC. Médaillon est dans le catalogue — une garde du
+     * harnais le vérifie. Ne pas l'atteindre est donc un défaut, pas une
+     * condition absente, et l'annoncer comme un saut l'a laissé passer deux
+     * exécutions de suite en se déplaçant d'une largeur à l'autre. */
+    ok('variantes · Médaillon est atteignable dans le catalogue', false,
+       'ouvert ' + groupes.length + ' groupes sans trouver la carte, ou sans que ' +
+       '#tpl la prenne');
   } else {
     await attends(500);
     var vCartes = document.querySelectorAll('#choix-style .variantes .carte-style');
