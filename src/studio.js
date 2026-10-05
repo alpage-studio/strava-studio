@@ -566,9 +566,13 @@
        * s'animent sans qu'aucun ne le sache. */
       route: function (fullRoute, box, opt) {
         if (!fullRoute || !fullRoute.pts.length) return;
+        /* L'AVANCEMENT PEUT ÊTRE DIT, pas seulement subi. Une planche qui
+         * fait apparaître deux choses l'une après l'autre a besoin de
+         * découper le temps : sans ça, tout démarre et finit ensemble. */
+        var av = (opt && opt.progress != null) ? opt.progress : state.progress;
         var route = fullRoute;
-        if (state.progress < 1) {
-          var n = Math.max(2, Math.ceil(fullRoute.pts.length * state.progress));
+        if (av < 1) {
+          var n = Math.max(2, Math.ceil(fullRoute.pts.length * av));
           route = { pts: fullRoute.pts.slice(0, n), aspect: fullRoute.aspect };
         }
         opt = opt || {};
@@ -608,9 +612,12 @@
        * a peu pres serait pire que de n'en poser aucune : une carte fausse
        * ne se denonce pas, elle se croit.
        *
-       * Les courbes ne suivent PAS `state.progress` : le terrain est la
-       * avant le parcours et n'a pas a se dessiner avec lui. C'est le
-       * trace qui avance sur un relief deja pose. */
+       * LES COURBES NE SUIVENT PAS `state.progress` par defaut : le terrain
+       * est la avant le parcours et n'a pas a se dessiner avec lui. Mais on
+       * peut lui DIRE un avancement, et alors il monte par l'ALTITUDE —
+       * des vallees vers les sommets, comme une eau qui baisse. Decouvrir
+       * les courbes dans leur ordre de calcul n'aurait montre qu'un
+       * grouillement ; par l'altitude, c'est le terrain qui se revele. */
       relief: function (relief, route, box, opt) {
         if (!relief || !relief.courbes || !relief.courbes.length) return 0;
         if (!route || !route.proj) return 0;
@@ -618,6 +625,13 @@
         var p = route.proj, c = cadre(box, opt.pad);
         var decX = (p.s - p.w) / (2 * p.s), decY = (p.s - p.h) / (2 * p.s);
         var tracees = 0;
+        var av = opt.progress == null ? 1 : Math.max(0, Math.min(1, opt.progress));
+        var plafond = null;
+        if (av < 1) {
+          var bas = relief.altMin == null ? 0 : relief.altMin;
+          var haut = relief.altMax == null ? bas : relief.altMax;
+          plafond = bas + (haut - bas) * av;
+        }
         ctx.save();
         /* LES COURBES TIENNENT DANS LEUR CADRE.
          *
@@ -632,6 +646,7 @@
         relief.courbes.forEach(function (co) {
           if (!co.pts || co.pts.length < 2) return;
           if (opt.maitressesSeules && !co.maitresse) return;
+          if (plafond != null && co.alt > plafond) return;
           ctx.beginPath();
           var dehors = true;
           co.pts.forEach(function (ll, i) {

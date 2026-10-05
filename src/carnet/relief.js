@@ -25,8 +25,8 @@
   'use strict';
 
   var MARGE = 2500;            // m autour du parcours
-  var EQUIDISTANCE = 100;      // m entre deux courbes
-  var MAITRESSE = 500;         // une courbe sur cinq, plus appuyée
+  var EQUIDISTANCE = 100;      // m entre deux courbes (defaut)
+  var MAITRESSE = 500;         // une courbe sur cinq, plus appuyée (defaut)
   var ECART_MAX = 60;          // m : au-delà, la grille ne couvre pas le parcours
   var PARALLELE = 3;           // requêtes simultanées
 
@@ -122,11 +122,31 @@
 
   /* préparer(points, opts) → Promise<relief>
    *   points : [{ lat, lon, ele }] — la trace
-   *   opts   : { pas = 150, format = 1.3, progres(k), versPng(gris, larg, haut) → dataURL }
-   * Rend l'objet que le carnet attend (courbes et ombrage en lat/lon). */
+   *   opts   : { pas = 150, format = 1.3, equidistance, progres(k),
+   *              versPng(gris, larg, haut) → dataURL,
+   *              altitude(e, n) → m — D'OÙ VIENT LE TERRAIN }
+   * Rend l'objet que le carnet attend (courbes et ombrage en lat/lon).
+   *
+   * L'OPTION `altitude` EXISTE POUR L'EXEMPLE EMBARQUÉ, et elle est écrite
+   * ici plutôt qu'ailleurs pour une raison : le relief d'exemple doit
+   * passer par LE MÊME calcul que le vrai — mêmes courbes, même
+   * simplification, même contrôle. Un second générateur aurait produit
+   * des données de forme voisine, et la planche aurait fini par ne bien
+   * dessiner que l'un des deux.
+   *
+   * Quand elle est fournie, RIEN ne part sur le réseau. Ce que le relief
+   * rend porte alors sa `source`, et c'est elle qui doit être affichée —
+   * écrire « swisstopo » sous un terrain inventé serait un mensonge. */
   function preparer(pts, opts) {
     opts = opts || {};
     var PAS = Math.max(60, opts.pas || 150), FORMAT = opts.format || 1.3;
+    /* L'EQUIDISTANCE SUIT LA GRILLE, elle ne la depasse pas.
+     * Tracer une courbe tous les 25 m sur une grille echantillonnee tous
+     * les 150 m ne revele rien : cela DESSINE du detail que la mesure ne
+     * contient pas, et une carte fausse ne se denonce pas. On refuse donc
+     * plus fin que le tiers du pas, en metres d'altitude. */
+    var EQUI = Math.max(Math.round(PAS / 3), opts.equidistance || EQUIDISTANCE);
+    var MAIT = opts.maitresse || Math.max(EQUI * 5, MAITRESSE);
     if (!pts || !pts.length) return Promise.reject(new Error('aucun point dans la trace'));
     var lv = pts.map(function (p) { return versLV95(p.lat, p.lon); });
     var es = lv.map(function (p) { return p.e; }), ns = lv.map(function (p) { return p.n; });
@@ -144,7 +164,16 @@
 
     // la grille : ligne 0 au NORD, pour qu'elle se lise comme une image
     var grille = new Array(larg * haut).fill(null), suivante = 0, faites = 0;
+    if (typeof opts.altitude === 'function') {
+      for (var jj = 0; jj < haut; jj++) {
+        for (var ii = 0; ii < larg; ii++) {
+          grille[jj * larg + ii] = opts.altitude(eMin + ii * PAS, nMax - jj * PAS);
+        }
+        if (opts.progres) opts.progres((jj + 1) / haut);
+      }
+    }
     function travailleur() {
+      if (typeof opts.altitude === 'function') return Promise.resolve();
       if (suivante >= haut) return Promise.resolve();
       var j = suivante++;
       return ligne(eMin, eMax, nMax - j * PAS, larg).then(function (alts) {
@@ -174,8 +203,10 @@
       function q(f) { return ecarts.length ? Math.round(ecarts[Math.floor(ecarts.length * f)]) : null; }
       var controle = { points: ecarts.length, ecartMedian: q(0.5), ecartP90: q(0.9), cellulesVides: vides };
       if (controle.ecartMedian == null || controle.ecartMedian > ECART_MAX) {
-        var err = new Error('le relief swisstopo ne correspond pas à ce parcours (écart médian ' + controle.ecartMedian +
-          ' m) — il ne couvre que la Suisse et ses abords');
+        var err = new Error(typeof opts.altitude === 'function'
+          ? 'le relief fourni ne correspond pas à ce parcours (écart médian ' + controle.ecartMedian + ' m)'
+          : 'le relief swisstopo ne correspond pas à ce parcours (écart médian ' + controle.ecartMedian +
+            ' m) — il ne couvre que la Suisse et ses abords');
         err.controle = controle;
         throw err;
       }
@@ -183,11 +214,11 @@
       var zmin = Infinity, zmax = -Infinity;
       grille.forEach(function (v) { if (v != null) { zmin = Math.min(zmin, v); zmax = Math.max(zmax, v); } });
       var sortieCourbes = [];
-      for (var z = Math.ceil(zmin / EQUIDISTANCE) * EQUIDISTANCE; z <= zmax; z += EQUIDISTANCE) {
+      for (var z = Math.ceil(zmin / EQUI) * EQUI; z <= zmax; z += EQUI) {
         courbes(grille, larg, haut, z).forEach(function (l) {
           var s = simplifier(l, 0.18);   // en cellules : ~27 m au pas de 150 m
           sortieCourbes.push({
-            alt: z, maitresse: z % MAITRESSE === 0,
+            alt: z, maitresse: z % MAIT === 0,
             pts: s.map(function (c) { var wg = versWGS(eMin + c[0] * PAS, nMax - c[1] * PAS); return [+wg.lat.toFixed(5), +wg.lon.toFixed(5)]; })
           });
         });
@@ -209,8 +240,11 @@
       var no = versWGS(eMin, nMax), se = versWGS(eMax, nMin);
       return Promise.resolve(opts.versPng ? opts.versPng(gris, larg, haut) : versPngNavigateur(gris, larg, haut)).then(function (png) {
         return {
-          source: 'swisstopo · geo.admin.ch profile.json (COMB : swissALTI3D + DHM25)',
-          pas: PAS, equidistance: EQUIDISTANCE, maitresse: MAITRESSE,
+          source: opts.source ||
+            (typeof opts.altitude === 'function'
+              ? 'terrain fourni — ni mesuré ni swisstopo'
+              : 'swisstopo · geo.admin.ch profile.json (COMB : swissALTI3D + DHM25)'),
+          pas: PAS, equidistance: EQUI, maitresse: MAIT,
           altMin: Math.round(zmin), altMax: Math.round(zmax),
           controle: controle,
           courbes: sortieCourbes,

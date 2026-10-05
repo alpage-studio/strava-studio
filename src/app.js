@@ -1210,6 +1210,18 @@
            * n'est charge. Il n'entre PAS dans la bibliotheque — l'application
            * reste vide, le studio ne pretend pas qu'on a pedale quelque part —
            * et les cartes le disent en toutes lettres. */
+          /* LE TERRAIN DE L'EXEMPLE ARRIVE AVEC L'EXEMPLE.
+           *
+           * Sans lui, la vignette de Topographie montrait un parcours sans
+           * relief — c'est-à-dire la planche qui ne fait pas ce qu'elle
+           * annonce, au premier écran et pour tout le monde. On ne choisit
+           * pas une planche sur une image qui ne la montre pas.
+           *
+           * Il est INVENTÉ, et la planche l'écrit : « terrain d'exemple »,
+           * jamais « swisstopo ». Le vrai relief refuse cette sortie, dont
+           * les altitudes ne correspondent à aucun terrain réel — et c'est
+           * le contrôle qui marche, pas un défaut. */
+          if (window.EXEMPLE_RELIEF) act.relief = window.EXEMPLE_RELIEF;
           E.exemple = act;
           if (A.construitChoixStyle && $('#choix-style')) A.construitChoixStyle();
 

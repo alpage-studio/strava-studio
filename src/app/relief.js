@@ -80,10 +80,29 @@
       if (!ok) return;
 
       b.disabled = true;
-      Relief.preparer(a.track, {
-        progres: function (k) {
-          if (note) note.textContent = T('swisstopo… {p} %').replace('{p}', Math.round(k * 100));
-        }
+      /* LE PLUS FIN QUE LE PARCOURS PERMETTE, et pas un réglage de plus.
+       *
+       * À 50 m d'équidistance le terrain devient une carte ; à 100 m c'est une
+       * esquisse. Mais une grille fine sur un parcours étendu demande quatre
+       * fois plus de requêtes, et le calcul REFUSE au-delà d'une certaine
+       * surface — à juste titre.
+       *
+       * Plutôt que de faire choisir entre deux nombres qui ne disent rien
+       * avant d'avoir vu le résultat, on demande le fin, et on retombe sur le
+       * large quand le parcours est trop grand. Ce qui a servi est écrit sous
+       * le bouton : l'équidistance obtenue, pas celle demandée. */
+      function demande(pas, equi) {
+        return Relief.preparer(a.track, {
+          pas: pas, equidistance: equi,
+          progres: function (k) {
+            if (note) note.textContent = T('swisstopo… {p} %').replace('{p}', Math.round(k * 100));
+          }
+        });
+      }
+      demande(75, 50).catch(function (e) {
+        if (!/trop étendu/.test(e.message)) throw e;
+        if (note) note.textContent = T('Parcours étendu : relief à 100 m.');
+        return demande(150, 100);
       }).then(function (r) {
         a.relief = r;
         majRelief();

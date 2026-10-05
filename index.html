@@ -428,7 +428,7 @@
   :root { --h-barre: calc(74px + env(safe-area-inset-bottom)); }
   #barre {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
     background: var(--panel); border-top: 1px solid var(--line);
   }
@@ -989,9 +989,8 @@
        ressemble l'image, ce qui est écrit dessus, ce qu'on produit. Les mêmes
        quatre, et les mêmes mots, que les titres de la colonne sur grand écran
        — ils disaient six choses d'un côté et quatre de l'autre. -->
-  <button type="button" data-feuille="activite">Activité</button>
+  <button type="button" data-feuille="import">Import</button>
   <button type="button" data-feuille="planche">Planche</button>
-  <button type="button" data-feuille="texte">Texte</button>
   <!-- UN SEUL « EXPORT », ET LE BOUTON QUI EXPORTE EST DEDANS.
 
        La barre portait un onglet « Export » et, juste à côté, un bouton
@@ -1014,9 +1013,8 @@
       <button type="button" id="feuille-fermer">Voir le résultat</button>
     </div>
     <div class="corps">
-      <div class="zone" data-zone="activite"></div>
+      <div class="zone" data-zone="import"></div>
       <div class="zone" data-zone="planche"></div>
-      <div class="zone" data-zone="texte"></div>
       <div class="zone" data-zone="export"></div>
     </div>
   </div>
@@ -1027,7 +1025,10 @@
     <div class="scroll">
 
       <section id="section-activite">
-        <h2>Activité</h2>
+        <!-- IMPORT, et non « Activité » : le mot dit le GESTE qu'on fait ici
+             — déposer un fichier, se connecter, demander le relief — et non
+             la chose qu'on obtient. C'est la première des trois questions. -->
+        <h2>Import</h2>
         <div id="strava">
           <div id="strava-state" class="muted" data-brut>Strava — vérification…</div>
           <select id="strava-list" data-brut style="margin-top: 9px; display: none"></select>
@@ -1258,7 +1259,9 @@
       </section>
 
       <section>
-        <h2>Texte</h2>
+        <!-- Le texte n'est pas un groupe : c'est un réglage de la planche,
+             au même titre que ses teintes. -->
+        <h3>Texte</h3>
         <div id="opts-texte"></div>
       </section>
 
@@ -1532,6 +1535,10 @@
 <!-- Le calcul du relief est celui du Carnet, le MÊME fichier : deux
      reliefs écrits deux fois finiraient par ne pas dire la même chose. -->
 <script src="src/carnet/relief.js"></script>
+<!-- Le terrain de la sortie d'exemple, pour que la vignette de
+     Topographie montre ce que la planche fait avant tout chargement.
+     Il est INVENTÉ et la planche l'écrit. Voir tools/make-exemple-relief.js. -->
+<script src="src/exemple-relief.js"></script>
 <script src="src/app/relief.js"></script>
 <script src="src/app/demarrage.js"></script>
 

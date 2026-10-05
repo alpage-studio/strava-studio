@@ -31,34 +31,54 @@
    * non dans les templates, qui n'ont pas à connaître le rangement du
    * magasin. Tout template absent d'un groupe retombe dans « Autres » — en
    * ajouter un ne peut donc pas le faire disparaître de l'interface. */
+  /* RANGÉ PAR CE QUE LA PLANCHE EST, et non par l'ordre où elle est arrivée.
+   *
+   * « Affiches » était devenu le tiroir du fond : dix-neuf planches sur
+   * quarante-six, dont les huit venues de design/ et Topographie — une CARTE,
+   * rangée parmi les affiches avec un commentaire qui justifiait l'erreur. Un
+   * groupe qui contient 40 % du catalogue ne range plus rien.
+   *
+   * Les sept groupes répondent chacun à « qu'est-ce que je regarde ? » :
+   *   Affiches            le nom et le nombre, la typographie mène
+   *   Tracés              le parcours comme dessin, c'est lui le sujet
+   *   Profils et données  l'altitude, l'effort, ce que la trace mesure
+   *   Terrain             le sol autour du parcours — swisstopo
+   *   Plusieurs sorties   ce qui demande une période (elles vivent dans Atlas)
+   *   Films et son        ce qui dure dans le temps
+   *   Voile compris       celles qui garantissent la lisibilité sur photo
+   *
+   * TERRAIN N'A QU'UNE PLANCHE, et c'est volontaire : elle est la seule à
+   * demander une donnée extérieure, et la ranger ailleurs revenait à la
+   * cacher. Un groupe d'une planche se voit ; une planche mal rangée, non.
+   *
+   * Le regroupement est de la NAVIGATION, pas de la donnée : il vit ici et
+   * non dans les templates, qui n'ont pas à connaître le rangement du
+   * magasin. Tout template absent d'un groupe retombe dans « Autres » — en
+   * ajouter un ne peut donc pas le faire disparaître de l'interface, et une
+   * garde du harnais vérifie qu'aucun n'y tombe par accident. */
   var GROUPES_STYLE = [
     { id: 'affiches', nom: 'Affiches',
-      ids: ['encre', 'empreinte', 'mots', 'editorial', 'trace', 'chiffres',
-            'allumettes', 'pente', 'radiale', 'sommet-ligne', 'sommet-barres',
-            /* Les huit mises en page venues de design/. Elles rejoignent les
-             * Affiches et non un groupe à part : ce qui les distingue est
-             * l'arrangement, pas le sujet. */
-            'affiche', 'bandes', 'diagonale', 'grille', 'main', 'photo',
-            'pied-lourd', 'trace-dominante',
-            /* La seule qui demande une donnée extérieure — swisstopo. Elle
-             * reste dans les Affiches : c'est bien une affiche d'UNE sortie,
-             * et la ranger à part suggérerait un outil qu'elle n'est pas. */
-            'topo'] },
-    { id: 'cartes', nom: 'Cartes',
-      ids: ['medaillon', 'atlas', 'metro', 'exploration', 'sous-bois', 'trame'] },
-    { id: 'reliefs', nom: 'Reliefs et données',
-      ids: ['strates', 'gravure', 'gravure-puissance', 'versants', 'ressenti', 'almanac', 'tissage'] },
-    { id: 'souvenirs', nom: 'Souvenirs',
-      ids: ['saisons', 'serie', 'fresque'] },
+      ids: ['encre', 'editorial', 'chiffres', 'mots', 'affiche', 'bandes',
+            'diagonale', 'grille', 'pied-lourd', 'photo'] },
+    { id: 'traces', nom: 'Tracés',
+      ids: ['trace', 'trace-dominante', 'empreinte', 'medaillon', 'radiale',
+            'allumettes', 'trame', 'sous-bois'] },
+    { id: 'donnees', nom: 'Profils et données',
+      ids: ['gravure', 'gravure-puissance', 'versants', 'ressenti', 'pente',
+            'sommet-ligne', 'sommet-barres', 'main'] },
+    { id: 'terrain', nom: 'Terrain',
+      ids: ['topo'] },
+    { id: 'periode', nom: 'Plusieurs sorties',
+      ids: ['almanac', 'atlas', 'saisons', 'serie', 'fresque', 'metro',
+            'exploration', 'strates', 'tissage'] },
     { id: 'films', nom: 'Films et son', ids: ['film', 'partition'] },
-    /* CE QUI DISTINGUE CETTE FAMILLE N'EST PLUS LA TRANSPARENCE.
+    /* CE QUI DISTINGUE CETTE FAMILLE N'EST PAS LA TRANSPARENCE.
      *
      * Toutes les planches se posent sur une photo depuis que le support est
      * global : appeler ces huit-là « Surcouches » laissait croire aux autres
      * qu'elles ne le pouvaient pas. Ce qu'elles ont en propre, et que la
      * mesure montre, c'est leur VOILE : elles couvrent 19 à 68 % du cadre là
-     * où les autres en laissent 91 à 98 % nus. Elles garantissent la
-     * lisibilité sans qu'on ait à y penser. */
+     * où les autres en laissent 91 à 98 % nus. */
     { id: 'surcouches', nom: 'Voile compris',
       ids: ['ov-filet', 'ov-profil', 'ov-trace', 'ov-ardoise', 'ov-heros',
             'ov-tranche', 'ov-sommet-ligne', 'ov-sommet-barres'] }

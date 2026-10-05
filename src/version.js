@@ -11,7 +11,7 @@
  * Un `var` de premier niveau fonctionne dans les deux portées — la fenêtre
  * comme le service worker. Ne pas passer en `const` ou en module.
  */
-var STUDIO_VERSION = '3.17.15';
+var STUDIO_VERSION = '3.17.16';
 var STUDIO_DATE = '02.10.2026';
 
 /* ---------- le journal ----------
@@ -34,6 +34,13 @@ var STUDIO_DATE = '02.10.2026';
  * Ordre : la plus récente en tête.
  */
 var STUDIO_JOURNAL = [
+  { v: '3.17.16', d: '05.10.2026', points: [
+    'TROIS GROUPES DE RÉGLAGES AU LIEU DE QUATRE : Import, Planche, Export. Le texte n’était pas un groupe — c’est un réglage de la planche comme ses teintes, et il obligeait à l’aller-retour entre deux panneaux pour écrire un titre sur l’image qu’on règle.',
+    'LE CATALOGUE EST RANGÉ PAR CE QUE LES PLANCHES SONT. « Affiches » portait dix-neuf planches sur quarante-six, dont une carte : un groupe qui contient 40 % du catalogue ne range plus, il cache. Sept groupes maintenant — Affiches, Tracés, Profils et données, Terrain, Plusieurs sorties, Films et son, Voile compris — et un contrôle refuse qu’un seul dépasse le tiers.',
+    'LE RELIEF EST DEUX FOIS PLUS FIN. L’équidistance passe de 100 à 50 m quand le parcours le permet, et retombe toute seule à 100 m sur les très longs trajets, en le disant. On ne choisit plus un nombre avant d’avoir vu le résultat. Un plancher interdit d’aller plus fin que le tiers de la grille : en dessous, on dessinerait du relief que la mesure ne contient pas.',
+    'LE TERRAIN S’ANIME. Les courbes montent des vallées vers les sommets, puis le tracé se dessine dessus. Les dévoiler dans leur ordre de calcul n’aurait montré qu’un grouillement ; par l’altitude, c’est le terrain qui se révèle. Trois réglages, dont « les deux ensemble » et « le tracé seul ».',
+    'LA VIGNETTE DE TOPOGRAPHIE MONTRE ENFIN CE QUE LA PLANCHE FAIT. Elle affichait un parcours sans relief tant que rien n’était chargé — c’est-à-dire au premier écran, pour tout le monde. La sortie d’exemple porte désormais son terrain. Il est INVENTÉ, et la planche l’écrit : « terrain d’exemple », jamais « swisstopo ». Le vrai relief refuse cette sortie, dont les altitudes ne correspondent à aucun terrain réel — et c’est le contrôle qui marche.'
+  ] },
   { v: '3.17.15', d: '05.10.2026', points: [
     'LES RÉGLAGES SE RANGENT EN QUATRE GROUPES, ET CE SONT LES MÊMES SUR TÉLÉPHONE ET SUR GRAND ÉCRAN : Activité, Planche, Texte, Export. La colonne en portait six, plus un bloc d’export sans titre du tout ; le téléphone en avait quatre. Les deux ne se correspondaient pas, et c’était le même produit.',
     'Chaque groupe répond maintenant à une seule question. ACTIVITÉ : d’où vient la sortie — le GPX, Strava, intervals, le relief. PLANCHE : à quoi ressemble l’image — le catalogue, ses réglages, les teintes, la photo dessous, le support. TEXTE : ce qui est écrit dessus. EXPORT : ce qu’on produit, et le bouton qui le produit.',

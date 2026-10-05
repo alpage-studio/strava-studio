@@ -205,6 +205,69 @@ function testsCoherence() {
 
   /* Un template ajouté à index.html mais oublié dans SHELL ne fonctionne
    * pas hors ligne — et personne ne s'en aperçoit avant l'avion. */
+  /* AUCUN FICHIER DEUX FOIS DANS LE SHELL.
+   *
+   * `src/carnet/relief.js` y a figuré en double pendant une version : il sert
+   * aux deux outils, et il a été ajouté une seconde fois avec les fichiers de
+   * Trace sans qu'on voie qu'il était déjà là plus bas, avec ceux du Carnet.
+   * Rien ne cassait — `cache.add` deux fois est sans effet — et c'est bien le
+   * problème : une liste qui se répète ne se remarque jamais, et la suivante
+   * sera une vraie divergence (deux chemins pour un fichier déplacé).
+   *
+   * Ce cas a été écrit APRÈS coup, sur un défaut commis, pas prévu. */
+  (function () {
+    /* UNIQUEMENT LE TABLEAU SHELL, et pas tout le fichier : `importScripts`,
+     * `c.match('./index.html')` et jusqu'aux commentaires citent les memes
+     * chemins. Premiere version de ce cas : trois faux doublons, sur un
+     * controle qui mesurait le fichier au lieu de la liste. */
+    const dSh = sw.indexOf('SHELL = [');
+    const fSh = sw.indexOf('\n];', dSh);
+    const liste = (sw.slice(dSh, fSh).match(/'\.\/[^']+'/g) || [])
+      .map(function (x) { return x.slice(1, -1); });
+    const vus = {}, doubles = [];
+    liste.forEach(function (f) {
+      if (vus[f] && doubles.indexOf(f) < 0) doubles.push(f);
+      vus[f] = true;
+    });
+    ok('sw.js · aucun fichier listé deux fois  (' + liste.length + ' entrées)',
+       doubles.length === 0, doubles.join(', '));
+  }());
+
+  /* LE TERRAIN DE L'EXEMPLE NE SE FAIT PAS PASSER POUR SWISSTOPO.
+   *
+   * La vignette de Topographie a besoin d'un relief avant tout chargement, et
+   * celui-là est INVENTÉ : il interpole les altitudes de la trace d'exemple.
+   * Écrire « swisstopo » dessous serait un faux au nom de l'office fédéral de
+   * topographie — et la planche écrit ce crédit sans jamais le masquer.
+   *
+   * Deux choses se vérifient donc : que la source embarquée ne contient pas
+   * le mot, et que la planche LIT cette source au lieu de la supposer. La
+   * seconde est la vraie : une planche qui écrirait « swisstopo » en dur
+   * serait verte sur la première. */
+  (function () {
+    const f = path.join(ROOT, 'src', 'exemple-relief.js');
+    if (!fs.existsSync(f)) { saute('exemple · relief embarqué', 'fichier absent'); return; }
+    const src = fs.readFileSync(f, 'utf8');
+    const m = /window\.EXEMPLE_RELIEF = ([\s\S]*);\s*$/.exec(src);
+    let paquet = null;
+    try { paquet = JSON.parse(m[1]); } catch (e) { /* tant pis */ }
+    ok('exemple · le relief embarqué est lisible  (' +
+       (paquet ? paquet.courbes.length + ' courbes' : '—') + ')',
+       !!(paquet && paquet.courbes && paquet.courbes.length > 50));
+    if (paquet) {
+      ok('exemple · sa source ne dit PAS swisstopo  (« ' + paquet.source + ' »)',
+         !/swisstopo/i.test(paquet.source || ''));
+      ok('exemple · et son écart avec la trace reste petit  (' +
+         paquet.controle.ecartMedian + ' m)',
+         paquet.controle && paquet.controle.ecartMedian < 60);
+    }
+    const topo = fs.readFileSync(path.join(ROOT, 'src', 'templates', 'topo.js'), 'utf8');
+    const corps = topo.slice(topo.indexOf('draw:'));
+    ok('exemple · la planche lit la source au lieu de la supposer',
+       /relief\.source/.test(corps),
+       'topo.js grave un crédit sans consulter `relief.source`');
+  }());
+
   ok('sw.js · tous les scripts d’index.html sont dans SHELL',
      absents.length === 0, 'manquants : ' + absents.join(', '));
 
@@ -603,8 +666,14 @@ function testsCoherence() {
       const sources = fichiers.map(function (f) {
         return fs.readFileSync(path.join(ROOT, f.slice(5, -1)), 'utf8');
       }).join('\n');
+      /* LES NOMS DE GROUPES SE LISENT, ILS NE SE RECOPIENT PAS.
+       * Cette liste etait ecrite en dur ici : renommer un groupe faisait
+       * echouer un controle qui parle des PLANCHES, pour une raison qui n'a
+       * rien a voir avec elles. Les groupes se reconnaissent a leur `id:`. */
+      const idsGroupes = (mg[0].match(/id: '[a-z0-9-]+'/g) || [])
+        .map(function (x) { return x.slice(5, -1); });
       const inconnus = cites.filter(function (id) {
-        if (['affiches', 'cartes', 'reliefs', 'souvenirs', 'films', 'surcouches'].indexOf(id) >= 0) return false;
+        if (idsGroupes.indexOf(id) >= 0) return false;
         return sources.indexOf("id: '" + id + "'") < 0;
       });
       ok('navigation · tout identifiant cité par le catalogue existe',
@@ -681,6 +750,57 @@ function testsCoherence() {
     }
 
     const reg = bac.Studio.all();
+
+    /* CHAQUE PLANCHE EST RANGÉE, DANS UN GROUPE ET UN SEUL.
+     *
+     * Le catalogue a un filet : ce qui n'est dans aucun groupe retombe dans
+     * « Autres ». Le filet empêche la disparition — il n'empêche pas l'oubli,
+     * et une planche dans « Autres » est une planche que personne ne trouve.
+     * Dans l'autre sens, un identifiant rangé mais supprimé du registre laisse
+     * un trou muet : le groupe compte une carte de moins, sans rien dire.
+     *
+     * Ce cas lit le rangement DANS son fichier et le registre DANS le moteur,
+     * puis compare les deux listes. Il a été écrit le jour où « Affiches »
+     * portait dix-neuf planches sur quarante-six, dont une carte. */
+    (function () {
+      const src = fs.readFileSync(path.join(ROOT, 'src', 'app', 'catalogue.js'), 'utf8');
+      const d = src.indexOf('var GROUPES_STYLE = [');
+      const f = src.indexOf('\n  ];', d);
+      if (d < 0 || f < 0) { saute('catalogue · rangement', 'GROUPES_STYLE introuvable'); return; }
+      const litteral = src.slice(src.indexOf('[', d), f + 4)
+        .replace(/\/\*[\s\S]*?\*\//g, '');     // les commentaires, pas les chaînes
+      let groupes;
+      try { groupes = new Function('return ' + litteral)(); }
+      catch (e) { saute('catalogue · rangement', 'littéral illisible : ' + e.message); return; }
+
+      const compte = {};
+      groupes.forEach(function (g) {
+        g.ids.forEach(function (id) { compte[id] = (compte[id] || 0) + 1; });
+      });
+      const ranges = Object.keys(compte);
+      const inscrites = reg.map(function (t) { return t.id; });
+
+      const orphelines = inscrites.filter(function (id) { return !compte[id]; });
+      ok('catalogue · aucune planche ne tombe dans « Autres »  (' +
+         inscrites.length + ' planches, ' + groupes.length + ' groupes)',
+         orphelines.length === 0, 'non rangées : ' + orphelines.join(', '));
+
+      const doubles = ranges.filter(function (id) { return compte[id] > 1; });
+      ok('catalogue · aucune planche rangée deux fois', doubles.length === 0,
+         doubles.join(', '));
+
+      const fantomes = ranges.filter(function (id) { return inscrites.indexOf(id) < 0; });
+      ok('catalogue · aucun groupe ne cite une planche absente', fantomes.length === 0,
+         fantomes.join(', '));
+
+      /* Un groupe qui porte plus du tiers du catalogue ne range plus : il
+       * cache. C'est exactement ce qu'« Affiches » était devenu. */
+      const gros = groupes.filter(function (g) { return g.ids.length > inscrites.length / 3; });
+      ok('catalogue · aucun groupe ne porte plus du tiers des planches  (le plus gros : ' +
+         Math.max.apply(null, groupes.map(function (g) { return g.ids.length; })) + ')',
+         gros.length === 0,
+         gros.map(function (g) { return g.nom + ' (' + g.ids.length + ')'; }).join(', '));
+    }());
     const manquantes = [];
     const DICO = bac.I18N.DICOS.en;
     function verifie(x) {

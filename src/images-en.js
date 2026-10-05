@@ -215,6 +215,7 @@
     'kilomètres parcourus': 'kilometres ridden',
     /* ---------- la planche Topographie ---------- */
     'relief · swisstopo': 'terrain · swisstopo',
+    'terrain d’exemple': 'sample terrain',
     'équidistance {e} m': '{e} m contour interval',
     'sans relief — « Ajouter le relief » dans Activité': 'no terrain — “Add the terrain” under Activity',
 

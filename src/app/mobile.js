@@ -36,18 +36,28 @@
    * Les contrôles ne sont pas DUPLIQUÉS mais DÉPLACÉS — voir plus haut. Une
    * section entière se déplace avec son sous-titre, ce qui évite de lister
    * ses enfants un par un et de les oublier quand elle en gagne un. */
+  /* TROIS GROUPES, TROIS QUESTIONS : d'où vient la trace, à quoi ressemble
+   * l'image, ce qu'on produit. Et les mêmes mots que les titres de la colonne
+   * sur grand écran — un contrôle compare les deux listes.
+   *
+   * « Texte » avait son onglet alors que c'est un réglage de la planche comme
+   * un autre : il obligeait à l'aller-retour entre deux panneaux pour écrire
+   * un titre sur l'image qu'on est en train de régler.
+   *
+   * Les contrôles ne sont pas DUPLIQUÉS mais DÉPLACÉS — voir plus haut. Une
+   * section entière se déplace avec son sous-titre, ce qui évite de lister
+   * ses enfants un par un et de les oublier quand elle en gagne un. */
   var ZONES = {
-    activite: ['#section-activite'],
-    planche:  ['#section-fond', '#section-support',
-               '#choix-style', '#opt-minimal', '#opts',
-               '#opt-collection', '#collection-note', '#opt-teintes',
-               '#opt-photo-nb', '#opts-couleur'],
-    texte:    ['#opts-texte'],
+    import:  ['#section-activite'],
+    planche: ['#section-fond', '#section-support',
+              '#choix-style', '#opt-minimal', '#opts',
+              '#opt-collection', '#collection-note', '#opt-teintes',
+              '#opt-photo-nb', '#opts-couleur', '#opts-texte'],
     /* « Garder » est ici : enregistrer un projet est une sortie, et c'est le
      * seul panneau qui parle de ce qu'on emporte. */
-    export:   ['#opt-langue-images', '#rangee-format', '#opt-placement',
-               '#opt-sortie', '#opt-duree', '#export', '#preview-play',
-               '#son', '#video-state', '#section-garder']
+    export:  ['#opt-langue-images', '#rangee-format', '#opt-placement',
+              '#opt-sortie', '#opt-duree', '#export', '#preview-play',
+              '#son', '#video-state', '#section-garder']
   };
   var placeOrigine = {};        // sélecteur -> { parent, suivant } avant déplacement
   var feuilleOuverte = null;
@@ -102,8 +112,7 @@
     });
     /* « Export » et non « Format » : l'onglet et son panneau portent le
      * même mot, sinon on ouvre Export et on arrive dans Format. */
-    var titres = { activite: 'Activité', planche: 'Planche',
-                   texte: 'Texte', export: 'Export' };
+    var titres = { 'import': 'Import', planche: 'Planche', 'export': 'Export' };
     $('#feuille-titre').textContent = T(titres[z] || '');
     /* Planche est le panneau où l'on REGARDE (le catalogue) au lieu de
      * régler : il a droit à presque tout l'écran. */

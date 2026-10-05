@@ -26,6 +26,13 @@ Studio.template({
     { key: 'courbes', type: 'select', label: 'Courbes de niveau', default: 'toutes',
       choices: [['toutes', 'Toutes les 100 m'], ['maitresses', 'Une sur cinq — 500 m']] },
     { key: 'densite', type: 'range', label: 'Force des courbes', default: 38, min: 10, max: 80 },
+    /* L'APPARITION NE CONCERNE QUE LA VIDÉO ET L'APERÇU ANIMÉ. Sur une
+     * image fixe les trois choix donnent la même planche — c'est voulu :
+     * le réglage décrit le TEMPS, et une image n'en a pas. */
+    { key: 'apparition', type: 'select', label: 'Apparition', default: 'terrain-puis-trace',
+      choices: [['terrain-puis-trace', 'Le terrain monte, puis le tracé'],
+                ['ensemble', 'Les deux ensemble'],
+                ['trace', 'Le tracé seul — terrain posé']] },
     { key: 'titre', type: 'text', label: 'Titre', default: '' }
   ].concat(Alpage.optionsTexte()),
 
@@ -42,15 +49,30 @@ Studio.template({
 
     /* LE TERRAIN D'ABORD, le parcours dessus. L'ordre n'est pas un détail :
      * une trace sous ses courbes se lirait comme une courbe parmi d'autres. */
+    /* DEUX TEMPS, PAS UN. Le terrain monte des vallées vers les sommets
+     * pendant la première moitié ; le parcours se trace pendant la
+     * seconde, avec un recouvrement — sans lui, l'image s'arrête net au
+     * milieu, et ce temps mort se voit plus que les deux mouvements. */
+    var av = s.progress == null ? 1 : s.progress;
+    var avTerrain = 1, avTrace = null;
+    if (o.apparition === 'terrain-puis-trace') {
+      avTerrain = Math.min(1, av / 0.55);
+      avTrace = Math.max(0, (av - 0.45) / 0.55);
+    } else if (o.apparition === 'ensemble') {
+      avTerrain = av;
+    }
+
     var tracees = H.relief(a.relief, a.route, carte, {
       pad: u(2),
       color: Alpage.melange(encre, o.densite / 160),
       colorMaitresse: Alpage.melange(encre, o.densite / 90),
-      maitressesSeules: o.courbes === 'maitresses'
+      maitressesSeules: o.courbes === 'maitresses',
+      progress: avTerrain
     });
 
     if (a.route && a.route.pts && a.route.pts.length) {
-      H.route(a.route, carte, { color: encre, width: u(1.1), pad: u(2), dots: u(0.9) });
+      H.route(a.route, carte, { color: encre, width: u(1.1), pad: u(2), dots: u(0.9),
+                                progress: avTrace });
     }
 
     if (dit.titre) {
@@ -75,14 +97,21 @@ Studio.template({
      * swisstopo donne le terrain : on le dit là où l'image sera regardée, pas
      * seulement dans un panneau que personne ne rouvrira. */
     if (tracees) {
-      /* LE CRÉDIT DE SWISSTOPO NE SE COUPE PAS AVEC LES MENTIONS.
+      /* LE CRÉDIT DU TERRAIN NE SE COUPE PAS AVEC LES MENTIONS, ET IL DIT
+       * LEQUEL.
        *
        * « Texte » décide de ce que NOUS disons de nous : le titre, les
-       * mesures, la fabrication. Le terrain, lui, vient de quelqu'un
-       * d'autre, et sa source se cite. Le laisser derrière un réglage
-       * permettait de publier le travail de swisstopo sans le nommer, par
-       * simple distraction — ce n'est pas notre signature à masquer. */
-      H.text(H.mot('relief · swisstopo'), g.left, g.bottom,
+       * mesures, la fabrication. Le terrain, lui, vient d'ailleurs, et sa
+       * source se cite. Le laisser derrière un réglage permettait de
+       * publier le travail de swisstopo sans le nommer, par distraction.
+       *
+       * Et il ne dit « swisstopo » que si c'est swisstopo : le terrain de
+       * la sortie d'exemple est inventé, et l'écrire au nom de l'office
+       * fédéral de topographie serait un faux. La planche lit donc la
+       * SOURCE que le relief porte, au lieu de la supposer. */
+      var vientDeSwisstopo = /swisstopo/i.test(a.relief.source || '');
+      H.text(vientDeSwisstopo ? H.mot('relief · swisstopo') : H.mot('terrain d’exemple'),
+             g.left, g.bottom,
              H.t('label', { color: Alpage.melange(encre, 0.45) }));
       if (dit.mesures) {
         H.text(H.mot('équidistance {e} m', { e: a.relief.equidistance }), g.right, g.bottom,

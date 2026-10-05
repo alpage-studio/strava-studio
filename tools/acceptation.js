@@ -1037,8 +1037,13 @@
     var cible = document.querySelector('#choix-style .familles [data-id="medaillon"]');
     if (!cible) continue;
     cible.click();
-    await attends(420);
-    famille = $('#tpl').value === 'medaillon';
+    /* ON ATTEND LA CONDITION, PAS UNE DUREE. Avec un sommeil fixe de 420 ms
+     * ce cas se SAUTAIT sur le moteur de Safari en petite largeur — il
+     * concluait « famille introuvable » alors que la carte etait la et
+     * venait d'etre cliquee. Un controle qui depend de la latence ne
+     * controle pas ce qu'il pretend, et sauter est pire qu'echouer : ca ne
+     * se voit pas dans un total vert. */
+    famille = await jusqua(function () { return $('#tpl').value === 'medaillon'; }, 6000);
   }
   if (!famille) {
     resultats.push({ cas: 'variantes · Médaillon', verdict: 'sauté',
@@ -1181,14 +1186,14 @@
       function (h) { return (h.textContent || '').trim(); });
     ok('cohérence · la colonne et la barre nomment les mêmes groupes  (' +
        groupes.join(' · ') + ')',
-       onglets.length === 4 && groupes.join('|') === onglets.join('|'),
+       onglets.length === 3 && groupes.join('|') === onglets.join('|'),
        'colonne [' + groupes.join(' · ') + ']  barre [' + onglets.join(' · ') + ']');
 
     /* Et aucun sous-titre ne doit se faire passer pour un groupe : c'est par
      * là que la colonne en avait gagné six. */
     var sous = document.querySelectorAll('aside section > h3').length;
     ok('cohérence · les sous-titres restent des sous-titres  (' + sous + ' sous « ' +
-       (groupes[1] || '?') + ' »)', sous >= 3);
+       (groupes[1] || '?') + ' »)', sous >= 5);
   } else {
     ok('téléphone · la barre d’outils est là', !$('#barre').hidden);
 
@@ -1223,15 +1228,15 @@
     ok('téléphone · la barre n’a plus qu’un seul mot « Export »  (' +
        Array.prototype.map.call(document.querySelectorAll('#barre button'),
          function (b) { return b.textContent.trim(); }).join(' | ') + ')',
-       document.querySelectorAll('#barre button').length === 4);
+       document.querySelectorAll('#barre button').length === 3);
     $('#feuille-fermer').click();
     await attends(200);
     var couverts = [];
-    for (var iz = 0; iz < ['activite', 'planche', 'texte', 'export'].length; iz++) {
-      var zone = ['activite', 'planche', 'texte', 'export'][iz];
+    for (var iz = 0; iz < ['import', 'planche', 'export'].length; iz++) {
+      var zone = ['import', 'planche', 'export'][iz];
       $('#barre button[data-feuille="' + zone + '"]').click();
       await attends(250);
-      if (!recoitLeClic('#barre button[data-feuille="activite"]')) couverts.push(zone);
+      if (!recoitLeClic('#barre button[data-feuille="import"]')) couverts.push(zone);
       $('#feuille-fermer').click();
       await attends(200);
     }
@@ -1240,7 +1245,7 @@
        'recouverts quand on ouvre : ' + couverts.join(', '));
     ok('téléphone · la colonne est masquée',
        getComputedStyle(document.querySelector('aside')).display === 'none');
-    $('#barre button[data-feuille="activite"]').click();
+    $('#barre button[data-feuille="import"]').click();
     await attends(400);
     ok('téléphone · le panneau s’ouvre', !$('#feuille').hidden);
 
@@ -1257,8 +1262,8 @@
     var onglets = Array.prototype.map.call(
       document.querySelectorAll('#barre button[data-feuille]'),
       function (b) { return b.getAttribute('data-feuille'); });
-    ok('téléphone · quatre onglets  (' + onglets.join(' · ') + ')',
-       onglets.join(',') === 'activite,planche,texte,export');
+    ok('téléphone · trois onglets  (' + onglets.join(' · ') + ')',
+       onglets.join(',') === 'import,planche,export');
 
     /* CHAQUE PANNEAU RÉPOND À UNE SEULE QUESTION, et surtout : rien de ce qui
      * appartient à un autre. Les cas précédents vérifiaient une présence ; ils
@@ -1267,10 +1272,10 @@
       return !!document.querySelector('#feuille .zone[data-zone="' + zone + '"] ' + sel);
     };
 
-    ok('téléphone · Activité porte la source, et rien de la planche',
-       dans('activite', '#gpx') && dans('activite', '#relief-ajouter') &&
-       !dans('activite', '#choix-style') && !dans('activite', '#opt-sortie'),
-       'gpx ' + dans('activite', '#gpx') + ' · relief ' + dans('activite', '#relief-ajouter'));
+    ok('téléphone · Import porte la source, et rien de la planche',
+       dans('import', '#gpx') && dans('import', '#relief-ajouter') &&
+       !dans('import', '#choix-style') && !dans('import', '#opt-sortie'),
+       'gpx ' + dans('import', '#gpx') + ' · relief ' + dans('import', '#relief-ajouter'));
 
     $('#feuille-fermer').click();
     await attends(300);
@@ -1281,10 +1286,12 @@
     /* Les teintes ont rejoint la planche : ce sont des réglages de l'image
      * comme les autres, et les tenir à part obligeait à faire l'aller-retour
      * entre deux panneaux pour un seul choix. */
-    ok('téléphone · Planche porte le catalogue, les teintes, la photo et le support',
+    ok('téléphone · Planche porte le catalogue, les teintes, le texte, la photo et le support',
        dans('planche', '#choix-style') && dans('planche', '#opt-teintes') &&
+       dans('planche', '#opts-texte') &&
        dans('planche', '#section-fond') && dans('planche', '#opt-support'),
        'catalogue ' + dans('planche', '#choix-style') + ' · teintes ' + dans('planche', '#opt-teintes') +
+       ' · texte ' + dans('planche', '#opts-texte') +
        ' · photo ' + dans('planche', '#section-fond') + ' · support ' + dans('planche', '#opt-support'));
 
     ok('téléphone · et RIEN de l’export — c’est l’onglet d’à côté',
